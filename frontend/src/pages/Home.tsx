@@ -1,3 +1,5 @@
+import BrandInfo from '@/components/BrandInfo';
+import { Galary } from '@/components/Gallery';
 import { Button } from '@/components/ui/button'
 import { FaCrown } from "react-icons/fa";
 
@@ -39,7 +41,7 @@ const Home = () => {
                     </div>
 
                     {/* Image Section */}
-                    <div className='fixed opacity-10 md:opacity-100 top-10 md:static w-full lg:max-w-[500px] xl:max-w-[600px] flex justify-center items-end lg:justify-end mt-8 lg:mt-0'>
+                    <div className='hidden md:flex w-full lg:max-w-[500px] xl:max-w-[600px] justify-center items-end lg:justify-end mt-8 lg:mt-0'>
                         <img
                             src="/Hero Image.png"
                             alt="hero image"
@@ -50,7 +52,7 @@ const Home = () => {
             </section>
 
             {/* Content placeholder */}
-            <div className='h-16 z-1 w-full flex justify-between items-center bg-[#E8D7B2] text-foreground px-4 lg:px-8 xl:px-48 2xl:px-96'>
+            <div className='hidden md:flex h-16 z-1 w-full justify-between items-center bg-[#E8D7B2] text-foreground px-4 lg:px-8 xl:px-48 2xl:px-96'>
                 <div className='flex gap-1 font-semibold text-lg items-center'>
                     <FaCrown className='inline mr-2 text-lg md:text-2xl' />
                     <p>Premium Quality</p>
@@ -64,6 +66,15 @@ const Home = () => {
                     <p>Premium Quality</p>
                 </div>
             </div>
+
+            {/* Gallery Section */}
+            <section className='px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-64  font-[Inter]'>
+                <Galary />
+            </section>
+
+            <hr className='my-4 mx-16 h-[6px] bg-accent' />
+
+            <BrandInfo />
         </>
     )
 }
