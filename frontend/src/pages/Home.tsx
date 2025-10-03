@@ -6,7 +6,7 @@ import { FaCrown } from "react-icons/fa";
 
 const Home = () => {
     return (
-        <>
+        <main>
             <section className='px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-48 font-[Inter]'>
                 <div className='flex flex-col md:flex-row justify-between  w-full gap-6 lg:gap-12 pt-8  md:pt-0 lg:pt-16'>
                     {/* Content Section */}
@@ -72,10 +72,10 @@ const Home = () => {
                 <Galary />
             </section>
 
-            <hr className='my-4 mx-16 h-[6px] bg-accent' />
+            <hr className='my-4 mx-4 md:mx-16 h-1 sm:h-[6px] bg-accent' />
 
             <BrandInfo />
-        </>
+        </main >
     )
 }
 

@@ -2,9 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router'
 import './index.css'
-import App from './App.tsx'
 import NavBar from './components/NavBar.tsx'
 import Home from './pages/Home.tsx'
+import Footer from './components/Footer.tsx'
+import ProductListing from './pages/ProductListing.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -12,8 +13,9 @@ createRoot(document.getElementById('root')!).render(
       <NavBar />
       <Routes>
         <Route path='/' element={<Home />} />
-        <Route path='/shop' element={<App />} />
+        <Route path='/shop' element={<ProductListing />} />
       </Routes>
+      <Footer />
     </BrowserRouter>
   </StrictMode>,
 )
