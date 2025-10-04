@@ -42,7 +42,7 @@ input[type=number] {
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
   --muted-foreground: oklch(0.556 0 0);
-  --accent: rgb(201, 163, 75);
+  --accent: #c9a34b;
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
@@ -162,4 +162,32 @@ input[type=number] {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+[data-active="true"] {
+  @apply bg-accent text-foreground hover:bg-accent/80;
+}
+
+@keyframes subtleBounce {
+
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+
+  25% {
+    transform: translateY(-8px) scale(1.02);
+  }
+
+  50% {
+    transform: translateY(-4px) scale(1.01);
+  }
+
+  75% {
+    transform: translateY(-6px) scale(1.015);
+  }
+}
+
+.animate-subtle-bounce {
+  animation: subtleBounce 5s ease-in-out infinite;
 }
