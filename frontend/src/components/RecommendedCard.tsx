@@ -1,13 +1,12 @@
-import { Star } from 'lucide-react'
-import React from 'react'
+import { Star } from "lucide-react"
 
-type PLPCardProps = {
+type RecommendedCardProps = {
     isHovered: Boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
 }
 
-const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
+const RecommendedCard = ({ id, isHovered = false, setHoveredCardId }: RecommendedCardProps) => {
 
     const handleMouseEnter = () => {
         setHoveredCardId(id);
@@ -42,11 +41,6 @@ const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
                     Classic Black Tee
                 </h3>
 
-                {/* Description */}
-                <p className="text-foreground text-xs sm:text-sm mb-4">
-                    In a PLP card (Product Listing Page card),
-                    the goal is to show just.
-                </p>
 
                 {/* Rating and Price Row */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-6">
@@ -76,4 +70,4 @@ const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
     )
 }
 
-export default PLPCard
+export default RecommendedCard

@@ -18,7 +18,7 @@ const NavBar = () => {
     }, [])
 
     return (
-        <header className={`text-secondary transition-colors duration-500 h-16 md:h-24 flex items-center justify-between px-4 lg:px-8 xl:px-48 2xl:px-68 font-[Inter] sticky top-0 z-10
+        <header className={`text-secondary transition-colors duration-500 h-16 md:h-24 flex items-center justify-between px-4 lg:px-8 xl:px-8 2xl:px-48 font-[Inter] sticky top-0 z-10
         ${isScrolled ? "bg-foreground/90 backdrop-blur-md" : "bg-foreground"}`}>
             <div className="flex gap-1 md:gap-2 items-center">
                 <img src="/logo.svg" alt="Logo" className="w-10 md:w-12 aspect-auto" />
