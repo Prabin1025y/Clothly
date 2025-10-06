@@ -3,9 +3,12 @@ import { FaShoppingCart, FaBars } from "react-icons/fa";
 import { Input } from "./ui/input"
 import { Button } from "./ui/button"
 import { useEffect, useState } from "react";
+import { SignedIn, SignedOut, SignUpButton, useAuth, UserButton } from "@clerk/clerk-react";
 
 const NavBar = () => {
     const [ isScrolled, setIsScrolled ] = useState(false);
+
+    const { isLoaded } = useAuth()
 
     useEffect(() => {
         const handleScroll = () => {
@@ -51,9 +54,16 @@ const NavBar = () => {
                 </div>
 
 
-                <Button variant="secondary" size="sm" className="h-6 md:hidden text-sm bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
+                {!isLoaded && <Button disabled={true} variant="secondary" size="sm" className="h-6 md:hidden text-sm bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
                     Sign Up
-                </Button>
+                </Button>}
+                <SignedOut>
+                    <SignUpButton mode="modal" oauthFlow="popup">
+                        <Button disabled={!isLoaded} variant="secondary" size="sm" className="h-6 md:hidden text-sm bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
+                            Sign Up
+                        </Button>
+                    </SignUpButton>
+                </SignedOut>
 
                 <Button variant="ghost" size="icon" className="text-white hover:bg-transparent hover:text-accent cursor-pointer">
                     <FaShoppingCart className="size-4 md:size-6" />
@@ -63,9 +73,21 @@ const NavBar = () => {
                     <FaBars className="size-5 " />
                 </Button>
 
-                <Button variant="secondary" size="sm" className="hidden md:block bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
+                {!isLoaded && <Button disabled={true} variant="secondary" size="sm" className="hidden md:block bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
                     Sign Up
-                </Button>
+                </Button>}
+                <SignedOut>
+                    <SignUpButton mode="modal" oauthFlow="popup">
+                        <Button disabled={!isLoaded} variant="secondary" size="sm" className="hidden md:block bg-secondary text-foreground font-semibold hover:bg-secondary transition-all cursor-pointer hover:shadow-[0px_0px_24px_0px_#f5d282]">
+                            Sign Up
+                        </Button>
+                    </SignUpButton>
+                </SignedOut>
+
+                <SignedIn>
+                    <UserButton />
+                </SignedIn>
+
             </div>
         </header>
     )
