@@ -1,7 +1,34 @@
 import { sql } from "../config/db.js";
+import logger from "../config/logger.js";
 
-export async function initDB() {
+export async function initDB(skip) {
     try {
+
+        // Very cheap metadata check: does the marker table exist?
+        // neon's sql`` returns an array of rows for SELECTs.
+        // const existsRes = await sql`SELECT to_regclass('public._app_initialized') AS marker;`;
+        // const markerPresent = Array.isArray(existsRes) && existsRes[0] && existsRes[0].marker !== null;
+        // console.log(existsRes)
+
+        // if (markerPresent && !force) {
+        //     console.log("DB already initialized — skipping initDB.");
+        //     return;
+        // }
+
+        // if (force && markerPresent) {
+        //     console.log("Force init requested — re-running initialization (dev only).");
+        //     // In dev we remove the marker row so init_* steps run again.
+        //     // NOTE: do NOT drop your real tables here in production.
+        //     await sql`DELETE FROM _app_initialized;`;
+        // }
+
+        if (skip) {
+            logger.info("Skipping db initialiation");
+            return
+        }
+
+        logger.info("Running DB initialization...");
+
         await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
 
         await init_enums();
@@ -30,7 +57,7 @@ export async function initDB() {
         `
 
         await init_product_variants();
-        await init_inventories();
+        // await init_inventories();
         await init_product_details();
         await init_reviews();
         await init_orders();
@@ -61,7 +88,7 @@ export async function initDB() {
         await init_message_threads();
         await init_messages();
 
-        console.log("databse initialized successfully!!");
+        logger.info("databse initialized successfully!!");
     } catch (error) {
         console.log("Error occured while initializing database", error);
     }
@@ -115,7 +142,9 @@ async function init_users() {
             CREATE TABLE IF NOT EXISTS users (
                 id BIGSERIAL PRIMARY KEY,
                 public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
-                email VARCHAR(320) NOT NULL UNIQUE,
+                clerk_id TEXT UNIQUE NOT NULL,
+                image_url TEXT,
+                email VARCHAR(320) NOT NULL,
                 full_name VARCHAR(255) NOT NULL,
                 phone VARCHAR(50),
                 role user_role NOT NULL DEFAULT 'customer',
@@ -130,6 +159,7 @@ async function init_users() {
         `;
 
     await sql`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);`;
+    await sql`CREATE UNIQUE INDEX unique_active_email ON users(email) WHERE deleted_at IS NULL;`;
 }
 
 async function init_shipping_addresses() {
@@ -197,7 +227,6 @@ async function init_product_images() {
             url VARCHAR(2048) NOT NULL,
             alt_text VARCHAR(512),
             is_primary BOOLEAN NOT NULL DEFAULT FALSE,
-            metadata JSONB,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
@@ -214,13 +243,13 @@ async function init_product_variants() {
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
             sku VARCHAR(128) UNIQUE,
             color VARCHAR(128) NOT NULL,
-            color_code VARCHAR(16),
             size VARCHAR(32) NOT NULL,
-            variant_attributes JSONB,
             original_price NUMERIC(12,2),
             current_price NUMERIC(12,2),
-            weight_grams INT,
             barcode VARCHAR(128),
+            available INT NOT NULL DEFAULT 0 CHECK(available >= 0),
+            reserved INT NOT NULL DEFAULT 0 CHECK(reserved >= 0),
+            on_hold INT NOT NULL DEFAULT 0 CHECK(on_hold >= 0),
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP WITH TIME ZONE,
@@ -232,23 +261,20 @@ async function init_product_variants() {
     await sql`CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);`
 }
 
-async function init_inventories() {
-    await sql`
-        CREATE TABLE IF NOT EXISTS inventories(
-            id BIGSERIAL PRIMARY KEY,
-            variant_id BIGINT NOT NULL UNIQUE REFERENCES product_variants(id) ON DELETE CASCADE,
-            available INT NOT NULL DEFAULT 0 CHECK(available >= 0),
-            reserved INT NOT NULL DEFAULT 0 CHECK(reserved >= 0),
-            on_hold INT NOT NULL DEFAULT 0 CHECK(on_hold >= 0),
-            reorder_threshold INT DEFAULT 0,
-            reorder_amount INT DEFAULT 0,
-            last_restocked_at TIMESTAMP WITH TIME ZONE,
-            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-    );
-    `
+// async function init_inventories() {
+//     await sql`
+//         CREATE TABLE IF NOT EXISTS inventories(
+//             id BIGSERIAL PRIMARY KEY,
+//             variant_id BIGINT NOT NULL UNIQUE REFERENCES product_variants(id) ON DELETE CASCADE,
+//             available INT NOT NULL DEFAULT 0 CHECK(available >= 0),
+//             reserved INT NOT NULL DEFAULT 0 CHECK(reserved >= 0),
+//             on_hold INT NOT NULL DEFAULT 0 CHECK(on_hold >= 0),
+//             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+//     );
+//     `
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_inventories_variant ON inventories(variant_id);`
-}
+//     await sql`CREATE INDEX IF NOT EXISTS idx_inventories_variant ON inventories(variant_id);`
+// }
 
 async function init_product_details() {
     await sql`
