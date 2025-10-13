@@ -1,44 +1,29 @@
-import { sql } from "../config/db.js";
+import { pool } from "../config/db.js";
 import logger from "../config/logger.js";
 
 export async function initDB(skip) {
+    if (skip) {
+        logger.info("Skipping db initialiation");
+        return
+    }
+
+    logger.info("Running DB initialization...");
+
+    const client = await pool.connect()
+
     try {
+        await client.query(`BEGIN`);
 
-        // Very cheap metadata check: does the marker table exist?
-        // neon's sql`` returns an array of rows for SELECTs.
-        // const existsRes = await sql`SELECT to_regclass('public._app_initialized') AS marker;`;
-        // const markerPresent = Array.isArray(existsRes) && existsRes[0] && existsRes[0].marker !== null;
-        // console.log(existsRes)
+        await client.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 
-        // if (markerPresent && !force) {
-        //     console.log("DB already initialized — skipping initDB.");
-        //     return;
-        // }
-
-        // if (force && markerPresent) {
-        //     console.log("Force init requested — re-running initialization (dev only).");
-        //     // In dev we remove the marker row so init_* steps run again.
-        //     // NOTE: do NOT drop your real tables here in production.
-        //     await sql`DELETE FROM _app_initialized;`;
-        // }
-
-        if (skip) {
-            logger.info("Skipping db initialiation");
-            return
-        }
-
-        logger.info("Running DB initialization...");
-
-        await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`
-
-        await init_enums();
-        await init_users();
-        await init_shipping_addresses();
-        await init_products();
-        await init_product_images();
+        await init_enums(client);
+        await init_users(client);
+        await init_shipping_addresses(client);
+        await init_products(client);
+        await init_product_images(client);
 
         //add foreign key to to products and product images for main primary image. This is done as product image db is only created now.
-        await sql`
+        await client.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (
@@ -54,15 +39,15 @@ export async function initDB(skip) {
                     ON DELETE SET NULL;
                 END IF;
             END$$;
-        `
+        `)
 
-        await init_product_variants();
-        // await init_inventories();
-        await init_product_details();
-        await init_reviews();
-        await init_orders();
+        await init_product_variants(client);
+        // await init_inventories(client);
+        await init_product_details(client);
+        await init_reviews(client);
+        await init_orders(client);
 
-        await sql`
+        await client.query(`
             DO $$
             BEGIN
                 IF NOT EXISTS (
@@ -78,24 +63,29 @@ export async function initDB(skip) {
                     ON DELETE SET NULL;
                 END IF;
             END$$;
-        `
+        `)
 
-        await init_order_items();
-        await init_carts();
-        await init_cart_items();
-        await init_favourites();
-        await init_notifications();
-        await init_message_threads();
-        await init_messages();
+        await init_order_items(client);
+        await init_carts(client);
+        await init_cart_items(client);
+        await init_favourites(client);
+        await init_notifications(client);
+        await init_message_threads(client);
+        await init_messages(client);
+
+        await client.query("COMMIT");
 
         logger.info("databse initialized successfully!!");
     } catch (error) {
+        await client.query("ROLLBACK");
         console.log("Error occured while initializing database", error);
+    } finally {
+        client.release();
     }
 }
 
-async function init_enums() {
-    await sql`
+async function init_enums(client) {
+    await client.query(`
         DO $$
         BEGIN
             -- user_role
@@ -134,11 +124,11 @@ async function init_enums() {
             END IF;
         END
         $$;
-    `;
+    `);
 }
 
-async function init_users() {
-    await sql`
+async function init_users(client) {
+    await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id BIGSERIAL PRIMARY KEY,
                 public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
@@ -156,14 +146,14 @@ async function init_users() {
                 updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
                 deleted_at TIMESTAMP WITH TIME ZONE
             );
-        `;
+        `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);`;
-    await sql`CREATE UNIQUE INDEX unique_active_email ON users(email) WHERE deleted_at IS NULL;`;
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);`);
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS unique_active_email ON users(email) WHERE deleted_at IS NULL;`);
 }
 
-async function init_shipping_addresses() {
-    await sql`
+async function init_shipping_addresses(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS shipping_addresses (
             id BIGSERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -181,13 +171,13 @@ async function init_shipping_addresses() {
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP WITH TIME ZONE
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_shipping_addresses_user ON shipping_addresses(user_id);`;
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_shipping_addresses_user ON shipping_addresses(user_id);`);
 }
 
-async function init_products() {
-    await sql`
+async function init_products(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS products(
             id BIGSERIAL PRIMARY KEY,
             sku VARCHAR(128) UNIQUE,
@@ -212,15 +202,15 @@ async function init_products() {
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP WITH TIME ZONE
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_products_name ON products USING gin (to_tsvector('english', coalesce(name,'') || ' ' || coalesce(short_description,'')));`
-    await sql`CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_products_name ON products USING gin (to_tsvector('english', coalesce(name,'') || ' ' || coalesce(short_description,'')));`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);`);
 }
 
-async function init_product_images() {
-    await sql`
+async function init_product_images(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS  product_images (
             id BIGSERIAL PRIMARY KEY,
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -230,14 +220,14 @@ async function init_product_images() {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_product_images_primary ON product_images(product_id, is_primary);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_product_images_product ON product_images(product_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_product_images_primary ON product_images(product_id, is_primary);`);
 }
 
-async function init_product_variants() {
-    await sql`
+async function init_product_variants(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS product_variants (
             id BIGSERIAL PRIMARY KEY,
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -255,14 +245,14 @@ async function init_product_variants() {
             deleted_at TIMESTAMP WITH TIME ZONE,
             CONSTRAINT uq_variant_product_color_size UNIQUE (product_id, color, size)
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);`);
 }
 
-// async function init_inventories() {
-//     await sql`
+// async function init_inventories(client) {
+//     await client.query`
 //         CREATE TABLE IF NOT EXISTS inventories(
 //             id BIGSERIAL PRIMARY KEY,
 //             variant_id BIGINT NOT NULL UNIQUE REFERENCES product_variants(id) ON DELETE CASCADE,
@@ -273,30 +263,28 @@ async function init_product_variants() {
 //     );
 //     `
 
-//     await sql`CREATE INDEX IF NOT EXISTS idx_inventories_variant ON inventories(variant_id);`
+//     await client.query`CREATE INDEX IF NOT EXISTS idx_inventories_variant ON inventories(variant_id);`
 // }
 
-async function init_product_details() {
-    await sql`
+async function init_product_details(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS product_details (
             id BIGSERIAL PRIMARY KEY,
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-            sort_order INT NOT NULL DEFAULT 0,
-            text VARCHAR(1024) NOT NULL,
-            CONSTRAINT uq_product_detail_order UNIQUE (product_id, sort_order)
+            text VARCHAR(1024) NOT NULL
         );
-    `
-    await sql`CREATE INDEX IF NOT EXISTS idx_product_details_product ON product_details(product_id);`
+    `);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_product_details_product ON product_details(product_id);`);
 }
 
-async function init_reviews() {
-    await sql`
+async function init_reviews(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS reviews (
             id BIGSERIAL PRIMARY KEY,
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             order_id BIGINT, -- optional FK to orders (defined later)
-            rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+            rating FLOAT NOT NULL CHECK (rating >= 1 AND rating <= 5),
             title VARCHAR(255),
             body TEXT,
             images JSONB,
@@ -306,14 +294,14 @@ async function init_reviews() {
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP WITH TIME ZONE
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(user_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(user_id);`);
 }
 
-async function init_orders() {
-    await sql`
+async function init_orders(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS orders (
             id BIGSERIAL PRIMARY KEY,
             public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
@@ -337,15 +325,15 @@ async function init_orders() {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_orders_placed_at ON orders(placed_at);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_placed_at ON orders(placed_at);`);
 }
 
-async function init_order_items() {
-    await sql`
+async function init_order_items(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS order_items (
             id BIGSERIAL PRIMARY KEY,
             order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -362,29 +350,30 @@ async function init_order_items() {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);`);
 }
 
-async function init_carts() {
-    await sql`
+async function init_carts(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS carts (
             id BIGSERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
             type cart_type NOT NULL DEFAULT 'active',
+            total_price NUMERIC(12,2) NOT NULL DEFAULT 0.00,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             expires_at TIMESTAMP WITH TIME ZONE
         );
-    `
+    `);
 
-    await sql`CREATE UNIQUE INDEX IF NOT EXISTS uq_carts_user_active ON carts(user_id) WHERE (type = 'active');`;
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_carts_user_active ON carts(user_id) WHERE (type = 'active');`);
 }
 
-async function init_cart_items() {
-    await sql`
+async function init_cart_items(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS cart_items (
             id BIGSERIAL PRIMARY KEY,
             cart_id BIGINT NOT NULL REFERENCES carts(id) ON DELETE CASCADE,
@@ -394,13 +383,13 @@ async function init_cart_items() {
             added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_cart_items_cart ON cart_items(cart_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_cart_items_cart ON cart_items(cart_id);`);
 }
 
-async function init_favourites() {
-    await sql`
+async function init_favourites(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS favorites (
             id BIGSERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -408,13 +397,13 @@ async function init_favourites() {
             added_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             UNIQUE (user_id, product_id)
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);`);
 }
 
-async function init_notifications() {
-    await sql`
+async function init_notifications(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS notifications (
             id BIGSERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -426,14 +415,14 @@ async function init_notifications() {
             sent_at TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_notifications_unread ON notifications(user_id, is_read);`);
 }
 
-async function init_message_threads() {
-    await sql`
+async function init_message_threads(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS message_threads (
             id BIGSERIAL PRIMARY KEY,
             thread_key UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
@@ -442,13 +431,13 @@ async function init_message_threads() {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_message_threads_user ON message_threads(user_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_message_threads_user ON message_threads(user_id);`);
 }
 
-async function init_messages() {
-    await sql`
+async function init_messages(client) {
+    await client.query(`
         CREATE TABLE IF NOT EXISTS messages (
             id BIGSERIAL PRIMARY KEY,
             thread_id BIGINT NOT NULL REFERENCES message_threads(id) ON DELETE CASCADE,
@@ -459,10 +448,10 @@ async function init_messages() {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
-    `
+    `);
 
-    await sql`CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id);`
-    await sql`CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);`
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(thread_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id);`);
 }
 
 

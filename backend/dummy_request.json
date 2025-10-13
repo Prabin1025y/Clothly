@@ -1,0 +1,50 @@
+{
+    "add_products": {
+        "sku": "LAPTOP-XPS-13-9315",
+        "name": "Dell XPS 13 (9315) Laptop",
+        "slug": "dell-xps-13-9315",
+        "short_description": "Ultra-portable 13.4-inch laptop with a powerful Intel i7 processor and a sleek, modern design.",
+        "description": "The Dell XPS 13 9315 offers a perfect blend of performance and mobility. It features a stunning InfinityEdge display, 16GB of LPDDR5 RAM, and a fast 512GB SSD. Ideal for professionals and students alike.",
+        "status": "active",
+        "original_price": 185000.00,
+        "current_price": 179999.00,
+        "currency": "NPR",
+        "is_featured": true,
+        "is_returnable": true,
+        "warranty_info": "1-Year Limited Hardware Warranty",
+        "created_by": 5,
+        "images": [
+            {
+                "url": "https://example.com/images/xps13-silver-main.jpg",
+                "alt_text": "Dell XPS 13 in silver, main view",
+                "is_primary": true
+            },
+            {
+                "url": "https://example.com/images/xps13-keyboard-detail.jpg",
+                "alt_text": "Close-up view of the keyboard and trackpad"
+            }
+        ],
+        "variants": [
+            {
+                "sku": "9315-I7-16-512-SLV",
+                "color": "Platinum Silver",
+                "size": "16GB/512GB SSD",
+                "original_price": 185000.00,
+                "current_price": 179999.00,
+                "available": 15,
+                "reserved": 2,
+                "on_hold": 1
+            },
+            {
+                "sku": "9315-I7-32-1TB-SLV",
+                "color": "Platinum Silver",
+                "size": "32GB/1TB SSD",
+                "original_price": 220000.00,
+                "current_price": 209999.00,
+                "available": 8,
+                "reserved": 0,
+                "on_hold": 0
+            }
+        ]
+    }
+}

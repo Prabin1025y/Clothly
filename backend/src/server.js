@@ -9,22 +9,35 @@ import { initDB } from "../database/init.js"
 import webhookRouter from "./routes/webhook.router.js"
 import logger from "../config/logger.js"
 import productsRouter from "./routes/products.router.js"
+import isAdmin from "../middlewares/isAdmin.js"
+import reviewsRouter from "./routes/reviews.router.js"
+import isAuthenticated from "../middlewares/isAuthenticated.js"
+import cartRouter from "./routes/carts.router.js"
 
 const PORT = process.env.PORT
 
 const app = express()
 
 app.use(express.json())
-app.use(cors())
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}))
 app.use(helmet()) //Helmet is security middleware that add extra HTTP headers
 app.use(morgan("dev")) //Used for logging requests
 app.use(clerkMiddleware())
 
 app.use("/api/webhooks", webhookRouter);
 app.use("/api/products", productsRouter);
+app.use("/api/reviews", reviewsRouter)
+app.use("/api/carts", cartRouter);
 
 app.get("/", (req, res) => {
     res.json("Api working fine");
+})
+
+app.get("/api/hello", isAuthenticated, (req, res) => {
+    res.json("this is sensitive")
 })
 
 initDB(true).then(() => {

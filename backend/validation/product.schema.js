@@ -19,6 +19,10 @@ const productVariantSchema = z.object({
     on_hold: z.number().int().nonnegative().default(0)
 })
 
+const productDetailSchema = z.object({
+    text: z.string().min(1, "Product detail's bullet cannot be empty")
+})
+
 export const productSchema = z.object({
     sku: z.string().min(1, "sku of product is required"),
     name: z.string().min(1, "name of product is required"),
@@ -32,7 +36,8 @@ export const productSchema = z.object({
     is_featured: z.boolean().default(false),
     is_returnable: z.boolean().default(true),
     warranty_info: z.string().optional(),
-    created_by: z.number().optional(),
+    created_by: z.number().default(1),
     images: z.array(productImageSchema).min(1, "At least one image is required"),
     variants: z.array(productVariantSchema).min(1, "At least one variant is required"),
+    details: z.array(productDetailSchema).min(1, 'Please enter some details about the product')
 })
