@@ -12,7 +12,7 @@ export const addItemToCart = async (req, res) => {
 
         await client.query("BEGIN");
 
-        const userId = 1; //TODO
+        const userId = req.userId || 1;//TODO: remove 1 during production
 
         const variant_data = await client.query(`
                 SELECT current_price 

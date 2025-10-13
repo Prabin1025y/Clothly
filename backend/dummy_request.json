@@ -46,5 +46,19 @@
                 "on_hold": 0
             }
         ]
+    },
+    "add_items_to_cart": {
+        "variant_id": 2,
+        "quantity": 3
+    },
+    "add_review": {},
+    "add_shipping_address": {
+        "label": "My Home",
+        "recipient_name": "Prabin Acharya",
+        "district": "Jhapa",
+        "province": "Koshi",
+        "city": "Gauradaha",
+        "tole_name": "Dhobiniya",
+        "phone": 9741778031
     }
 }
