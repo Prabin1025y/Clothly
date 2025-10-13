@@ -56,7 +56,7 @@ webhookRouter.post('/', express.raw({ type: 'application/json' }), async (req, r
                         RETURNING *;
                     `
 
-                    logger.info("User deleted: " + deleted_user[0].full_name)
+                    logger.info("User deleted ")
                     console.log(deleted_user[0])
                 }
 

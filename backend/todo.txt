@@ -1,0 +1,1 @@
+add requireAuth middleware in productrouter, reviewrouter

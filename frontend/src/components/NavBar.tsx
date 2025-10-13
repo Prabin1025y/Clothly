@@ -20,6 +20,12 @@ const NavBar = () => {
         return () => window.removeEventListener("scroll", handleScroll);
     }, [])
 
+    const handleCLickShopping = async () => {
+        const response = await fetch("http://localhost:3000/api/hello", { method: "GET", credentials: "include" })
+        const data = await response.json()
+        console.log(data)
+    }
+
     return (
         <header className={`text-secondary transition-colors duration-500 h-16 md:h-24 flex items-center justify-between px-4 lg:px-8 xl:px-8 2xl:px-48 font-[Inter] sticky top-0 z-10
         ${isScrolled ? "bg-foreground/90 backdrop-blur-md" : "bg-foreground"}`}>
@@ -65,7 +71,7 @@ const NavBar = () => {
                     </SignUpButton>
                 </SignedOut>
 
-                <Button variant="ghost" size="icon" className="text-white hover:bg-transparent hover:text-accent cursor-pointer">
+                <Button onClick={handleCLickShopping} variant="ghost" size="icon" className="text-white hover:bg-transparent hover:text-accent cursor-pointer">
                     <FaShoppingCart className="size-4 md:size-6" />
                 </Button>
 
