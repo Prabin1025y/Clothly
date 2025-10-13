@@ -163,7 +163,7 @@ export const addProduct = async (req, res) => {
 
         const data = { product, images: inserted_images.rows, variants: inserted_variants.rows, details: inserted_details.rows }
 
-        res.status(201).json({ success: true, data });
+        return res.status(201).json({ success: true, data });
     } catch (error) {
         // Attempt rollback if transaction is open / failed mid-way
         try {

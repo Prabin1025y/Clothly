@@ -9,10 +9,11 @@ import { initDB } from "../database/init.js"
 import webhookRouter from "./routes/webhook.router.js"
 import logger from "../config/logger.js"
 import productsRouter from "./routes/products.router.js"
-import isAdmin from "../middlewares/isAdmin.js"
 import reviewsRouter from "./routes/reviews.router.js"
 import isAuthenticated from "../middlewares/isAuthenticated.js"
 import cartRouter from "./routes/carts.router.js"
+import shippingRouter from "./routes/shippingAddress.router.js"
+import orderRouter from "./routes/orders.router.js"
 
 const PORT = process.env.PORT
 
@@ -31,6 +32,8 @@ app.use("/api/webhooks", webhookRouter);
 app.use("/api/products", productsRouter);
 app.use("/api/reviews", reviewsRouter)
 app.use("/api/carts", cartRouter);
+app.use("/api/shipping-addresses", shippingRouter);
+app.use("/api/orders", orderRouter);
 
 app.get("/", (req, res) => {
     res.json("Api working fine");
