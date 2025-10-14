@@ -41,3 +41,8 @@ export const productSchema = z.object({
     variants: z.array(productVariantSchema).min(1, "At least one variant is required"),
     details: z.array(productDetailSchema).min(1, 'Please enter some details about the product')
 })
+
+export const getProductParamsSchema = z.object({
+    limit: z.number().int().positive().default(12),
+    page: z.number().int().positive().default(1)
+}).strict()

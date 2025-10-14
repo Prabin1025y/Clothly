@@ -35,10 +35,10 @@ const NavBar = () => {
                 {/* <div className="bg-red-500 h-10 aspect-square">h</div> */}
             </div>
             <nav className="hidden md:flex items-center gap-8 text-lg font-light">
-                <a href="#" className="text-white hover:text-accent transition-colors">
+                <a href="/" className="text-white hover:text-accent transition-colors">
                     Home
                 </a>
-                <a href="#" className="text-white hover:text-accent transition-colors">
+                <a href="/shop" className="text-white hover:text-accent transition-colors">
                     Shop
                 </a>
                 <a href="#" className="text-white hover:text-accent transition-colors">
