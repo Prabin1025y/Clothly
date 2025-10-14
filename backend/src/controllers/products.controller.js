@@ -1,4 +1,5 @@
-import { pool } from "../../config/db.js";
+import { success } from "zod";
+import { pool, sql } from "../../config/db.js";
 import logger from "../../config/logger.js";
 import { productSchema } from "../../validation/product.schema.js";
 
@@ -193,5 +194,111 @@ export const addProduct = async (req, res) => {
         return res.status(500).json({ success: false, message: "Error adding product" });
     } finally {
         client.release();
+    }
+}
+
+export const getProducts = async (req, res) => {
+    try {
+        const MAX_LIMIT = 20;
+        const DEFAULT_LIMIT = 12;
+
+        const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+        const page = Number.parseInt(req.query.page ?? "1", 10);
+
+        if (!Number.isFinite(page) || page < 1)
+            return res.status(400).json({ success: false, message: "Invalid page parameter!!" });
+        if (!Number.isFinite(limit) || limit < 1 || limit > MAX_LIMIT)
+            return res.status(400).json({ success: false, message: `Invalid limit parameter (1-${MAX_LIMIT})` });
+
+        const offset = (page - 1) * limit
+
+        const totalProducts = await sql`
+            SELECT COUNT(*)::int AS total
+            FROM products p
+            WHERE p.status = 'active'
+        `;
+
+        const total = totalProducts?.[0]?.total ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+
+        const data = await sql`
+            SELECT
+                p.public_id,
+                p.name,
+                p.slug,
+                p.short_description,
+                p.current_price,
+                p.average_rating,
+                p.is_featured,
+                pi.url,
+                pi.alt_text
+            FROM products p
+            LEFT JOIN product_images pi ON p.main_image_id = pi.id
+            WHERE p.status = 'active'
+            ORDER BY p.created_at DESC, p.id DESC
+            LIMIT ${limit} OFFSET ${offset}
+        `
+        return res.status(200).json({
+            success: true,
+            data,
+            meta: {
+                totalProducts: total,
+                totalPages: totalPages,
+                page,
+                limit
+            }
+        })
+    } catch (error) {
+        logger.error("Error while adding product!!", error);
+        return res.status(500).json({ success: false, message: "failed to fetch products" });
+    }
+}
+
+export const getProductBySlug = async (req, res) => {
+    try {
+        const slug = req.params.slug
+        if (!slug)
+            res.status(404).json({ success: false, message: "No such product found!!" })
+
+        const result = await sql`
+            SELECT 
+                p.sku AS product_sku,
+                p.public_id,
+                p.name,
+                p.slug,
+                p.description,
+                p.original_price,
+                p.current_price,
+                p.sold_count,
+                p.review_count,
+                p.average_rating,
+                p.is_featured,
+                p.is_returnable,
+                p.warranty_info,
+                pi.url AS image_urls,
+                pi.alt_text,
+                pi.is_primary,
+                pv.sku AS variant_sku,
+                pv.color,
+                pv.size,
+                pv.available,
+                pd.text
+            FROM products p
+            LEFT JOIN product_images pi ON p.id = pi.product_id
+            LEFT JOIN product_variants pv ON p.id = pv.product_id
+            LEFT JOIN product_details pd ON p.id = pd.product_id 
+            WHERE p.slug = ${slug} AND p.status = 'active' AND pv.available > 0
+        `
+
+        if (result.length === 0)
+            return res.status(404).json({ success: false, message: "No such product found." });
+
+        const data = result?.[0]
+
+        console.log(data);
+        res.send(data);
+    } catch (error) {
+        logger.error("Error while getting product!!", error);
+        return res.status(500).json({ success: false, message: "Error getting product" });
     }
 }
