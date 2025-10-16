@@ -1,13 +1,16 @@
+import type { Product_ProductListingType } from '@/pages/ProductListing'
 import { Star } from 'lucide-react'
 import React from 'react'
+import { Link } from 'react-router'
 
 type PLPCardProps = {
     isHovered: Boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
+    data: Product_ProductListingType
 }
 
-const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
+const PLPCard = ({ isHovered = false, setHoveredCardId, id, data }: PLPCardProps) => {
 
     const handleMouseEnter = () => {
         setHoveredCardId(id);
@@ -27,8 +30,8 @@ const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
 
                     {/* Product Image */}
                     <img
-                        src="/bgremoved.png"
-                        alt="Classic Black Tee"
+                        src={data.url}
+                        alt={data.alt_text}
                         className={`min-w-[130%] h-40 sm:h-80 object-contain sm:object-cover absolute left-1/2 -translate-x-1/2 z-1 ${isHovered && "-translate-y-5 sm:-translate-y-10 animate-bounce animate-subtle-bounce"}  transition-transform duration-300`}
                     />
                 </div>
@@ -39,13 +42,12 @@ const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
                 <div className={`${isHovered ? "opacity-100" : "opacity-0"} transition-opacity duration-300 w-[70%] -translate-y-[70px] sm:translate-y-0 translate-x-6 sm:translate-x-9 h-3 sm:h-4 bg-transparent shadow-[0px_133px_14px_0px_#000000] rounded-[100%] absolute top-0 `} />
                 {/* Product Title */}
                 <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
-                    Classic Black Tee
+                    {data.name}
                 </h3>
 
                 {/* Description */}
                 <p className="text-foreground text-xs sm:text-sm mb-4">
-                    In a PLP card (Product Listing Page card),
-                    the goal is to show just.
+                    {data.short_description}
                 </p>
 
                 {/* Rating and Price Row */}
@@ -58,19 +60,21 @@ const PLPCard = ({ isHovered = false, setHoveredCardId, id }: PLPCardProps) => {
                             ))}
                             <Star className="w-3 h-3 fill-gray-300 text-gray-300" />
                         </div>
-                        <span className="text-gray-800 font-semibold text-xs">4.5 (134)</span>
+                        <span className="text-gray-800 font-semibold text-xs">{(+data.average_rating).toFixed(1)} (134)</span>
                     </div>
 
                     {/* Price */}
                     <div className="text-xl font-extrabold text-gray-900">
-                        NPR. 1099
+                        NPR. {data.current_price}
                     </div>
                 </div>
 
                 {/* View Details Button */}
-                <button className={`${isHovered ? "bg-gray-900 text-white hover:bg-gray-800" : "bg-accent text-foreground hover:bg-[#94793b]"} transition-colors duration-300 py-2 cursor-pointer rounded-full font-semibold text-md shadow-lg w-full`}>
-                    View Details
-                </button>
+                <Link to={`/product/${data.slug}`}>
+                    <button className={`${isHovered ? "bg-gray-900 text-white hover:bg-gray-800" : "bg-accent text-foreground hover:bg-[#94793b]"} transition-colors duration-300 py-2 cursor-pointer rounded-full font-semibold text-md shadow-lg w-full`}>
+                        View Details
+                    </button>
+                </Link>
             </div>
         </div>
     )

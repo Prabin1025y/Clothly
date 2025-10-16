@@ -1,6 +1,6 @@
-import { reviewSchema } from "../../validation/review.schema.js";
-import { pool } from "../../config/db.js";
-import logger from "../../config/logger.js";
+import { reviewSchema } from "../validation/review.schema.js";
+import { pool } from "../config/db.js";
+import logger from "../config/logger.js";
 
 export const addReview = async (req, res) => {
     const client = await pool.connect();

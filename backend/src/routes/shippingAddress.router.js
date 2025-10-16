@@ -1,8 +1,8 @@
 import { Router } from "express";
-import shippingAddressSchema from "../../validation/shipping.schema.js";
-import logger from "../../config/logger.js";
-import { sql } from "../../config/db.js";
-import isAuthenticated from "../../middlewares/isAuthenticated.js";
+import shippingAddressSchema from "../validation/shipping.schema.js";
+import logger from "../config/logger.js";
+import { sql } from "../config/db.js";
+import isAuthenticated from "../middlewares/isAuthenticated.js";
 
 const shippingRouter = Router()
 
