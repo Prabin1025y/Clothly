@@ -5,23 +5,27 @@ import helmet from 'helmet'
 import morgan from 'morgan'
 import { clerkMiddleware } from '@clerk/express';
 
-import { initDB } from "../database/init.js"
+import { initDB } from "./database/init.js"
 import webhookRouter from "./routes/webhook.router.js"
-import logger from "../config/logger.js"
+import logger from "./config/logger.js"
 import productsRouter from "./routes/products.router.js"
 import reviewsRouter from "./routes/reviews.router.js"
-import isAuthenticated from "../middlewares/isAuthenticated.js"
+import isAuthenticated from "./middlewares/isAuthenticated.js"
 import cartRouter from "./routes/carts.router.js"
 import shippingRouter from "./routes/shippingAddress.router.js"
 import orderRouter from "./routes/orders.router.js"
+import { bufferUpload, diskUpload } from "./config/multer.js"
+import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageUpload.controller.js"
 
 const PORT = process.env.PORT
 
 const app = express()
 
 app.use(express.json())
+app.use(express.static("uploads"))
+app.use(express.urlencoded({ extended: true }));
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: process.env.FRONTEND_URL,
     credentials: true
 }))
 app.use(helmet()) //Helmet is security middleware that add extra HTTP headers
@@ -42,6 +46,12 @@ app.get("/", (req, res) => {
 app.get("/api/hello", isAuthenticated, (req, res) => {
     res.json("this is sensitive")
 })
+
+app.post("/api/cloud-upload", bufferUpload.single("image"), uploadImageToCloudinary);
+
+app.post("/api/disk-upload", diskUpload.single("image"), uploadImageToDisk);
+
+
 
 initDB(true).then(() => {
     app.listen(PORT, () => {

@@ -1,7 +1,7 @@
 import express, { Router } from "express";
 import { verifyWebhook } from "@clerk/express/webhooks"
-import { sql } from "../../config/db.js";
-import logger from "../../config/logger.js";
+import { sql } from "../config/db.js";
+import logger from "../config/logger.js";
 
 
 const webhookRouter = Router()

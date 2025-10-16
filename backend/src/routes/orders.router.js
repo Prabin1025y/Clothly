@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { pool } from "../../config/db.js";
-import orderSchema from "../../validation/orders.schema.js";
-import logger from "../../config/logger.js";
-import isAuthenticated from "../../middlewares/isAuthenticated.js";
+import { pool } from "../config/db.js";
+import orderSchema from "../validation/orders.schema.js";
+import logger from "../config/logger.js";
+import isAuthenticated from "../middlewares/isAuthenticated.js";
 
 const orderRouter = Router()
 

@@ -208,6 +208,7 @@ async function init_products(client) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_name ON products USING gin (to_tsvector('english', coalesce(name,'') || ' ' || coalesce(short_description,'')));`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);`);
 }
 
 async function init_product_images(client) {

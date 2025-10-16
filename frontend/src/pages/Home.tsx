@@ -1,10 +1,11 @@
 import BrandInfo from '@/components/BrandInfo';
-import { Galary } from '@/components/Gallery';
+import { Gallery } from '@/components/Gallery';
 import { Button } from '@/components/ui/button'
 import { FaCrown } from "react-icons/fa";
 
 
 const Home = () => {
+
     return (
         <main>
             <section className='px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-48 font-[Inter]'>
@@ -69,7 +70,7 @@ const Home = () => {
 
             {/* Gallery Section */}
             <section className='px-4 sm:px-6 md:px-8 lg:px-12 xl:px-16 2xl:px-64  font-[Inter]'>
-                <Galary />
+                <Gallery />
             </section>
 
             <hr className='my-4 mx-4 md:mx-16 h-1 sm:h-[6px] bg-accent' />

@@ -1,7 +1,6 @@
-import { success } from "zod";
-import { pool, sql } from "../../config/db.js";
-import logger from "../../config/logger.js";
-import { productSchema } from "../../validation/product.schema.js";
+import { pool, sql } from "../config/db.js";
+import logger from "../config/logger.js";
+import { productSchema } from "../validation/product.schema.js";
 
 export const addProduct = async (req, res) => {
     //Parse body using zod
@@ -249,7 +248,7 @@ export const getProducts = async (req, res) => {
             }
         })
     } catch (error) {
-        logger.error("Error while adding product!!", error);
+        logger.error("Error while getting product!!", error);
         return res.status(500).json({ success: false, message: "failed to fetch products" });
     }
 }
@@ -261,7 +260,7 @@ export const getProductBySlug = async (req, res) => {
             res.status(404).json({ success: false, message: "No such product found!!" })
 
         const result = await sql`
-            SELECT 
+            SELECT
                 p.sku AS product_sku,
                 p.public_id,
                 p.name,
@@ -275,19 +274,31 @@ export const getProductBySlug = async (req, res) => {
                 p.is_featured,
                 p.is_returnable,
                 p.warranty_info,
-                pi.url AS image_urls,
-                pi.alt_text,
-                pi.is_primary,
-                pv.sku AS variant_sku,
-                pv.color,
-                pv.size,
-                pv.available,
-                pd.text
+                COALESCE(img.images, '[]')     AS images,
+                COALESCE(vars.variants, '[]')  AS variants,
+                COALESCE(dets.details, '[]')   AS details
             FROM products p
-            LEFT JOIN product_images pi ON p.id = pi.product_id
-            LEFT JOIN product_variants pv ON p.id = pv.product_id
-            LEFT JOIN product_details pd ON p.id = pd.product_id 
-            WHERE p.slug = ${slug} AND p.status = 'active' AND pv.available > 0
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('url', url, 'alt_text', alt_text, 'is_primary', is_primary)) AS images
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+                ) img ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object(
+                    'sku', sku,
+                    'color', color,
+                    'size', size,
+                    'available', available
+                    ) ) AS variants
+                FROM product_variants pv
+                WHERE pv.product_id = p.id AND pv.available > 0
+                ) vars ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('text', text)) AS details
+                FROM product_details pd
+                WHERE pd.product_id = p.id
+                ) dets ON true
+            WHERE p.slug = ${slug} AND p.status = 'active';
         `
 
         if (result.length === 0)
@@ -295,10 +306,39 @@ export const getProductBySlug = async (req, res) => {
 
         const data = result?.[0]
 
-        console.log(data);
-        res.send(data);
+        data['primary_image'] = data.images?.find(image => image.is_primary)
+
+        res.status(200).json({ success: true, data });
     } catch (error) {
-        logger.error("Error while getting product!!", error);
+        logger.error("Error while getting specific product!!", error);
         return res.status(500).json({ success: false, message: "Error getting product" });
+    }
+}
+
+export const getRecentProducts = async (req, res) => {
+    try {
+        const limit = 12
+
+        const data = await sql`
+            SELECT
+                p.public_id,
+                p.name,
+                p.slug,
+                p.current_price,
+                pi.url,
+                pi.alt_text
+            FROM products p
+            LEFT JOIN product_images pi ON p.main_image_id = pi.id
+            WHERE p.status = 'active'
+            ORDER BY p.created_at DESC, p.id DESC
+            LIMIT ${limit}
+        `
+        return res.status(200).json({
+            success: true,
+            data,
+        })
+    } catch (error) {
+        logger.error("Error while fetching recent products!!", error);
+        return res.status(500).json({ success: false, message: "failed to fetch recent products" });
     }
 }

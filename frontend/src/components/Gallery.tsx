@@ -1,105 +1,68 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { useQuery } from '@tanstack/react-query'
+import { GallerySkeleton } from "@/Skeletons/RecentProductsSkeleton"
 
 interface GridItem {
     id: number
     image: string
     price: string
     title: string
-    height: string
+    height: string,
+    slug: string,
+    alt_text: string
 }
 
-const gridItems: GridItem[] = [
-    {
-        id: 1,
-        image: "/1.webp",
-        price: "$2,450",
-        title: "Luxury Timepiece",
-        height: "380px",
-    },
-    {
-        id: 2,
-        image: "/2.webp",
-        price: "$890",
-        title: "Diamond Collection",
-        height: "420px",
-    },
-    {
-        id: 3,
-        image: "/3.jpg",
-        price: "$1,200",
-        title: "Designer Handbag",
-        height: "320px",
-    },
-    {
-        id: 4,
-        image: "/4.jpg",
-        price: "$340",
-        title: "Ceramic Art",
-        height: "300px",
-    },
-    {
-        id: 5,
-        image: "/5.webp",
-        price: "$1,850",
-        title: "Vintage Camera",
-        height: "400px",
-    },
-    {
-        id: 6,
-        image: "/6.webp",
-        price: "$125",
-        title: "Home Decor",
-        height: "290px",
-    },
-    {
-        id: 7,
-        image: "/7.jpg",
-        price: "$280",
-        title: "Skincare Set",
-        height: "370px",
-    },
-    {
-        id: 8,
-        image: "/8.jpg",
-        price: "$95",
-        title: "Coffee Collection",
-        height: "410px",
-    },
-    {
-        id: 9,
-        image: "/9.webp",
-        price: "$750",
-        title: "Wooden Craft",
-        height: "240px",
-    },
-    {
-        id: 10,
-        image: "/10.webp",
-        price: "$280",
-        title: "Skincare Set",
-        height: "330px",
-    },
-    {
-        id: 11,
-        image: "/11.jpg",
-        price: "$95",
-        title: "Coffee Collection",
-        height: "310px",
-    },
-    {
-        id: 12,
-        image: "/12.webp",
-        price: "$750",
-        title: "Wooden Craft",
-        height: "340px",
-    },
+const HeightArray: string[] = [
+    "380px", "420px", "320px", "300px", "400px", "290px",
+    "370px", "410px", "240px", "330px", "310px", "340px"
 ]
 
-export function Galary() {
+interface gridItemType {
+    public_id: number,
+    url: string,
+    current_price: number,
+    name: string,
+    alt_text: string,
+    slug: string
+}
+
+export function Gallery() {
     const [ hoveredItem, setHoveredItem ] = useState<number | null>(null)
 
-    const mobileItems = gridItems.slice(0, 8)
+    const { isPending, error, data } = useQuery({
+        queryKey: [ 'recentProducts' ],
+        queryFn: async () => {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-recent-products`);
+            if (!response.ok) {
+                throw new Error('Network response was not ok')
+            }
+            const data = await response.json();
+            return data;
+        }
+    })
+
+    console.log(data)
+
+    const gridItems: GridItem[] = data?.data?.map((item: gridItemType, index: number) => ({
+        id: item.public_id,
+        image: item.url,
+        price: item.current_price,
+        title: item.name,
+        alt_text: item.alt_text,
+        slug: item.slug,
+        height: HeightArray[ index ]
+    }))
+
+    const mobileItems = gridItems?.slice(0, 8)
+
+    if (isPending)
+        return <GallerySkeleton />
+
+    if (error)
+        return <div>OOPS!! SOMETHING WENT WRONG!!</div>
+
+    console.log(data);
 
     return (
         <div className="w-full mx-auto p-6">
@@ -110,7 +73,7 @@ export function Galary() {
 
             {/* Desktop Masonry - 9 items */}
             <div className="hidden md:block columns-3 lg:columns-4 gap-4 space-y-4">
-                {gridItems.map((item) => (
+                {gridItems?.map((item) => (
                     <div
                         key={item.id}
                         className="relative overflow-hidden rounded-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl break-inside-avoid mb-4"
@@ -128,7 +91,7 @@ export function Galary() {
                         >
                             <div className="text-white">
                                 <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                                <p className="text-accent font-bold text-xl mb-3">{item.price}</p>
+                                <p className="text-accent font-bold text-xl mb-3">NPR.{item.price}</p>
                                 <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">
                                     See More
                                 </Button>
@@ -176,7 +139,7 @@ export function Galary() {
                                     {item.title}
                                 </h3>
                                 <p className="text-accent font-bold text-lg mb-3">
-                                    {item.price}
+                                    NPR.{item.price}
                                 </p>
 
                                 <Button

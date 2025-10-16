@@ -1,6 +1,6 @@
-import { pool } from "../../config/db.js";
-import logger from "../../config/logger.js";
-import { cartItemSchema } from "../../validation/cartItem.schema.js";
+import { pool } from "../config/db.js";
+import logger from "../config/logger.js";
+import { cartItemSchema } from "../validation/cartItem.schema.js";
 
 export const addItemToCart = async (req, res) => {
     const client = await pool.connect()
