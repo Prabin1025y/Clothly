@@ -317,7 +317,7 @@ export const getProductBySlug = async (req, res) => {
 
 export const getRecentProducts = async (req, res) => {
     try {
-        const limit = 12
+        const limit = 12;
 
         const data = await sql`
             SELECT
@@ -340,5 +340,51 @@ export const getRecentProducts = async (req, res) => {
     } catch (error) {
         logger.error("Error while fetching recent products!!", error);
         return res.status(500).json({ success: false, message: "failed to fetch recent products" });
+    }
+}
+
+export const getSearchProducts = async (req, res) => {
+    try {
+        const query = req.params.query.toLower() ?? ""
+
+        const page = Number.parseInt(req.query.page ?? "1", 10);
+        const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+        const min = Number.parseInt(req.query.min ?? 0, 10);
+        const max = Number.parseInt(req.query.max ?? Number.POSITIVE_INFINITY, 10);
+        const sort = req.query.sort ?? "time_asc"
+        const size = req.query.size ?? "all"
+
+        const searchQuery = query.trim().split(/\s+/).join(' & ') + ':*';
+
+        const offset = (page - 1) * limit
+
+        const products = await sql`
+            SELECT
+                p.public_id,
+                p.name,
+                p.slug,
+                p.short_description,
+                p.current_price,
+                p.average_rating,
+                p.is_featured,
+                pi.url,
+                pi.alt_text
+            FROM
+                products p
+            LEFT JOIN 
+                product_images pi ON p.main_image_id = pi.id
+            WHERE
+                search_vector @@ to_tsquery('english', ${searchQuery}) AND p.status = 'active'
+            ORDER BY
+                ts_rank(search_vector, to_tsquery('english', ${searchQuery})) DESC,
+                name ASC
+            LIMIT ${limit}
+            OFFSET ${offset};
+        `;
+
+
+    } catch (error) {
+        logger.error("Error while fetching search products!!", error);
+        return res.status(500).json({ success: false, message: "failed to fetch search products" });
     }
 }

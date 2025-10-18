@@ -202,6 +202,9 @@ async function init_products(client) {
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             deleted_at TIMESTAMP WITH TIME ZONE
+            search_vector TSVECTOR GENERATED ALWAYS AS (
+                setweight(to_tsvector('english', coalesce(name, '')), 'A')
+            ) STORED
         );
     `);
 
@@ -209,6 +212,7 @@ async function init_products(client) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_featured ON products(is_featured);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_products_search_vector ON products USING GIN (search_vector);`);
 }
 
 async function init_product_images(client) {
