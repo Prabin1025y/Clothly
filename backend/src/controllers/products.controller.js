@@ -385,6 +385,101 @@ export const getSearchProducts = async (req, res) => {
 
     } catch (error) {
         logger.error("Error while fetching search products!!", error);
-        return res.status(500).json({ success: false, message: "failed to fetch search products" });
+        return res.status(500).json({ success: false, message: "failed to fetch search prod ucts" });
+    }
+}
+
+export const getProductsWithFilters = async (req, res) => {
+    try {
+        const MAX_LIMIT = 20;
+        const DEFAULT_LIMIT = 12;
+
+        const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+        const page = Number.parseInt(req.query.page ?? "1", 10);
+        const sort_filter = req.query.sort ?? "none";
+        const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
+        const min_filter = Number.parseInt(req.query.min ?? "0", 10)
+        const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
+
+        if (!Number.isFinite(page) || page < 1)
+            return res.status(400).json({ success: false, message: "Invalid page parameter!!" });
+        if (!Number.isFinite(limit) || limit < 1 || limit > MAX_LIMIT)
+            return res.status(400).json({ success: false, message: `Invalid limit parameter (1-${MAX_LIMIT})` });
+
+        const offset = (page - 1) * limit
+
+        //Get count of all filtered products to calculate pages.
+        const totalProducts = await sql`
+            SELECT COUNT(*)::int AS total
+            FROM products p
+            WHERE p.status = 'active' AND p.deleted_at IS NULL
+                ${size_filter.length > 0 ? sql`
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM product_variants pv 
+                        WHERE pv.product_id = p.id 
+                            AND pv.deleted_at IS NULL
+                            AND pv.size = ANY(${size_filter})
+                    )
+                ` : sql``}
+                ${min_filter > 0 ? sql` AND p.current_price >= ${min_filter}` : sql``}
+                ${max_filter !== "" ? sql`AND p.current_price <= ${max_filter}` : sql``}
+        `;
+
+        const total = totalProducts?.[0]?.total ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+
+        //Get products with filters applied
+        const data = await sql`
+            SELECT
+                p.public_id,
+                p.name,
+                p.slug,
+                p.short_description,
+                p.current_price,
+                p.average_rating,
+                p.is_featured,
+                pi.url,
+                pi.alt_text
+            FROM products p
+            LEFT JOIN product_images pi ON p.main_image_id = pi.id
+
+            WHERE p.status = 'active'
+                AND p.deleted_at IS NULL
+                ${size_filter.length > 0 ? sql`
+                    AND EXISTS (
+                        SELECT 1 
+                        FROM product_variants pv 
+                        WHERE pv.product_id = p.id 
+                            AND pv.deleted_at IS NULL
+                            AND pv.size = ANY(${size_filter})
+                    )
+                ` : sql``}
+                ${min_filter > 0 ? sql`AND p.current_price >= ${min_filter}` : sql``}
+                ${max_filter !== "" ? sql`AND p.current_price <= ${max_filter}` : sql``}
+
+            ${sort_filter === 'price_desc' ? sql`ORDER BY p.current_price DESC NULLS LAST, p.id DESC` : sql``}
+            ${sort_filter === 'price_asc' ? sql`ORDER BY p.current_price ASC NULLS LAST, p.id DESC` : sql``}
+            ${sort_filter === 'time_desc' ? sql`ORDER BY p.created_at DESC, p.id DESC` : sql``}
+            ${sort_filter === 'time_asc' ? sql`ORDER BY p.created_at ASC, p.id ASC` : sql``}
+            ${sort_filter === 'popular' ? sql`ORDER BY p.sold_count DESC, p.id DESC` : sql``}
+            ${sort_filter === 'none' || !sort_filter ? sql`ORDER BY p.created_at DESC, p.id DESC` : sql``}
+            LIMIT ${limit} OFFSET ${offset}
+        `;
+
+        //Return response
+        return res.status(200).json({
+            success: true,
+            data,
+            meta: {
+                totalProducts: total,
+                totalPages: totalPages,
+                page,
+                limit
+            }
+        })
+    } catch (error) {
+        logger.error("Error while getting product!!", error);
+        return res.status(500).json({ success: false, message: "failed to fetch products" });
     }
 }

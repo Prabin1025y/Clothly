@@ -29,6 +29,11 @@ const ProductListing = () => {
 
     const [ searchParams, setSearchParams ] = useSearchParams();
 
+    //metadata to show.
+    const [ limit, setLimit ] = useState(12);
+    const [ page, setPage ] = useState(1);
+    const [ totalProductsCount, setTotalProductsCount ] = useState(0);
+
 
     useEffect(() => {
         window.addEventListener("resize", handleWindowResize);
@@ -52,13 +57,32 @@ const ProductListing = () => {
     const { isPending, error, data, isSuccess } = useQuery({
         queryKey: [ 'products' ],
         queryFn: async () => {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products?limit=12&page=${searchParams.get("page") || 1}`);
+            // const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products?limit=12&page=${searchParams.get("page") || 1}`);
+            // if (!response.ok) {
+            //     throw new Error('Network response was not ok')
+            // }
+            // const data = await response.json();
+            // return data;
+
+            const sort_filter = searchParams.get("sort") ?? "";
+            const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
+            const min_filter = searchParams.get("min") ?? "";
+            const max_filter = searchParams.get("max") ?? "";
+
+            const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
+            let sizeParam = ""
+            if (sizes_filter.length > 0)
+                sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
+            const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
+            const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
+
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
             if (!response.ok) {
                 throw new Error('Network response was not ok')
             }
-            const data = await response.json();
-            return data;
-        },
+            const filteredData = await response.json();
+            return filteredData;
+        }
     })
     // const products: Product_ProductListingType[] = data?.data
     useEffect(() => {
@@ -67,11 +91,45 @@ const ProductListing = () => {
     }, [ isSuccess ])
 
 
-    const limit = data?.meta?.limit
-    const page = data?.meta?.page
-    const totalProducts = data?.meta?.totalProducts
+    // Update pagination/metadata when query `data` changes (do not call setters during render)
+    useEffect(() => {
+        if (data?.meta?.limit) setLimit(data.meta.limit);
+        if (data?.meta?.page) setPage(data.meta.page);
+        if (data?.meta?.totalProducts) setTotalProductsCount(data.meta.totalProducts);
+    }, [ data ]);
 
     // console.log(data)
+
+    const handleFilterUpdate = async () => {
+        const sort_filter = searchParams.get("sort") ?? "";
+        const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
+        const min_filter = searchParams.get("min") ?? "";
+        const max_filter = searchParams.get("max") ?? "";
+
+        try {
+            const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
+            let sizeParam = ""
+            if (sizes_filter.length > 0)
+                sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
+            const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
+            const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
+
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
+            if (!response.ok) {
+                throw new Error('Network response was not ok')
+            }
+            const filteredData = await response.json();
+            console.log(filteredData)
+            if (filteredData?.success) {
+                setProducts(filteredData?.data)
+                if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
+                if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
+                if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
 
     const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -112,7 +170,7 @@ const ProductListing = () => {
     return (
         <main className="gap-2 px-1 md:px-8 lg:px-12 xl:px-8 2xl:px-[calc(32*4px-2vw)] font-[Inter]">
             <div className=" xl:px-0 2xl:px-24 grid grid-cols-1 lg:grid-cols-4">
-                {showFilters && <Filters />}
+                {showFilters && <Filters handleFilterUpdate={handleFilterUpdate} />}
 
 
                 {/* Product Listings  */}
@@ -143,7 +201,7 @@ const ProductListing = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">You Might Like These</h2>
-                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{`Showing ${totalProducts > limit ? limit : totalProducts} out of ${totalProducts} items`}</p>
+                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{`Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p>
                         </div>
                         <div onClick={() => setShowFilters(!showFilters)} className="flex pr-4 w-fit xl:hidden gap-2 text-foreground/80 items-center">
                             <Filter size={20} />
@@ -173,7 +231,7 @@ const ProductListing = () => {
                     </div>
 
                     {/* Pagination */}
-                    <FunctionalPagination limit={limit} totalProducts={totalProducts} currentPage={page} />
+                    <FunctionalPagination limit={limit} totalProducts={totalProductsCount} currentPage={page} />
 
                 </section>
 
