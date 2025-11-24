@@ -8,6 +8,7 @@ const sizes = [ 'S', 'M', 'L', 'XL', 'XXL', 'XXXL' ];
 
 const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<void> }) => {
     const [ searchParams, setSearchParams ] = useSearchParams();
+    const [ filterApplied, SetFilterApplied ] = useState(false);
 
     const [ filters, setFilters ] = useState(() => ({
         sort: searchParams.get("sort") ?? "",
@@ -25,11 +26,14 @@ const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<voi
     }
 
     const applyFilters = () => {
+        SetFilterApplied(true);
+        const srchParam = searchParams.get("search") ?? "";
         const params = new URLSearchParams();
         if (filters.sort && filters.sort !== "none") params.set("sort", filters.sort);
         filters.sizes.forEach(s => s && params.append("size", s));
         if (filters.min) params.set("min", String(filters.min));
         if (filters.max) params.set("max", String(filters.max));
+        if (srchParam !== "") params.set("search", String(srchParam));
         setSearchParams(params);
     }
 
@@ -47,8 +51,9 @@ const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<voi
         }
 
         // Only run when the actual params string changes
-        if (prev.current !== current) {
+        if (prev.current !== current && filterApplied) {
             handleFilterUpdate();
+            SetFilterApplied(false);
         }
 
         prev.current = current;

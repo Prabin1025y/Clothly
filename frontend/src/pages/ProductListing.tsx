@@ -41,6 +41,29 @@ const ProductListing = () => {
         return () => window.removeEventListener("resize", handleWindowResize);
     }, [])
 
+    const fetchDataWithFilters = async () => {
+        const sort_filter = searchParams.get("sort") ?? "";
+        const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
+        const min_filter = searchParams.get("min") ?? "";
+        const max_filter = searchParams.get("max") ?? "";
+        const search_query = searchParams.get("search") ?? "";
+
+        const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
+        let sizeParam = ""
+        if (sizes_filter.length > 0)
+            sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
+        const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
+        const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
+        const srchParam = search_query !== "" ? `&search=${search_query}` : "";
+
+        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?${srchParam}&limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
+        if (!response.ok) {
+            throw new Error('Network response was not ok')
+        }
+        const filteredData = await response.json();
+        return filteredData;
+    }
+
 
     const handleWindowResize = () => {
         if (window.innerWidth > 1280)
@@ -56,33 +79,7 @@ const ProductListing = () => {
 
     const { isPending, error, data, isSuccess } = useQuery({
         queryKey: [ 'products' ],
-        queryFn: async () => {
-            // const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products?limit=12&page=${searchParams.get("page") || 1}`);
-            // if (!response.ok) {
-            //     throw new Error('Network response was not ok')
-            // }
-            // const data = await response.json();
-            // return data;
-
-            const sort_filter = searchParams.get("sort") ?? "";
-            const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
-            const min_filter = searchParams.get("min") ?? "";
-            const max_filter = searchParams.get("max") ?? "";
-
-            const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
-            let sizeParam = ""
-            if (sizes_filter.length > 0)
-                sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
-            const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
-            const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
-
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
-            if (!response.ok) {
-                throw new Error('Network response was not ok')
-            }
-            const filteredData = await response.json();
-            return filteredData;
-        }
+        queryFn: fetchDataWithFilters
     })
     // const products: Product_ProductListingType[] = data?.data
     useEffect(() => {
@@ -98,71 +95,55 @@ const ProductListing = () => {
         if (data?.meta?.totalProducts) setTotalProductsCount(data.meta.totalProducts);
     }, [ data ]);
 
-    // console.log(data)
+
 
     const handleFilterUpdate = async () => {
-        const sort_filter = searchParams.get("sort") ?? "";
-        const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
-        const min_filter = searchParams.get("min") ?? "";
-        const max_filter = searchParams.get("max") ?? "";
-
-        try {
-            const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
-            let sizeParam = ""
-            if (sizes_filter.length > 0)
-                sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
-            const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
-            const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
-
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
-            if (!response.ok) {
-                throw new Error('Network response was not ok')
-            }
-            const filteredData = await response.json();
-            console.log(filteredData)
-            if (filteredData?.success) {
-                setProducts(filteredData?.data)
-                if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
-                if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
-                if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
-            }
-        } catch (error) {
-            console.error(error);
+        const filteredData = await fetchDataWithFilters();
+        if (filteredData?.success) {
+            setProducts(filteredData?.data)
+            if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
+            if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
+            if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
+        } else {
+            console.error("Error while fetching data!!")
         }
     }
 
     const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
+        setIsSearching(true);
         setSearchParams(searchParams => {
             searchParams.delete("page");
+            searchParams.delete("search");
+            if (searchQuery !== "")
+                searchParams.append("search", searchQuery);
             return searchParams;
         });
 
-        setIsSearching(true);
-
-        console.log(searchParams.get("sort"))
-
-        let searchRoute = `${import.meta.env.VITE_BACKEND_URL}/api/products/get-search-products/${searchQuery}?page=${searchParams.get("page") || 1}`;
-        if (searchParams.get("sort"))
-            searchRoute += `&sort=${searchParams.get("sort")}`
-        if (searchParams.get("size"))
-            searchRoute += `&size=${searchParams.get("size")}`
-        if (searchParams.get("min"))
-            searchRoute += `&min=${searchParams.get("min")}`
-        if (searchParams.get("max"))
-            searchRoute += `&max=${searchParams.get("max")}`
-
-        // alert(searchRoute)
-
-        const response = await fetch(searchRoute);
-        const data = await response.json();
-
-        if (!response.ok)
-            alert("Error occured while searching!!");
-        else if (data?.data)
-            setProducts(data?.data)
     }
+
+    useEffect(() => {
+        const tempFunc = async () => {
+            const filteredData = await fetchDataWithFilters();
+            console.log(filteredData)
+            if (filteredData?.success) {
+                setProducts(filteredData?.data)
+                if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
+                if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
+                if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
+            } else {
+                console.error("Error while fetching data!!")
+            }
+
+            setIsSearching(false);
+        }
+        if (isSearching)
+            tempFunc();
+
+        setSearchQuery(searchParams.get("search") || "")
+    }, [ searchParams ])
+
 
     if (error)
         return <div>OOPS!! something went wrong</div>

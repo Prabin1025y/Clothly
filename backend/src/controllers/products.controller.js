@@ -400,6 +400,8 @@ export const getProductsWithFilters = async (req, res) => {
         const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
         const min_filter = Number.parseInt(req.query.min ?? "0", 10)
         const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
+        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ') //replace multiple spaces to single one
+        console.log(search_query)
 
         if (!Number.isFinite(page) || page < 1)
             return res.status(400).json({ success: false, message: "Invalid page parameter!!" });
@@ -413,6 +415,14 @@ export const getProductsWithFilters = async (req, res) => {
             SELECT COUNT(*)::int AS total
             FROM products p
             WHERE p.status = 'active' AND p.deleted_at IS NULL
+                ${search_query ? sql`
+                    AND (
+                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                        @@ plainto_tsquery('english', ${search_query})
+                        OR p.name ILIKE ${'%' + search_query + '%'}
+                        OR p.short_description ILIKE ${'%' + search_query + '%'}
+                    )
+                ` : sql``}
                 ${size_filter.length > 0 ? sql`
                     AND EXISTS (
                         SELECT 1 
@@ -446,6 +456,14 @@ export const getProductsWithFilters = async (req, res) => {
 
             WHERE p.status = 'active'
                 AND p.deleted_at IS NULL
+                ${search_query ? sql`
+                    AND (
+                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                        @@ plainto_tsquery('english', ${search_query})
+                        OR p.name ILIKE ${'%' + search_query + '%'}
+                        OR p.short_description ILIKE ${'%' + search_query + '%'}
+                    )
+                ` : sql``}
                 ${size_filter.length > 0 ? sql`
                     AND EXISTS (
                         SELECT 1 
