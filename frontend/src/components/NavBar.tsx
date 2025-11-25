@@ -4,9 +4,11 @@ import { Input } from "./ui/input"
 import { Button } from "./ui/button"
 import { useEffect, useState } from "react";
 import { SignedIn, SignedOut, SignUpButton, useAuth, UserButton } from "@clerk/clerk-react";
+import { Link, useNavigate } from "react-router";
 
 const NavBar = () => {
     const [ isScrolled, setIsScrolled ] = useState(false);
+    const [ searchQuery, setSearchQuery ] = useState("")
 
     const { isLoaded } = useAuth()
 
@@ -20,10 +22,20 @@ const NavBar = () => {
         return () => window.removeEventListener("scroll", handleScroll);
     }, [])
 
+    const navigate = useNavigate()
+
     const handleCLickShopping = async () => {
         const response = await fetch("http://localhost:3000/api/hello", { method: "GET", credentials: "include" })
         const data = await response.json()
         console.log(data)
+    }
+
+    const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!searchQuery) return;
+        setSearchQuery("");
+
+        navigate(`/shop?search=${searchQuery}`,);
     }
 
     return (
@@ -35,28 +47,32 @@ const NavBar = () => {
                 {/* <div className="bg-red-500 h-10 aspect-square">h</div> */}
             </div>
             <nav className="hidden md:flex items-center gap-8 text-lg font-light">
-                <a href="/" className="text-white hover:text-accent transition-colors">
+                <Link to="/" className="text-white hover:text-accent transition-colors">
                     Home
-                </a>
-                <a href="/shop" className="text-white hover:text-accent transition-colors">
+                </Link>
+                <Link to="/shop" className="text-white hover:text-accent transition-colors">
                     Shop
-                </a>
-                <a href="#" className="text-white hover:text-accent transition-colors">
+                </Link>
+                <Link to="#" className="text-white hover:text-accent transition-colors">
                     About
-                </a>
-                <a href="#" className="text-white hover:text-accent transition-colors">
+                </Link>
+                <Link to="#" className="text-white hover:text-accent transition-colors">
                     Contact
-                </a>
+                </Link>
             </nav>
 
             <div className="flex items-center gap-1 md:gap-4">
                 <div className="relative hidden lg:block">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                    <Input
-                        type="search"
-                        placeholder="Search..."
-                        className="pl-10 w-48 bg-white/10 border-white/20  text-white placeholder:text-white/60 rounded-full"
-                    />
+                    <form onSubmit={handleSearchSubmit}>
+                        <Input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search..."
+                            className="pl-10 w-48 bg-white/10 border-white/20  text-white placeholder:text-white/60 rounded-full"
+                        />
+                    </form>
                 </div>
 
 
