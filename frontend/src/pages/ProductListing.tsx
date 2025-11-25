@@ -21,26 +21,20 @@ export interface Product_ProductListingType {
 
 const ProductListing = () => {
     const [ searchQuery, setSearchQuery ] = useState("")
+    const [ heading, setHeading ] = useState("You Might Like These")
     const [ isSearching, setIsSearching ] = useState(false)
+    const [ isFiltering, setIsFiltering ] = useState(false)
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null)
     const [ showFilters, setShowFilters ] = useState<Boolean>(true)
-
     const [ products, setProducts ] = useState<Product_ProductListingType[]>([])
-
-    const [ searchParams, setSearchParams ] = useSearchParams();
-
     //metadata to show.
     const [ limit, setLimit ] = useState(12);
     const [ page, setPage ] = useState(1);
     const [ totalProductsCount, setTotalProductsCount ] = useState(0);
 
+    const [ searchParams, setSearchParams ] = useSearchParams();
 
-    useEffect(() => {
-        window.addEventListener("resize", handleWindowResize);
-
-        return () => window.removeEventListener("resize", handleWindowResize);
-    }, [])
-
+    //Function to fetch data with all filters and search applied. Reused in apply filters, useQuery and search functionality
     const fetchDataWithFilters = async () => {
         const sort_filter = searchParams.get("sort") ?? "";
         const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
@@ -64,7 +58,7 @@ const ProductListing = () => {
         return filteredData;
     }
 
-
+    // Hide filters by default if device is mobile
     const handleWindowResize = () => {
         if (window.innerWidth > 1280)
             setShowFilters(true)
@@ -73,46 +67,32 @@ const ProductListing = () => {
         }
     }
 
+    // Clear Search Query used in cross icon of search
     const handleClearSearch = () => {
         setSearchQuery('');
     };
 
-    const { isPending, error, data, isSuccess } = useQuery({
-        queryKey: [ 'products' ],
-        queryFn: fetchDataWithFilters
-    })
-    // const products: Product_ProductListingType[] = data?.data
-    useEffect(() => {
-        if (isSuccess)
-            setProducts(data?.data)
-    }, [ isSuccess ])
-
-
-    // Update pagination/metadata when query `data` changes (do not call setters during render)
-    useEffect(() => {
-        if (data?.meta?.limit) setLimit(data.meta.limit);
-        if (data?.meta?.page) setPage(data.meta.page);
-        if (data?.meta?.totalProducts) setTotalProductsCount(data.meta.totalProducts);
-    }, [ data ]);
-
-
-
+    // For handling apply filters button
     const handleFilterUpdate = async () => {
+        setIsFiltering(true);
         const filteredData = await fetchDataWithFilters();
         if (filteredData?.success) {
             setProducts(filteredData?.data)
             if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
             if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
-            if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
+            setTotalProductsCount(filteredData?.meta?.totalProducts)
+            setIsFiltering(false);
         } else {
             console.error("Error while fetching data!!")
         }
     }
 
+    // For handling search
     const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         setIsSearching(true);
+        setHeading(`Searching for "${searchQuery}"`)
         setSearchParams(searchParams => {
             searchParams.delete("page");
             searchParams.delete("search");
@@ -123,19 +103,58 @@ const ProductListing = () => {
 
     }
 
+    // Query to fetch item in first load of page
+    const { isPending, error, data, isSuccess } = useQuery({
+        queryKey: [ 'products' ],
+        queryFn: fetchDataWithFilters
+    })
+
+    //Set products value from tanstack query
+    useEffect(() => {
+        if (isSuccess)
+            setProducts(data?.data)
+    }, [ isSuccess ])
+
+    // Hide filters by default in mobile device
+    useEffect(() => {
+        window.addEventListener("resize", handleWindowResize);
+        return () => window.removeEventListener("resize", handleWindowResize);
+    }, [])
+
+
+    // Update pagination/metadata when query `data` changes (do not call setters during render)
+    useEffect(() => {
+        if (data?.meta?.limit) setLimit(data.meta.limit);
+        if (data?.meta?.page) setPage(data.meta.page);
+        if (data?.meta?.totalProducts) setTotalProductsCount(data.meta.totalProducts);
+    }, [ data ]);
+
+    // Fetch items when searchQuery is empty for user experience
+    useEffect(() => {
+        if (searchQuery == "" && searchParams.get("search") !== "" && searchParams.get("search") != null) {
+            setIsSearching(true);
+            setHeading("You Might Like These")
+            setSearchParams(searchParams => {
+                searchParams.delete("page");
+                searchParams.delete("search");
+                return searchParams;
+            });
+        }
+    }, [ searchQuery ])
+
+    // Search functionality use effect. Used in coordination in above functions
     useEffect(() => {
         const tempFunc = async () => {
             const filteredData = await fetchDataWithFilters();
-            console.log(filteredData)
             if (filteredData?.success) {
                 setProducts(filteredData?.data)
                 if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
                 if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
-                if (filteredData?.meta?.totalProducts) setTotalProductsCount(filteredData?.meta?.totalProducts)
+                setTotalProductsCount(filteredData?.meta?.totalProducts)
             } else {
                 console.error("Error while fetching data!!")
             }
-
+            setHeading(searchQuery === "" ? "You Might Like These" : `Search result for "${searchQuery}"`)
             setIsSearching(false);
         }
         if (isSearching)
@@ -145,6 +164,7 @@ const ProductListing = () => {
     }, [ searchParams ])
 
 
+    // Show this if data cannot be fetched in first load.
     if (error)
         return <div>OOPS!! something went wrong</div>
 
@@ -181,8 +201,8 @@ const ProductListing = () => {
 
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">You Might Like These</h2>
-                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{`Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p>
+                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">{heading ?? "You Might Like These"}</h2>
+                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{(isPending || isSearching || isFiltering) ? "Please wait a moment..." : `Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p>
                         </div>
                         <div onClick={() => setShowFilters(!showFilters)} className="flex pr-4 w-fit xl:hidden gap-2 text-foreground/80 items-center">
                             <Filter size={20} />
@@ -194,7 +214,7 @@ const ProductListing = () => {
 
                     {/* Tees Grid */}
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
-                        {isPending ?
+                        {isPending || isSearching || isFiltering ?
                             Array.from({ length: 6 }).map((_, idx) => (
                                 <PLPCardSkeleton key={idx} />
                             ))
