@@ -69,16 +69,11 @@ const ProductListing = () => {
     // For handling apply filters button
     const handleFilterUpdate = async () => {
         setIsFiltering(true);
-        const filteredData = await fetchDataWithFilters();
-        if (filteredData?.success) {
-            setProducts(filteredData?.data)
-            if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
-            if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
-            setTotalProductsCount(filteredData?.meta?.totalProducts)
-            setIsFiltering(false);
-        } else {
-            console.error("Error while fetching data!!")
-        }
+        queryClient.invalidateQueries({
+            predicate: (query) => query.queryKey[ 0 ] === "products"
+        })
+        await refetch();
+        setIsFiltering(false);
     }
 
     // For handling search
