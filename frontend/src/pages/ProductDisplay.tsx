@@ -235,14 +235,14 @@ export default function ProductPage() {
             </div>
             <hr className='my-4 mx-4 md:mx-8 h-1 sm:h-[4px] bg-accent' />
             <section className='max-w-7xl mx-auto bg-red-500/0 my-4'>
-                <Carousel className='w-full bg-yellow-500/0'>
+                <Carousel className='w-full bg-yellow-500/0' opts={{ align: 'start' }}>
                     <CarouselContent>
                         {Array.from({ length: 7 }).map((_, idx) => (
-                            <CarouselItem className='basis-1/4'><RecommendedCard id={idx} setHoveredCardId={setHoveredCardId} isHovered={hoveredCardId == idx} /></CarouselItem>
+                            <CarouselItem className='basis-[43%] lg:basis-1/3 xl:basis-1/4'><RecommendedCard id={idx} setHoveredCardId={setHoveredCardId} isHovered={hoveredCardId == idx} /></CarouselItem>
                         ))}
                     </CarouselContent>
-                    <CarouselPrevious className='rounded-sm p-6 border-1 border-foreground text-foreground -translate-x-4' />
-                    <CarouselNext className='rounded-sm p-6 border-1 border-foreground text-foreground ml-4 translate-x-4' />
+                    <CarouselPrevious className='hidden 2xl:inline-flex rounded-sm p-6 border-1 border-foreground text-foreground -translate-x-4' />
+                    <CarouselNext className='hidden 2xl:inline-flex rounded-sm p-6 border-1 border-foreground text-foreground ml-4 translate-x-4' />
                 </Carousel>
             </section>
         </div>
