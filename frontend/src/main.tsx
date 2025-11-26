@@ -30,7 +30,7 @@ createRoot(document.getElementById('root')!).render(
           <Routes>
             <Route path='/' element={<Home />} />
             <Route path='/shop' element={<ProductListing />} />
-            <Route path='/product/:product-id' element={<ProductPage />} />
+            <Route path='/product/:productId' element={<ProductPage />} />
             <Route path="/admin" element={<AdminLayout />} >
               <Route path='/admin' element={<AdminHome />} />
               <Route path='/admin/products' element={<AdminProducts />} />

@@ -9,6 +9,7 @@ import {
     CarouselPrevious,
 } from "@/components/ui/carousel"
 import RecommendedCard from '@/components/RecommendedCard';
+import { useParams } from 'react-router';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState(0);
@@ -33,6 +34,10 @@ export default function ProductPage() {
     ];
 
     const sizes = [ 'M', 'L', 'XXL' ];
+
+    const { productId } = useParams();
+
+    alert(productId);
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
         if (!isZoomed) return;
