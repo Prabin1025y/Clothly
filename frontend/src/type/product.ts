@@ -28,6 +28,7 @@ export interface ProductVariant {
     sku: string;
     color: string;
     size: string;
+    variant_id: string;
     available: number;
 }
 
@@ -37,9 +38,20 @@ export interface ModifiedProductVariant {
         sku: string;
         size: string;
         available: number;
+        variant_id: string;
     }[];
 }
 
 export interface ProductDetail {
     text: string;
+}
+
+export interface recommendedProduct {
+    public_id: number,
+    url: string,
+    current_price: number,
+    name: string,
+    average_rating: string,
+    alt_text: string,
+    slug: string
 }

@@ -23,6 +23,7 @@ interface gridItemType {
     url: string,
     current_price: number,
     name: string,
+    average_rating: string,
     alt_text: string,
     slug: string
 }
@@ -41,8 +42,6 @@ export function Gallery() {
             return data;
         }
     })
-
-    console.log(data)
 
     const gridItems: GridItem[] = data?.data?.map((item: gridItemType, index: number) => ({
         id: item.public_id,

@@ -1,4 +1,4 @@
-import { pool } from "../config/db.js";
+import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import { cartItemSchema } from "../validation/cartItem.schema.js";
 
@@ -63,12 +63,49 @@ export const addItemToCart = async (req, res) => {
 
         await client.query("COMMIT");
 
-        return res.status(201).json({ success: true, data: insertedCartItems });
+        return res.status(201).json({ success: true, data: insertedCartItems.rows[0] });
     } catch (error) {
         await client.query("ROLLBACK");
         logger.error("Error while adding item to cart: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
     } finally {
         client.release();
+    }
+}
+
+export const getCurrentCartItemByUserId = async (req, res) => {
+    try {
+        const userId = req.userId || 1;
+
+        const cartItems = await sql`
+            SELECT 
+                c.id AS cart_id,
+                c.user_id,
+                c.type,
+                c.total_price,
+                COALESCE(
+                    jsonb_agg(
+                    jsonb_build_object(
+                        'id', ci.id,
+                        'variant_id', ci.variant_id,
+                        'quantity', ci.quantity,
+                        'price_snapshot', ci.price_snapshot,
+                        'added_at', ci.added_at,
+                        'updated_at', ci.updated_at
+                    )
+                    ) FILTER (WHERE ci.id IS NOT NULL),
+                    '[]'
+                ) AS items
+            FROM carts c
+            LEFT JOIN cart_items ci ON ci.cart_id = c.id
+            WHERE c.user_id = ${userId}
+            AND c.type = 'active'
+            GROUP BY c.id;
+        `
+
+        return res.status(200).json({ success: true, data: cartItems });
+    } catch (error) {
+        logger.error("Error while getting cart item: ", error);
+        return res.status(500).json({ success: false, message: "Internal server error" })
     }
 }

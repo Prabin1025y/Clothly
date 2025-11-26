@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ShoppingCart, Star, ZoomIn } from 'lucide-react';
+import { Loader, ShoppingCart, Star, ZoomIn } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
     Carousel,
@@ -10,8 +10,9 @@ import {
 } from "@/components/ui/carousel"
 import RecommendedCard from '@/components/RecommendedCard';
 import { useParams } from 'react-router';
-import { useQuery } from '@tanstack/react-query';
-import type { ModifiedProductVariant, Product, ProductImage, ProductVariant } from '@/type/product';
+import { useQueries } from '@tanstack/react-query';
+import type { ModifiedProductVariant, Product, ProductImage, ProductVariant, recommendedProduct } from '@/type/product';
+import { useUser } from '@clerk/clerk-react';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -23,6 +24,7 @@ export default function ProductPage() {
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null);
     const [ product, setProduct ] = useState<Product>({} as Product)
     const [ colorVariant, setColorVariant ] = useState<ModifiedProductVariant[]>([])
+    const [ isAddingToCart, setIsAddingToCart ] = useState(false);
 
     const { productId } = useParams();
 
@@ -33,7 +35,7 @@ export default function ProductPage() {
 
         const map = new Map<
             string,
-            { color: string; sizes: { sku: string; size: string; available: number }[] }
+            { color: string; sizes: { sku: string; size: string; available: number; variant_id: string }[] }
         >();
 
         for (const v of variants) {
@@ -47,13 +49,42 @@ export default function ProductPage() {
             map.get(v.color)!.sizes.push({
                 sku: v.sku,
                 size: v.size,
-                available: v.available
+                available: v.available,
+                variant_id: v.variant_id
             });
         }
 
         return Array.from(map.values());
     }
 
+    const { isSignedIn } = useUser();
+
+    const handleAddToCart = async () => {
+        try {
+            if (!isSignedIn) {
+                alert("Please sign in first.")
+            } else {
+                setIsAddingToCart(true);
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/add-item-to-cart`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "variant_id": selectedSize.variant_id,
+                        "quantity": quantity
+                    })
+                });
+
+                const result = await response.json();
+            }
+        } catch (error) {
+            console.error("Error occured!! Please try again.");
+        } finally {
+            setIsAddingToCart(false);
+        }
+    }
 
     const fetchProduct = async () => {
         try {
@@ -65,11 +96,31 @@ export default function ProductPage() {
         }
     }
 
-    const { data, isFetching, error } = useQuery({
-        queryKey: [ productId ],
-        staleTime: 10 * 60 * 1000,
-        queryFn: fetchProduct
+    const result = useQueries({
+        queries: [
+            {
+                queryKey: [ productId ],
+                staleTime: 10 * 60 * 1000,
+                queryFn: fetchProduct
+            },
+            {
+                queryKey: [ 'recentProducts' ],
+                staleTime: 5 * 60 * 100,
+                queryFn: async () => {
+                    const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-recent-products`);
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok')
+                    }
+                    const data = await response.json();
+                    return data;
+                }
+            }
+        ]
     })
+
+    const [ productQuery, recommendedQuery ] = result;
+    const { data, error, isFetching } = productQuery;
+
 
     useEffect(() => {
         if (data) {
@@ -184,10 +235,12 @@ export default function ProductPage() {
                             {/* Rating */}
                             <div className="flex items-center gap-2 mb-4">
                                 <div className="flex">
-                                    {[ 1, 2, 3, 4 ].map((star) => (
-                                        <Star key={star} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
+                                    {Array.from({ length: Math.floor(Number(product?.average_rating)) }).map((_, idx) => (
+                                        <Star key={idx} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                                     ))}
-                                    <Star className="w-5 h-5 text-gray-600" />
+                                    {Array.from({ length: 5 - Math.floor(Number(product?.average_rating)) }).map((_, idx) => (
+                                        <Star key={idx} className="w-5 h-5 text-gray-600" />
+                                    ))}
                                 </div>
                                 <span className="text-gray-600">{product.average_rating} ({product.review_count})</span>
                             </div>
@@ -270,8 +323,8 @@ export default function ProductPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 pt-4">
-                            <button className="cursor-pointer flex items-center justify-center gap-2 px-6 py-4 border-2 border-gray-800 text-gray-800 font-bold rounded-lg hover:bg-gray-200 transition-colors">
-                                <ShoppingCart className="w-5 h-5" />
+                            <button disabled={isAddingToCart || quantity === 0} onClick={handleAddToCart} className={`cursor-pointer flex items-center justify-center gap-2 px-6 py-4 border-2 ${(isAddingToCart || quantity === 0) ? "border-gray-800/50 text-gray-800/50" : "border-gray-800 text-gray-800"} font-bold rounded-lg hover:bg-gray-200 transition-colors`}>
+                                {isAddingToCart ? <Loader className='w-5 h-5 animate-spin' /> : <ShoppingCart className="w-5 h-5" />}
                                 Add To Cart
                             </button>
                             <button className="cursor-pointer px-6 py-4 bg-accent text-foreground font-bold rounded-sm hover:bg-accent/90 transition-colors">
@@ -305,8 +358,10 @@ export default function ProductPage() {
             <section className='max-w-7xl mx-auto bg-red-500/0 my-4'>
                 <Carousel className='w-full bg-yellow-500/0' opts={{ align: 'start' }}>
                     <CarouselContent>
-                        {Array.from({ length: 7 }).map((_, idx) => (
-                            <CarouselItem key={idx} className='basis-[43%] lg:basis-1/3 xl:basis-1/4'><RecommendedCard id={idx} setHoveredCardId={setHoveredCardId} isHovered={hoveredCardId == idx} /></CarouselItem>
+                        {Array.isArray(recommendedQuery?.data?.data) && recommendedQuery?.data?.data?.filter((product: recommendedProduct) => product.slug !== productId).map((product: recommendedProduct, idx: number) => (
+                            <CarouselItem key={idx} className='basis-[43%] lg:basis-1/3 xl:basis-1/4'>
+                                <RecommendedCard id={idx} setHoveredCardId={setHoveredCardId} isHovered={hoveredCardId == idx} product={product} />
+                            </CarouselItem>
                         ))}
                     </CarouselContent>
                     <CarouselPrevious className='hidden 2xl:inline-flex rounded-sm p-6 border-1 border-foreground text-foreground -translate-x-4' />

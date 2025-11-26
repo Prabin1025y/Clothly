@@ -288,6 +288,7 @@ export const getProductBySlug = async (req, res) => {
                     'sku', sku,
                     'color', color,
                     'size', size,
+                    'variant_id', id,
                     'available', available
                     ) ) AS variants
                 FROM product_variants pv
@@ -325,6 +326,7 @@ export const getRecentProducts = async (req, res) => {
                 p.name,
                 p.slug,
                 p.current_price,
+                p.average_rating,
                 pi.url,
                 pi.alt_text
             FROM products p
