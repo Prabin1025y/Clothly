@@ -13,6 +13,7 @@ import { useParams } from 'react-router';
 import { useQueries } from '@tanstack/react-query';
 import type { ModifiedProductVariant, Product, ProductImage, ProductVariant, recommendedProduct } from '@/type/product';
 import { useUser } from '@clerk/clerk-react';
+import ProductPageSkeleton from '@/Skeletons/ProductDisplaySkeleton';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -170,7 +171,7 @@ export default function ProductPage() {
         return (<div>Error...</div>)
 
     if (isFetching || !("data" in data))
-        return (<div>Loading...</div>)
+        return <ProductPageSkeleton />
 
     return (
         <div className="min-h-screen bg-white p-4 md:p-8 font-[Inter]">

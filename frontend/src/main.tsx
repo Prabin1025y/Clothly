@@ -13,6 +13,8 @@ import AdminHome from './pages/admin/AdminHome.tsx'
 import AdminLayout from './pages/admin/AdminLayout.tsx'
 import AdminProducts from './pages/admin/AdminProducts.tsx'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from "@/components/ui/sonner"
+import CheckoutPage from './pages/CheckoutPage.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 const queryClient = new QueryClient()
@@ -31,6 +33,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path='/' element={<Home />} />
             <Route path='/shop' element={<ProductListing />} />
             <Route path='/product/:productId' element={<ProductPage />} />
+            <Route path='/checkout' element={<CheckoutPage />} />
             <Route path="/admin" element={<AdminLayout />} >
               <Route path='/admin' element={<AdminHome />} />
               <Route path='/admin/products' element={<AdminProducts />} />
@@ -42,6 +45,7 @@ createRoot(document.getElementById('root')!).render(
             </button>
           </Link>
           <Footer />
+          <Toaster richColors position='top-right' />
         </QueryClientProvider>
       </ClerkProvider>
     </BrowserRouter>
