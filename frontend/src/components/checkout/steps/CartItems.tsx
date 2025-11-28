@@ -1,35 +1,33 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import type { CartItemType } from "@/type/cart"
 
-interface CartItem {
-    id: number
-    name: string
-    price: number
-    quantity: number
-}
 
 interface CartItemsStepProps {
-    items: CartItem[]
+    items: CartItemType[];
+    isFetching: boolean;
 }
 
 
-export default function CartItemsStep({ items }: CartItemsStepProps) {
+export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
+    if (isFetching)
+        return <div>Loading Cart...</div>
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {items.map((item, idx) => (
-                <Card key={item.id} className="overflow-hidden hover:shadow-md transition-shadow">
+                <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
                     {/* Product Image Placeholder */}
                     <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 w-full" />
 
                     {/* Product Details */}
                     <div className="p-4">
-                        <h3 className="font-semibold text-sm mb-2">{item.name}</h3>
+                        <h3 className="font-semibold text-sm mb-2">{item.product_name}</h3>
 
                         <div className="text-xs text-muted-foreground space-y-1 mb-3">
-                            <p>Price: Rs. {item.price.toLocaleString()}</p>
+                            <p>Price: Rs. {item.price_snapshot.toLocaleString()}</p>
                             <p>Quantity: {item.quantity}</p>
                             <p className="font-semibold text-foreground">
-                                Total: Rs. {(item.price * item.quantity).toLocaleString()}
+                                Total: Rs. {(item.price_snapshot * item.quantity).toString().toLocaleString()}
                             </p>
                         </div>
 

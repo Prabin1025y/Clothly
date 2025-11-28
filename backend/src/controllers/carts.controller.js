@@ -78,31 +78,44 @@ export const getCurrentCartItemByUserId = async (req, res) => {
         const userId = req.userId || 1;
 
         const cartItems = await sql`
-            SELECT 
+            SELECT
                 c.id AS cart_id,
                 c.user_id,
                 c.type,
                 c.total_price,
                 COALESCE(
-                    jsonb_agg(
-                    jsonb_build_object(
-                        'id', ci.id,
-                        'variant_id', ci.variant_id,
-                        'quantity', ci.quantity,
-                        'price_snapshot', ci.price_snapshot,
-                        'added_at', ci.added_at,
-                        'updated_at', ci.updated_at
-                    )
-                    ) FILTER (WHERE ci.id IS NOT NULL),
+                    jsonb_agg(item_data) FILTER (WHERE item_data IS NOT NULL),
                     '[]'
                 ) AS items
             FROM carts c
-            LEFT JOIN cart_items ci ON ci.cart_id = c.id
+            LEFT JOIN (
+                SELECT
+                    ci.cart_id,
+                    jsonb_build_object(
+                        'variant_id', ci.variant_id,
+                        'quantity', SUM(ci.quantity),                     -- merge duplicates
+                        'price_snapshot', ci.price_snapshot,
+                        'product_name', p.name,                          -- add product name
+                        'product_slug', p.slug,                          -- add product slug
+                        'added_at', MIN(ci.added_at),                    -- pick the earliest added
+                        'updated_at', MAX(ci.updated_at)                 -- pick the latest update
+                    ) AS item_data
+                FROM cart_items ci
+                JOIN product_variants pv ON pv.id = ci.variant_id
+                JOIN products p ON p.id = pv.product_id
+                GROUP BY
+                    ci.cart_id,
+                    ci.variant_id,
+                    ci.price_snapshot,
+                    p.name,
+                    p.slug
+            ) merged_items
+            ON merged_items.cart_id = c.id
             WHERE c.user_id = ${userId}
             AND c.type = 'active'
             GROUP BY c.id;
-        `
 
+        `
         return res.status(200).json({ success: true, data: cartItems });
     } catch (error) {
         logger.error("Error while getting cart item: ", error);

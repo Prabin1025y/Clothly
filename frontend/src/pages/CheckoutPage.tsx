@@ -8,6 +8,9 @@ import CheckoutProgressBar from "@/components/checkout/ProgressBar"
 import CartItemsStep from "@/components/checkout/steps/CartItems"
 import ShippingStep from "@/components/checkout/steps/Shipping"
 import PaymentStep from "@/components/checkout/steps/Payment"
+import { useQuery } from "@tanstack/react-query"
+import { toast } from "sonner"
+import type { CartItemType } from "@/type/cart"
 // import CompleteStep from "@/components/checkout/steps/complete"
 
 const STEPS = [
@@ -50,17 +53,38 @@ export default function CheckoutPage() {
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
-                return <CartItemsStep items={cartItems} />
+                return <CartItemsStep isFetching={isFetching} items={data} />
             case 2:
                 return <ShippingStep />
             case 3:
                 return <PaymentStep />
-            // case 4:
-            //     return <CompleteStep />
             default:
                 return null
         }
     }
+
+    const queryResponse = useQuery({
+        queryKey: [ "cartitems" ],
+        staleTime: 24 * 60 * 60 * 1000,
+        queryFn: async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/get-cart-items`);
+                const result = await response.json();
+                console.log(result)
+                if (result?.success && Array.isArray(result?.data?.[ 0 ]?.items))
+                    return result?.data?.[ 0 ]?.items;
+                else
+                    throw new Error("Response not ok");
+            } catch (error) {
+                toast.error("Failed to fetch your cart!!")
+                console.error(error);
+            }
+        }
+    })
+
+    const { isFetching, refetch } = queryResponse;
+
+    const data: CartItemType[] = queryResponse.data;
 
     return (
         <div className="min-h-screen bg-background p-8">
