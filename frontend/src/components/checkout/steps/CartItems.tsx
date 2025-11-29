@@ -16,8 +16,16 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             {items.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
-                    {/* Product Image Placeholder */}
-                    <div className="aspect-square bg-gradient-to-br from-muted to-muted/50 w-full" />
+                    {/* Product Image */}
+                    <div className="aspect-square w-full overflow-hidden rounded-t-md bg-gradient-to-br from-muted to-muted/50">
+                        <img
+                            src={item?.product_image_url}
+                            alt={item?.product_image_alt_text ?? 'Product image'}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                        // onError={(e) => { (e.currentTarget as HTMLImageElement).src = '/images/placeholder.png'; }}
+                        />
+                    </div>
 
                     {/* Product Details */}
                     <div className="p-4">

@@ -7,4 +7,6 @@ export interface CartItemType {
     price_snapshot: number,
     added_at: Date,
     updated_at: Date
+    product_image_alt_text: string,
+    product_image_url: string
 }

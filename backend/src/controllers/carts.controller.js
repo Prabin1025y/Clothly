@@ -93,30 +93,62 @@ export const getCurrentCartItemByUserId = async (req, res) => {
                     ci.cart_id,
                     jsonb_build_object(
                         'variant_id', ci.variant_id,
-                        'quantity', SUM(ci.quantity),                     -- merge duplicates
+                        'quantity', SUM(ci.quantity),
                         'price_snapshot', ci.price_snapshot,
-                        'product_name', p.name,                          -- add product name
-                        'product_slug', p.slug,                          -- add product slug
-                        'added_at', MIN(ci.added_at),                    -- pick the earliest added
-                        'updated_at', MAX(ci.updated_at)                 -- pick the latest update
+                        'product_name', p.name,
+                        'product_slug', p.slug,
+                        'product_image_url', pi.url,
+                        'product_image_alt_text', pi.alt_text,
+                        'added_at', MIN(ci.added_at),
+                        'updated_at', MAX(ci.updated_at)
                     ) AS item_data
                 FROM cart_items ci
                 JOIN product_variants pv ON pv.id = ci.variant_id
                 JOIN products p ON p.id = pv.product_id
+
+                JOIN LATERAL (
+                    SELECT url, alt_text
+                    FROM product_images
+                    WHERE product_id = pv.product_id
+                    AND is_primary = TRUE
+                    LIMIT 1
+                ) pi ON TRUE
+
                 GROUP BY
                     ci.cart_id,
                     ci.variant_id,
                     ci.price_snapshot,
                     p.name,
-                    p.slug
+                    p.slug,
+                    pi.url,
+                    pi.alt_text
             ) merged_items
             ON merged_items.cart_id = c.id
             WHERE c.user_id = ${userId}
             AND c.type = 'active'
             GROUP BY c.id;
 
+
         `
         return res.status(200).json({ success: true, data: cartItems });
+    } catch (error) {
+        logger.error("Error while getting cart item: ", error);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+}
+
+export const deleteItemFromCart = async (req, res) => {
+    try {
+        const userId = req.userId || 1;
+        const productVariantId = req.params.variantId;
+
+        if (!productVariantId)
+            throw new Error("Invalid Product variant id!");
+
+        const deletedItem = await sql`
+            DELETE FROM cart_items
+        `
+
     } catch (error) {
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
