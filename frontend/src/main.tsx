@@ -45,7 +45,7 @@ createRoot(document.getElementById('root')!).render(
             </button>
           </Link>
           <Footer />
-          <Toaster richColors position='top-right' />
+          <Toaster richColors position='top-right' theme='light' />
         </QueryClientProvider>
       </ClerkProvider>
     </BrowserRouter>

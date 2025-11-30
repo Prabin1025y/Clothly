@@ -1,20 +1,67 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import type { CartItemType } from "@/type/cart"
+import type { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
+import { ShoppingCart } from "lucide-react";
+import { Link } from "react-router";
+import { toast } from "sonner";
 
 
 interface CartItemsStepProps {
     items: CartItemType[];
     isFetching: boolean;
+    refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<any, Error>>
 }
 
 
-export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
-    if (isFetching)
+export default function CartItemsStep({ items, isFetching, refetch }: CartItemsStepProps) {
+
+    const handleDeleteItem = async (variantId: number) => {
+        if (variantId === -1)
+            return toast.error("No such product in your cart!!");
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/delete-cart-item/${variantId}`, {
+                method: "DELETE",
+                credentials: "include"
+            })
+            const result = await response.json();
+            if (!response.ok || result?.data?.length === 0) {
+                return toast.error("Something went wrong!!");
+            }
+            toast.success("Item removed from cart!");
+            refetch();
+            // console.log(result);
+        } catch (error) {
+            toast.error("Something went wrong!!");
+            console.log(error);
+        }
+    }
+
+    if (!items && isFetching)
         return <div>Loading Cart...</div>
+    if (items?.length === 0)
+        return <Empty >
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <ShoppingCart />
+                </EmptyMedia>
+                <EmptyTitle>No Product Yet</EmptyTitle>
+                <EmptyDescription>
+                    You haven&apos;t added any product to your cart. Shop now to own some premium tees.
+                </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+                <div className="flex gap-2">
+                    <Link to={"/shop"}>
+                        <Button className="cursor-pointer">Shop Now</Button>
+                    </Link>
+                </div>
+            </EmptyContent>
+        </Empty>
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {items.map((item, idx) => (
+            {items?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
                     {/* Product Image */}
                     <div className="aspect-square w-full overflow-hidden rounded-t-md bg-gradient-to-br from-muted to-muted/50">
@@ -47,6 +94,7 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
                             <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => handleDeleteItem(Number(item.variant_id) ?? -1)}
                                 className="flex-1 text-xs text-red-600 hover:text-red-700 bg-transparent"
                             >
                                 Remove

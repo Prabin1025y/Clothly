@@ -41,11 +41,11 @@ export const addItemToCart = async (req, res) => {
                     VALUES ($1, $2)
                     RETURNING id
                 `, [userId, today.toISOString()])
-            console.log(cart_data)
+            // console.log(cart_data)
             cart_id = cart_data.rows[0].id
         } else {
             cart_id = data.rows[0].id
-            console.log(cart_id)
+            // console.log(cart_id)
         }
 
         const insertedCartItems = await client.query(`
@@ -127,9 +127,8 @@ export const getCurrentCartItemByUserId = async (req, res) => {
             WHERE c.user_id = ${userId}
             AND c.type = 'active'
             GROUP BY c.id;
-
-
         `
+        // console.log(cartItems)
         return res.status(200).json({ success: true, data: cartItems });
     } catch (error) {
         logger.error("Error while getting cart item: ", error);
@@ -138,18 +137,42 @@ export const getCurrentCartItemByUserId = async (req, res) => {
 }
 
 export const deleteItemFromCart = async (req, res) => {
+    const client = await pool.connect()
     try {
+        await client.query("BEGIN");
         const userId = req.userId || 1;
+        // console.log(userId)
+
         const productVariantId = req.params.variantId;
 
         if (!productVariantId)
             throw new Error("Invalid Product variant id!");
 
-        const deletedItem = await sql`
-            DELETE FROM cart_items
-        `
+        const deletedItem = await client.query(`
+            DELETE FROM cart_items ci
+            USING carts c
+            WHERE ci.cart_id = c.id
+                AND c.user_id = $1
+                AND ci.variant_id = $2
+            RETURNING ci.*;
+        `, [userId, productVariantId])
+
+        // console.log(deletedItem);
+
+        if (deletedItem.rowCount > 0) {
+            const deletedPrice = deletedItem.rows.reduce((price, row) => price + Number(row.price_snapshot) * row.quantity, 0)
+            await client.query(`
+            UPDATE carts
+                SET total_price = total_price - $1
+                WHERE id = $2 
+            `, [deletedPrice, deletedItem.rows[0].cart_id]);
+        }
+        await client.query("COMMIT");
+        return res.status(200).json({ success: true, data: deletedItem.rows })
+
 
     } catch (error) {
+        await client.query("ROLLBACK");
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
     }

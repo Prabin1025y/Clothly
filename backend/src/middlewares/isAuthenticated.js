@@ -8,6 +8,8 @@ const isAuthenticated = async (req, res, next) => {
 
         const { userId } = getAuth(req);
 
+        // console.log(userId)
+
 
         if (!userId) {
             return res.status(401).json({
@@ -19,6 +21,7 @@ const isAuthenticated = async (req, res, next) => {
         const data = await sql`
             SELECT id from users WHERE clerk_id = ${userId}
         `
+        // console.log(data);
         if (data.length === 0) {
             return res.status(401).json({
                 success: false,
@@ -28,7 +31,7 @@ const isAuthenticated = async (req, res, next) => {
 
         req.userId = data[0].id
 
-        console.log(req.userId);
+        // console.log(req.userId);
         next()
     })
 }
