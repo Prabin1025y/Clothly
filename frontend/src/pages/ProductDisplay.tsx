@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/carousel"
 import RecommendedCard from '@/components/RecommendedCard';
 import { useParams } from 'react-router';
-import { useQueries } from '@tanstack/react-query';
+import { useQueries, useQueryClient } from '@tanstack/react-query';
 import type { ModifiedProductVariant, Product, ProductImage, ProductVariant, recommendedProduct } from '@/type/product';
 import { useUser } from '@clerk/clerk-react';
 import ProductPageSkeleton from '@/Skeletons/ProductDisplaySkeleton';
@@ -28,6 +28,7 @@ export default function ProductPage() {
     const [ isAddingToCart, setIsAddingToCart ] = useState(false);
 
     const { productId } = useParams();
+    const queryClient = useQueryClient();
 
     const groupProductVariants = (variants: ProductVariant[]): ModifiedProductVariant[] => {
         if (!Array.isArray(variants)) {
@@ -79,6 +80,9 @@ export default function ProductPage() {
                 });
 
                 const result = await response.json();
+                if (result?.success) {
+                    queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
+                }
             }
         } catch (error) {
             console.error("Error occured!! Please try again.");

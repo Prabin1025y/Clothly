@@ -1,3 +1,4 @@
+import type { QueryObserverResult, RefetchOptions } from '@tanstack/react-query';
 import { create } from 'zustand'
 
 export interface CartItem {
@@ -22,11 +23,11 @@ export interface CartWithItems {
 // Define types for state & actions
 interface CartStore {
     cartItems: CartWithItems;
-    setCartItems: (cartItems: CartWithItems) => void
+    setCartItems: (cartItems: CartWithItems) => void;
 }
 
 // Create store using the curried form of `create`
 export const useBearStore = create<CartStore>()((set) => ({
     cartItems: {} as CartWithItems,
-    setCartItems: (cartItems: CartWithItems) => set(() => ({ cartItems }))
+    setCartItems: (cartItems: CartWithItems) => set(() => ({ cartItems })),
 }))

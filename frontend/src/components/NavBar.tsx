@@ -25,9 +25,7 @@ const NavBar = () => {
     const navigate = useNavigate()
 
     const handleCLickShopping = async () => {
-        const response = await fetch("http://localhost:3000/api/hello", { method: "GET", credentials: "include" })
-        const data = await response.json()
-        console.log(data)
+        navigate("/checkout");
     }
 
     const handleSearchSubmit = (e: React.FormEvent<HTMLFormElement>) => {

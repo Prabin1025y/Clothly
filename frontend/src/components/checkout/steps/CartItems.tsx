@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import type { CartItemType } from "@/type/cart"
-import type { QueryObserverResult, RefetchOptions } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -11,11 +11,12 @@ import { toast } from "sonner";
 interface CartItemsStepProps {
     items: CartItemType[];
     isFetching: boolean;
-    refetch: (options?: RefetchOptions | undefined) => Promise<QueryObserverResult<any, Error>>
 }
 
 
-export default function CartItemsStep({ items, isFetching, refetch }: CartItemsStepProps) {
+export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
+
+    const queryClient = useQueryClient()
 
     const handleDeleteItem = async (variantId: number) => {
         if (variantId === -1)
@@ -30,7 +31,7 @@ export default function CartItemsStep({ items, isFetching, refetch }: CartItemsS
                 return toast.error("Something went wrong!!");
             }
             toast.success("Item removed from cart!");
-            refetch();
+            queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
             // console.log(result);
         } catch (error) {
             toast.error("Something went wrong!!");

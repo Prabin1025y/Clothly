@@ -53,7 +53,7 @@ export default function CheckoutPage() {
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
-                return <CartItemsStep refetch={refetch} isFetching={isFetching} items={data?.[ 0 ].items} />
+                return <CartItemsStep isFetching={isFetching} items={data?.[ 0 ].items} />
             case 2:
                 return <ShippingStep />
             case 3:
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
         }
     })
 
-    const { isFetching, refetch } = queryResponse;
+    const { isFetching } = queryResponse;
 
     const data: CartResponseType[] = queryResponse.data;
 
@@ -104,6 +104,7 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Content Area */}
                     <div className="lg:col-span-2">
+
                         <div className="mb-8">
                             {currentStep === 1 && data?.[ 0 ]?.items?.length !== 0 && <h2 className="text-2xl font-bold mb-6">Cart Items</h2>}
                             {currentStep === 2 && <h2 className="text-2xl font-bold mb-6">Shipping Information</h2>}
@@ -111,28 +112,59 @@ export default function CheckoutPage() {
                             {currentStep === 4 && <h2 className="text-2xl font-bold mb-6">Order Complete</h2>}
                         </div>
                         {renderStepContent()}
+                        {/* Navigation Buttons */}
+                        <div className="flex justify-between items-center mt-12">
+                            <Button
+                                onClick={handlePrevious}
+                                disabled={currentStep === 1}
+                                variant="outline"
+                                className="px-8 py-6 bg-transparent"
+                            >
+                                Previous
+                            </Button>
+                            <Button
+                                onClick={handleNext}
+                                disabled={currentStep === STEPS.length || data?.[ 0 ]?.items?.length === 0}
+                                className="px-8 py-6 bg-amber-500 hover:bg-amber-600 text-black font-bold"
+                            >
+                                Next
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Right Sidebar - Order Summary */}
                     <div className="lg:col-span-1">
-                        <Card className="p-6 sticky top-8">
-                            <h3 className="text-xl font-bold mb-6">Total</h3>
+                        <Card className="p-6 sticky top-8 space-y-6 gap-1 border-none shadow-none">
+                            <h3 className="text-2xl font-semibold tracking-tight">Total</h3>
 
                             {/* Price Details */}
-                            <div className="space-y-3 mb-6 pb-6 border-b border-border">
+                            <div className="space-y-4">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Sub Total</span>
-                                    <span className="font-medium">Rs. {data ? data[ 0 ].total_price.toLocaleString() : "..."}</span>
+                                    <span className="text-muted-foreground">Subtotal</span>
+                                    <span className="font-medium text-base">
+                                        Rs. {data ? data[ 0 ].total_price.toLocaleString() : "..."}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Delivery</span>
-                                    <span className="font-medium">Rs. {100}</span>
+                                    <span className="font-medium text-base">Rs. {data?.[ 0 ]?.items?.length === 0 ? 0.00 : 100.00}</span>
+                                </div>
+
+                                {/* Total Amount */}
+                                <div className="flex justify-between text-sm pt-2 border-t border-border">
+                                    <span className="font-semibold">Total Amount</span>
+                                    <span className="font-bold text-lg">
+                                        Rs.{" "}
+                                        {data
+                                            ? (Number(data[ 0 ].total_price) + 100).toLocaleString()
+                                            : "..."}
+                                    </span>
                                 </div>
                             </div>
 
-                            {/* Promo Code */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium mb-3">Promo Code</label>
+                            {/* Promo Code
+                            <div className="space-y-3">
+                                <label className="block text-sm font-medium">Promo Code</label>
                                 <div className="flex gap-2">
                                     <Input
                                         type="text"
@@ -141,57 +173,41 @@ export default function CheckoutPage() {
                                         onChange={(e) => setPromoCode(e.target.value)}
                                         className="flex-1 text-sm"
                                     />
-                                    <Button variant="outline" className="px-4 bg-transparent">
+                                    <Button variant="outline" className="px-4 bg-transparent text-sm">
                                         Apply
                                     </Button>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Checkout Button */}
+                            <p className="text-xs text-red-500 mb-0">
+                                * Shipping address not confirmed
+                            </p>
                             <Button
-                                className="w-full bg-amber-500 hover:bg-amber-600 text-black font-bold py-6 mb-3"
+                                className="w-full mt-0 bg-amber-500 hover:bg-amber-600 text-black font-semibold py-6 text-lg"
                                 disabled={currentStep !== 4}
                             >
                                 CHECKOUT
                             </Button>
-                            <p className="text-xs text-red-500 text-center mb-6">* Shipping address not confirmed</p>
+
 
                             {/* Payment Methods */}
-                            <div>
-                                <label className="block text-sm font-bold mb-3">WE ACCEPT</label>
-                                <div className="flex gap-2 flex-wrap">
-                                    <div className="flex items-center justify-center w-10 h-10 bg-muted rounded border border-border text-xs font-bold">
-                                        Sewa
-                                    </div>
-                                    <div className="flex items-center justify-center w-10 h-10 bg-muted rounded border border-border text-xs font-bold">
-                                        easypaisa
-                                    </div>
-                                    <div className="flex items-center justify-center w-10 h-10 bg-muted rounded border border-border text-xs font-bold">
-                                        Imamdi
-                                    </div>
+                            {/* <div>
+                                <label className="block text-sm font-semibold mb-3">WE ACCEPT</label>
+                                <div className="flex gap-3 flex-wrap">
+                                    {[ "Sewa", "easypaisa", "Imamdi" ].map((m, i) => (
+                                        <div
+                                            key={i}
+                                            className="flex items-center justify-center w-12 h-12 bg-muted rounded-xl border border-border text-xs font-bold"
+                                        >
+                                            {m}
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
+                            </div> */}
                         </Card>
                     </div>
-                </div>
 
-                {/* Navigation Buttons */}
-                <div className="flex justify-between items-center mt-12">
-                    <Button
-                        onClick={handlePrevious}
-                        disabled={currentStep === 1}
-                        variant="outline"
-                        className="px-8 py-6 bg-transparent"
-                    >
-                        Previous
-                    </Button>
-                    <Button
-                        onClick={handleNext}
-                        disabled={currentStep === STEPS.length || data?.[ 0 ]?.items?.length === 0}
-                        className="px-8 py-6 bg-amber-500 hover:bg-amber-600 text-black font-bold"
-                    >
-                        Next
-                    </Button>
                 </div>
             </div>
         </div>
