@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import CheckoutProgressBar from "@/components/checkout/ProgressBar"
 import CartItemsStep from "@/components/checkout/steps/CartItems"
 import ShippingStep from "@/components/checkout/steps/Shipping"
@@ -11,32 +10,16 @@ import PaymentStep from "@/components/checkout/steps/Payment"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { CartResponseType } from "@/type/cart"
-// import CompleteStep from "@/components/checkout/steps/complete"
 
 const STEPS = [
     { id: 1, label: "Manage Cart" },
     { id: 2, label: "Shipping Information" },
     { id: 3, label: "Payment" },
-    // { id: 4, label: "Complete" },
 ]
 
 export default function CheckoutPage() {
     const [ currentStep, setCurrentStep ] = useState(1)
-    const [ promoCode, setPromoCode ] = useState("")
 
-    // Mock data
-    // const cartItems = [
-    //     { id: 1, name: "Classic Black Tee", price: 1399, quantity: 2 },
-    //     { id: 2, name: "Classic Black Tee", price: 1399, quantity: 1 },
-    //     { id: 3, name: "Classic Black Tee", price: 1399, quantity: 2 },
-    //     { id: 4, name: "Classic Black Tee", price: 1399, quantity: 1 },
-    //     { id: 5, name: "Classic Black Tee", price: 1399, quantity: 2 },
-    //     { id: 6, name: "Classic Black Tee", price: 1399, quantity: 1 },
-    // ]
-
-    // const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    // const delivery = 0
-    // const total = subtotal + delivery
 
     const handleNext = () => {
         if (currentStep < STEPS.length) {
@@ -162,22 +145,6 @@ export default function CheckoutPage() {
                                 </div>
                             </div>
 
-                            {/* Promo Code
-                            <div className="space-y-3">
-                                <label className="block text-sm font-medium">Promo Code</label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        type="text"
-                                        placeholder="Enter Promo Code"
-                                        value={promoCode}
-                                        onChange={(e) => setPromoCode(e.target.value)}
-                                        className="flex-1 text-sm"
-                                    />
-                                    <Button variant="outline" className="px-4 bg-transparent text-sm">
-                                        Apply
-                                    </Button>
-                                </div>
-                            </div> */}
 
                             {/* Checkout Button */}
                             <p className="text-xs text-red-500 mb-0">

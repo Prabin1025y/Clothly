@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ShoppingCart } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
+import { ProductEditOverlay } from "../EditOverlay";
+import { useState } from "react";
 
 
 interface CartItemsStepProps {
@@ -15,6 +17,9 @@ interface CartItemsStepProps {
 
 
 export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
+
+    const [ showEditOverlay, setShowEditOverlay ] = useState(false);
+    const [ currentProductSlug, setCurrentProductSlug ] = useState("");
 
     const queryClient = useQueryClient()
 
@@ -37,6 +42,11 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
             toast.error("Something went wrong!!");
             console.log(error);
         }
+    }
+
+    const handleEditButtonClicked = async (slug: string) => {
+        setShowEditOverlay(true);
+        setCurrentProductSlug(slug ?? "");
     }
 
     if (!items && isFetching)
@@ -62,6 +72,8 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         </Empty>
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} slug={currentProductSlug} />
+
             {items?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
                     {/* Product Image */}
@@ -89,7 +101,7 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
 
                         {/* Action Buttons */}
                         <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="flex-1 text-xs bg-transparent">
+                            <Button onClick={() => handleEditButtonClicked(item.product_slug)} variant="outline" size="sm" className="flex-1 text-xs bg-transparent">
                                 Edit
                             </Button>
                             <Button

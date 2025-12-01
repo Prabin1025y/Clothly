@@ -14,6 +14,7 @@ import { useQueries, useQueryClient } from '@tanstack/react-query';
 import type { ModifiedProductVariant, Product, ProductImage, ProductVariant, recommendedProduct } from '@/type/product';
 import { useUser } from '@clerk/clerk-react';
 import ProductPageSkeleton from '@/Skeletons/ProductDisplaySkeleton';
+import { toast } from 'sonner';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -93,11 +94,17 @@ export default function ProductPage() {
 
     const fetchProduct = async () => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-product/${productId}`);
+            if (productId === "") return {}
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-product/${[ productId ]}`);
+            if (!response.ok) {
+                toast.error("Error occured please try again later!!");
+                throw new Error("Response not ok!");
+            }
             const result = await response.json()
             return result;
         } catch (error) {
             console.error("Error while fetching product from productId.", error)
+
         }
     }
 
