@@ -175,5 +175,131 @@ export const deleteItemFromCart = async (req, res) => {
         await client.query("ROLLBACK");
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
+    } finally {
+        client.release();
+    }
+}
+
+export const getCartInfoFromVariantId = async (req, res) => {
+    try {
+        const productVariantId = req.params.variantId;
+        const userId = req.userId || 1;
+
+        const queryResult = await sql`
+            WITH target_variant AS (
+                SELECT
+                    pv.id AS variant_id,
+                    pv.product_id,
+                    pv.current_price,
+                    pv.original_price,
+                    pv.size,
+                    pv.color,
+                    pv.available
+                FROM product_variants pv
+                WHERE pv.id = ${productVariantId}
+                ),
+
+                product_info AS (
+                    SELECT 
+                    p.id AS product_id,
+                    p.name,
+                    p.short_description
+                    FROM products p
+                JOIN target_variant tv ON p.id = tv.product_id
+                ),
+
+            primary_image AS (
+                SELECT 
+                    pi.product_id,
+                    pi.url,
+                    pi.alt_text
+                    FROM product_images pi
+                    JOIN target_variant tv ON tv.product_id = pi.product_id
+                    WHERE pi.is_primary = TRUE
+                    LIMIT 1
+            ),
+
+            cart_quantity AS (
+                SELECT 
+                SUM(ci.quantity) AS quantity
+                FROM carts c
+                JOIN cart_items ci ON ci.cart_id = c.id
+                JOIN target_variant tv ON tv.variant_id = ci.variant_id
+                WHERE c.user_id = ${userId}
+                AND c.type = 'active'
+            ),
+
+            other_variants AS (
+                SELECT 
+                    pv.product_id,
+                    pv.color,
+                    jsonb_agg(
+                        jsonb_build_object(
+                            'variant_id', pv.id,
+                            'size', pv.size,
+                            'available', pv.available,
+                            'current_price', pv.current_price
+                        )
+                        ORDER BY pv.size
+                    ) AS sizes
+                FROM product_variants pv
+                JOIN target_variant tv ON tv.product_id = pv.product_id
+                GROUP BY pv.product_id, pv.color
+            )
+
+            SELECT
+                -- product
+                pi.name,
+                pi.short_description,
+
+                -- selected variant
+                tv.variant_id,
+                tv.current_price,
+                tv.original_price,
+                tv.size,
+                tv.color,
+                tv.available,
+
+                -- user cart quantity
+                COALESCE(cq.quantity, 0) AS cart_quantity,
+                
+                -- primary image
+                img.url AS primary_image_url,
+                img.alt_text AS primary_image_alt_text,
+                
+                -- grouped variants list
+                jsonb_agg(
+                    jsonb_build_object(
+                        'color', ov.color,
+                        'sizes', ov.sizes
+                    )
+                    ORDER BY ov.color
+                ) AS all_variants
+            FROM product_info pi
+            JOIN target_variant tv ON TRUE
+            LEFT JOIN cart_quantity cq ON TRUE
+            LEFT JOIN primary_image img ON TRUE
+            LEFT JOIN other_variants ov ON ov.product_id = pi.product_id
+            GROUP BY 
+                pi.name, 
+                pi.short_description,
+                tv.variant_id,
+                tv.current_price,
+                tv.original_price,
+                tv.size,
+                tv.color,
+                tv.available,
+                cq.quantity,
+                img.url,
+                img.alt_text;
+                `;
+
+        console.log(queryResult);
+        res.status(200).json({ success: true, data: queryResult })
+    } catch (error) {
+        await client.query("ROLLBACK");
+        logger.error("Error while getting cart item: ", error);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+
     }
 }

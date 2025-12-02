@@ -19,7 +19,7 @@ interface CartItemsStepProps {
 export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
-    const [ currentProductSlug, setCurrentProductSlug ] = useState("");
+    const [ currentVariantId, setCurrentVariantId ] = useState(-1);
 
     const queryClient = useQueryClient()
 
@@ -44,9 +44,9 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         }
     }
 
-    const handleEditButtonClicked = async (slug: string) => {
+    const handleEditButtonClicked = async (variantId: number) => {
         setShowEditOverlay(true);
-        setCurrentProductSlug(slug ?? "");
+        setCurrentVariantId(variantId ?? -1);
     }
 
     if (!items && isFetching)
@@ -72,7 +72,7 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         </Empty>
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} slug={currentProductSlug} />
+            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} variantId={currentVariantId} />
 
             {items?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -101,7 +101,7 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
 
                         {/* Action Buttons */}
                         <div className="flex gap-2">
-                            <Button onClick={() => handleEditButtonClicked(item.product_slug)} variant="outline" size="sm" className="flex-1 text-xs bg-transparent">
+                            <Button onClick={() => handleEditButtonClicked(item.variant_id)} variant="outline" size="sm" className="flex-1 text-xs bg-transparent">
                                 Edit
                             </Button>
                             <Button

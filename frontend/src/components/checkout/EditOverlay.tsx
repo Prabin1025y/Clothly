@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { X, Minus, Plus } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
@@ -8,10 +8,10 @@ import { toast } from "sonner"
 interface ProductEditOverlayProps {
     isOpen: boolean
     onClose: () => void
-    slug: string
+    variantId: number
 }
 
-export function ProductEditOverlay({ isOpen, onClose, slug }: ProductEditOverlayProps) {
+export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOverlayProps) {
     const [ selectedColor, setSelectedColor ] = useState("black")
     const [ selectedSize, setSelectedSize ] = useState("M")
     const [ quantity, setQuantity ] = useState(1)
@@ -27,12 +27,15 @@ export function ProductEditOverlay({ isOpen, onClose, slug }: ProductEditOverlay
     const sizes = [ "XS", "S", "M", "L", "XL", "XXL" ]
     const inStock = 12
 
-    const queryResult = useQuery({
-        queryKey: [ 'edit', slug ],
+    const { data } = useQuery({
+        queryKey: [ 'edit', variantId ],
         queryFn: async () => {
             try {
-                if (slug === "") return {}
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-product/${slug}`);
+                if (variantId === -1) return {}
+                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/get-cart-info-by-variant-id/${variantId}`, {
+                    method: "GET",
+                    credentials: "include"
+                });
                 if (!response.ok) {
                     toast.error("Error occured please try again later!!");
                     throw new Error("Response not ok!");
@@ -47,9 +50,14 @@ export function ProductEditOverlay({ isOpen, onClose, slug }: ProductEditOverlay
         staleTime: 0
     })
 
+    useEffect(() => {
+        console.log(data);
+    }, [ data ])
+
+
     if (!isOpen) return null
 
-    if (slug === "")
+    if (variantId === -1)
         return <div>loading...</div>
 
     return (
@@ -88,7 +96,7 @@ export function ProductEditOverlay({ isOpen, onClose, slug }: ProductEditOverlay
                         <div className="flex flex-col justify-between gap-3">
                             {/* Header */}
                             <div className="space-y-2">
-                                <h2 className="text-3xl font-medium tracking-wide text-foreground">{slug}</h2>
+                                <h2 className="text-3xl font-medium tracking-wide text-foreground">{variantId}</h2>
                                 <p className="text-sm text-muted-foreground">Classic design with modern comfort</p>
                             </div>
 
