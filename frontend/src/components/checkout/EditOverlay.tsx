@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { X, Minus, Plus } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
+import type { CartEditResponseType } from "@/type/cart"
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -12,7 +13,7 @@ interface ProductEditOverlayProps {
 }
 
 export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOverlayProps) {
-    const [ selectedColor, setSelectedColor ] = useState("black")
+    const [ selectedColor, setSelectedColor ] = useState<CartEditResponseType[ 'all_variants' ][ number ] | null>(null)
     const [ selectedSize, setSelectedSize ] = useState("M")
     const [ quantity, setQuantity ] = useState(1)
 
@@ -27,7 +28,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
     const sizes = [ "XS", "S", "M", "L", "XL", "XXL" ]
     const inStock = 12
 
-    const { data } = useQuery({
+    const queryResponse = useQuery({
         queryKey: [ 'edit', variantId ],
         queryFn: async () => {
             try {
@@ -50,14 +51,14 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
         staleTime: 0
     })
 
-    useEffect(() => {
-        console.log(data);
-    }, [ data ])
+    const data: CartEditResponseType = queryResponse.data;
+    const { isFetching } = queryResponse;
+
 
 
     if (!isOpen) return null
 
-    if (variantId === -1)
+    if (variantId === -1 || isFetching || !data)
         return <div>loading...</div>
 
     return (
@@ -96,39 +97,40 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                         <div className="flex flex-col justify-between gap-3">
                             {/* Header */}
                             <div className="space-y-2">
-                                <h2 className="text-3xl font-medium tracking-wide text-foreground">{variantId}</h2>
+                                <h2 className="text-3xl font-medium tracking-wide text-foreground">{data?.name}</h2>
                                 <p className="text-sm text-muted-foreground">Classic design with modern comfort</p>
                             </div>
 
                             {/* Pricing */}
                             <div className="space-y-1">
                                 <div className="flex items-baseline gap-3">
-                                    <span className="text-2xl text-green-600 font-medium">Rs. 89.00</span>
-                                    <span className="text-lg text-muted-foreground line-through">Rs. 129.00</span>
+                                    <span className="text-2xl text-green-600 font-medium">Rs. {data?.current_price}</span>
+                                    <span className="text-lg text-muted-foreground line-through">Rs. {data?.original_price}</span>
                                 </div>
                             </div>
 
                             {/* Stock status */}
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-foreground">In stock:</span>
-                                <span className="text-sm text-primary font-semibold">{inStock} items</span>
+                                <span className="text-sm text-primary font-semibold">{data?.available} items</span>
                             </div>
 
                             {/* Color selector */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-foreground">Color</label>
                                 <div className="flex gap-3 mt-2">
-                                    {colors.map((color) => (
+                                    {Array.isArray(data?.all_variants) && data?.all_variants?.map((color) => (
                                         <button
-                                            key={color.name}
-                                            onClick={() => setSelectedColor(color.name)}
-                                            className={`w-10 h-10 rounded-full transition-all duration-200 ${selectedColor === color.name
+                                            key={color.color}
+                                            onClick={() => setSelectedColor(color)}
+                                            className={`w-10 h-10 rounded-full transition-all duration-200 ${selectedColor?.color === color.color
                                                 ? "ring-2 ring-offset-2 ring-primary ring-offset-background scale-110"
                                                 : "hover:scale-105"
                                                 }`}
-                                            style={{ backgroundColor: color.hex }}
-                                            title={color.name}
-                                            aria-label={`Select ${color.name} color`}
+                                            style={{ backgroundColor: "yellow" }}
+                                            // todo
+                                            title={color.color}
+                                            aria-label={`Select ${color.color} color`}
                                         />
                                     ))}
                                 </div>
@@ -138,16 +140,16 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                             <div className="space-y-3">
                                 <label className="text-sm font-medium text-foreground">Size</label>
                                 <div className="grid grid-cols-3 gap-2">
-                                    {sizes.map((size) => (
+                                    {Array.isArray(selectedColor?.sizes) && selectedColor?.sizes?.map((size) => (
                                         <button
-                                            key={size}
+                                            key={size.size}
                                             onClick={() => setSelectedSize(size)}
                                             className={`py-2 px-3 rounded-lg text-sm font-medium transition-all duration-200 ${selectedSize === size
                                                 ? "bg-primary text-primary-foreground"
                                                 : "bg-secondary text-foreground hover:bg-muted"
                                                 }`}
                                         >
-                                            {size}
+                                            {size.size}
                                         </button>
                                     ))}
                                 </div>
