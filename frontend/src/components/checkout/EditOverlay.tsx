@@ -5,6 +5,7 @@ import { X, Minus, Plus } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { CartEditResponseType } from "@/type/cart"
+import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -65,7 +66,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 {
                     (variantId === -1 || isFetching || !data) ?
-                        <div>loading...</div>
+                        <ProductDetailsSkeleton onClose={onClose} />
                         :
                         <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
                             {/* Close button */}
