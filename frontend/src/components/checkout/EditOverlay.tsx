@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { X, Minus, Plus } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { CartEditResponseType } from "@/type/cart"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
+import { Button } from "../ui/button"
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -18,6 +19,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
     const [ selectedSize, setSelectedSize ] = useState<CartEditResponseType[ 'all_variants' ][ number ][ 'sizes' ][ number ] | null>(null)
     const [ quantity, setQuantity ] = useState(0)
 
+    const queryClient = useQueryClient();
     const queryResponse = useQuery({
         queryKey: [ 'edit', variantId ],
         queryFn: async () => {
@@ -43,6 +45,41 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
 
     const data: CartEditResponseType = queryResponse.data;
     const { isFetching } = queryResponse;
+
+    const handleSave = async () => {
+        if (!Number.isInteger(Number(quantity))) {
+            toast.error("Bad request!!");
+            return;
+        }
+
+        if (!selectedSize) {
+            toast.error("Size is not selected yet!");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/edit-item-in-cart`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    quantity: quantity,
+                    old_variant_id: variantId,
+                    variant_id: selectedSize?.variant_id
+                })
+            })
+            const result = await response.json();
+            if (result?.success) {
+                queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
+            }
+            console.log(result);
+            onClose()
+        } catch (error) {
+            toast.error("Something went wrong!!");
+        }
+    }
 
     useEffect(() => {
         setQuantity(Number(data?.cart_quantity))
@@ -184,19 +221,14 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                         >
                                             Cancel
                                         </button>
-                                        <button
-                                            onClick={() => {
-                                                console.log({
-                                                    color: selectedColor,
-                                                    size: selectedSize,
-                                                    quantity,
-                                                })
-                                                onClose()
-                                            }}
-                                            className="flex-1 py-3 px-4 rounded-lg bg-accent text-primary-foreground font-medium hover:opacity-90 transition-opacity duration-200"
+                                        <Button
+                                            onClick={handleSave}
+                                            disabled={!selectedSize || ((selectedSize?.variant_id === Number(data?.variant_id)) && quantity === Number(data?.cart_quantity))}
+
+                                            className="flex-1 py-0 h-full text-inherit px-4 rounded-lg bg-accent text-primary-foreground font-medium hover:opacity-90 transition-opacity duration-200"
                                         >
                                             Save
-                                        </button>
+                                        </Button>
                                     </div>
                                 </div>
                             </div>

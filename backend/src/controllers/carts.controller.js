@@ -72,77 +72,110 @@ export const addItemToCart = async (req, res) => {
         client.release();
     }
 }
-
 export const editItemInCart = async (req, res) => {
-    const client = await pool.connect()
+    const client = await pool.connect();
 
     try {
+        console.log("body:", req.body);
         const parsed = cartItemEditSchema.parse(req.body);
-
+        console.log("parsed", parsed);
         const { variant_id, old_variant_id, quantity } = parsed;
 
         await client.query("BEGIN");
 
-        const userId = req.userId || 1;//TODO: remove 1 during production
+        const userId = req.userId || 1; //TODO remove 1 in production
 
-        const variant_data = await client.query(`
-                SELECT current_price 
-                FROM product_variants 
-                WHERE id = $1
-            `, [variant_id])
+        // Fetch price of new variant
+        const variant_data = await client.query(
+            `SELECT current_price FROM product_variants WHERE id = $1`,
+            [variant_id]
+        );
 
         if (variant_data.rowCount === 0)
             throw new Error("No such product found");
 
         const productCurrentPrice = variant_data.rows[0].current_price;
 
+        // Get or create active cart
         const data = await client.query(`
-                SELECT id
-                FROM carts c
-                WHERE c.user_id = $1 AND c.type = 'active'
-            `, [userId])
+            SELECT id FROM carts 
+            WHERE user_id = $1 AND type = 'active'
+        `, [userId]);
 
-        //If existing active cart is present, use it otherwise create a new onw
         let cart_id;
         if (data.rowCount === 0) {
-            const today = new Date()
-            today.setDate(today.getDate() + 30); //30 days
+            const today = new Date();
+            today.setDate(today.getDate() + 30);
+
             const cart_data = await client.query(`
-                    INSERT INTO carts (user_id, expires_at)
-                    VALUES ($1, $2)
-                    RETURNING id
-                `, [userId, today.toISOString()])
-            // console.log(cart_data)
-            cart_id = cart_data.rows[0].id
+                INSERT INTO carts (user_id, expires_at)
+                VALUES ($1, $2)
+                RETURNING id
+            `, [userId, today.toISOString()]);
+
+            cart_id = cart_data.rows[0].id;
         } else {
-            cart_id = data.rows[0].id
-            // console.log(cart_id)
+            cart_id = data.rows[0].id;
         }
 
-        const insertedCartItems = await client.query(`
-                INSERT INTO cart_items 
-                (cart_id, variant_id, quantity, price_snapshot)
-                VALUES ($1, $2, $3, $4)
-                RETURNING *
-            `, [cart_id, variant_id, quantity, productCurrentPrice])
+        // DELETE OLD CART ITEM if exists
+        if (old_variant_id) {
+            // Fetch old item details
+            const old_item = await client.query(`
+                SELECT quantity, price_snapshot
+                FROM cart_items
+                WHERE cart_id = $1 AND variant_id = $2
+            `, [cart_id, old_variant_id]);
 
+            if (old_item.rowCount > 0) {
+                const { quantity: oldQty, price_snapshot: oldPrice } = old_item.rows[0];
+
+                // Deduct price from total cart price
+                await client.query(`
+                    UPDATE carts
+                    SET total_price = total_price - $1
+                    WHERE id = $2
+                `, [oldQty * oldPrice, cart_id]);
+
+                // Delete old cart item
+                await client.query(`
+                    DELETE FROM cart_items 
+                    WHERE cart_id = $1 AND variant_id = $2
+                `, [cart_id, old_variant_id]);
+            }
+        }
+
+        // INSERT NEW VARIANT
+        const insertedCartItems = await client.query(`
+            INSERT INTO cart_items 
+            (cart_id, variant_id, quantity, price_snapshot)
+            VALUES ($1, $2, $3, $4)
+            RETURNING *
+        `, [cart_id, variant_id, quantity, productCurrentPrice]);
+
+        // Update total price
         await client.query(`
-                UPDATE carts
-                SET total_price = total_price + $1
-                WHERE id = $2
-            `, [quantity * productCurrentPrice, cart_id])
+            UPDATE carts
+            SET total_price = total_price + $1
+            WHERE id = $2
+        `, [quantity * productCurrentPrice, cart_id]);
 
         await client.query("COMMIT");
 
-        return res.status(201).json({ success: true, data: insertedCartItems.rows[0] });
+        return res.status(201).json({
+            success: true,
+            data: insertedCartItems.rows[0]
+        });
+
     } catch (error) {
         await client.query("ROLLBACK");
-        logger.error("Error while adding item to cart: ", error);
-        return res.status(500).json({ success: false, message: "Internal server error" })
+        logger.error("Error while editing cart item: ", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
     } finally {
         client.release();
     }
-}
+};
+
 
 export const getCurrentCartItemByUserId = async (req, res) => {
     try {
