@@ -15,6 +15,7 @@ import type { ModifiedProductVariant, Product, ProductImage, ProductVariant, rec
 import { useUser } from '@clerk/clerk-react';
 import ProductPageSkeleton from '@/Skeletons/ProductDisplaySkeleton';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -83,10 +84,12 @@ export default function ProductPage() {
                 const result = await response.json();
                 if (result?.success) {
                     queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
+                    toast.success("Item added to cart!");
                 }
             }
         } catch (error) {
             console.error("Error occured!! Please try again.");
+            toast.error("Something went wrong. Try again!")
         } finally {
             setIsAddingToCart(false);
         }
@@ -335,10 +338,10 @@ export default function ProductPage() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 pt-4">
-                            <button disabled={isAddingToCart || quantity === 0} onClick={handleAddToCart} className={`cursor-pointer flex items-center justify-center gap-2 px-6 py-4 border-2 ${(isAddingToCart || quantity === 0) ? "border-gray-800/50 text-gray-800/50" : "border-gray-800 text-gray-800"} font-bold rounded-lg hover:bg-gray-200 transition-colors`}>
+                            <Button disabled={isAddingToCart || quantity === 0} onClick={handleAddToCart} className={`cursor-pointer bg-white h-full font-semibold text-base flex items-center justify-center gap-2 px-6 border-2 ${(isAddingToCart || quantity === 0) ? "border-gray-800/50 text-gray-800/50" : "border-gray-800 text-gray-800"} font-bold rounded-lg hover:bg-gray-200 transition-colors`}>
                                 {isAddingToCart ? <Loader className='w-5 h-5 animate-spin' /> : <ShoppingCart className="w-5 h-5" />}
                                 Add To Cart
-                            </button>
+                            </Button>
                             <button className="cursor-pointer px-6 py-4 bg-accent text-foreground font-bold rounded-sm hover:bg-accent/90 transition-colors">
                                 Buy Now
                             </button>

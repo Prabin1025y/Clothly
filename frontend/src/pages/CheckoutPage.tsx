@@ -10,6 +10,7 @@ import PaymentStep from "@/components/checkout/steps/Payment"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
 import type { CartResponseType } from "@/type/cart"
+import { useCartItemStore } from "@/zustand/cartStore"
 
 const STEPS = [
     { id: 1, label: "Manage Cart" },
@@ -45,6 +46,8 @@ export default function CheckoutPage() {
                 return null
         }
     }
+
+    const { cartItemsState } = useCartItemStore();
 
     const queryResponse = useQuery({
         queryKey: [ "cartitems" ],
@@ -155,6 +158,7 @@ export default function CheckoutPage() {
                                 disabled={currentStep !== 4}
                             >
                                 CHECKOUT
+                                {cartItemsState}
                             </Button>
 
 

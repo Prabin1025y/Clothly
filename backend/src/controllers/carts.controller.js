@@ -72,13 +72,12 @@ export const addItemToCart = async (req, res) => {
         client.release();
     }
 }
+
 export const editItemInCart = async (req, res) => {
     const client = await pool.connect();
 
     try {
-        console.log("body:", req.body);
         const parsed = cartItemEditSchema.parse(req.body);
-        console.log("parsed", parsed);
         const { variant_id, old_variant_id, quantity } = parsed;
 
         await client.query("BEGIN");
@@ -175,7 +174,6 @@ export const editItemInCart = async (req, res) => {
         client.release();
     }
 };
-
 
 export const getCurrentCartItemByUserId = async (req, res) => {
     try {

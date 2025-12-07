@@ -7,6 +7,7 @@ import { toast } from "sonner"
 import type { CartEditResponseType } from "@/type/cart"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
+import { useCartItemStore } from "@/zustand/cartStore"
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -20,6 +21,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
     const [ quantity, setQuantity ] = useState(0)
 
     const queryClient = useQueryClient();
+    const { setCartItemsState } = useCartItemStore();
     const queryResponse = useQuery({
         queryKey: [ 'edit', variantId ],
         queryFn: async () => {
@@ -58,6 +60,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
         }
 
         try {
+            setCartItemsState("updating");
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/edit-item-in-cart`, {
                 method: "POST",
                 credentials: "include",
@@ -78,6 +81,8 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
             onClose()
         } catch (error) {
             toast.error("Something went wrong!!");
+        } finally {
+            setCartItemsState("none");
         }
     }
 
@@ -105,7 +110,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                     (variantId === -1 || isFetching || !data) ?
                         <ProductDetailsSkeleton onClose={onClose} />
                         :
-                        <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+                        <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden">
                             {/* Close button */}
                             <button
                                 onClick={onClose}
@@ -202,7 +207,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                             >
                                                 <Minus className="w-4 h-4 text-foreground" />
                                             </button>
-                                            <span className="w-8 text-center font-medium text-foreground">{quantity}</span>
+                                            <span className="w-8 text-center font-medium text-foreground">{quantity.toString()}</span>
                                             <button
                                                 onClick={() => setQuantity(Math.min(quantity + 1, selectedSize?.available ?? 0))}
                                                 className="p-1 hover:bg-muted rounded transition-colors"

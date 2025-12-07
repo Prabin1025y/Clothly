@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { toast } from "sonner";
 import { ProductEditOverlay } from "../EditOverlay";
 import { useState } from "react";
+import { useCartItemStore } from "@/zustand/cartStore";
 
 
 interface CartItemsStepProps {
@@ -15,18 +16,19 @@ interface CartItemsStepProps {
     isFetching: boolean;
 }
 
-
 export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
     const [ currentVariantId, setCurrentVariantId ] = useState(-1);
 
     const queryClient = useQueryClient()
+    const { setCartItemsState, cartItemsState } = useCartItemStore();
 
     const handleDeleteItem = async (variantId: number) => {
         if (variantId === -1)
             return toast.error("No such product in your cart!!");
         try {
+            setCartItemsState("deleting");
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/delete-cart-item/${variantId}`, {
                 method: "DELETE",
                 credentials: "include"
@@ -41,6 +43,8 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         } catch (error) {
             toast.error("Something went wrong!!");
             console.log(error);
+        } finally {
+            setCartItemsState("none");
         }
     }
 
@@ -101,11 +105,18 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
 
                         {/* Action Buttons */}
                         <div className="flex gap-2">
-                            <Button onClick={() => handleEditButtonClicked(item.variant_id)} variant="outline" size="sm" className="flex-1 text-xs bg-transparent">
+                            <Button
+                                onClick={() => handleEditButtonClicked(item.variant_id)}
+                                variant="outline"
+                                disabled={cartItemsState !== "none"}
+                                size="sm"
+                                className="flex-1 text-xs bg-transparent"
+                            >
                                 Edit
                             </Button>
                             <Button
                                 variant="outline"
+                                disabled={cartItemsState !== "none"}
                                 size="sm"
                                 onClick={() => handleDeleteItem(Number(item.variant_id) ?? -1)}
                                 className="flex-1 text-xs text-red-600 hover:text-red-700 bg-transparent"
