@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
+import { toast } from "sonner"
 
 export interface ShippingAddress {
     id: string
@@ -71,12 +72,47 @@ export default function ShippingInfo({
         }
     }
 
-    const handleAddAddress = (newAddress: ShippingAddress) => {
-        setShippingAddresses([ ...shippingAddresses, newAddress ])
-        setShowForm(false)
-        if (onAddAddress) {
-            onAddAddress(newAddress)
+    const handleAddAddress = async (newAddress: ShippingAddress) => {
+        if (newAddress.is_default) {
+            const oldAddressClean = shippingAddresses.map(addr => {
+                if (addr.is_default) {
+                    return { ...addr, is_default: false }
+                } else {
+                    return addr;
+                }
+            });
+            setShippingAddresses(oldAddressClean.concat(newAddress))
+        } else {
+            setShippingAddresses([ ...shippingAddresses, newAddress ])
         }
+        setShowForm(false)
+        try {
+            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/shipping-addresses/add-shipping-address`, {
+                method: "POST",
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    label: newAddress.label,
+                    recipient_name: newAddress.recipient_name,
+                    district: newAddress.district,
+                    province: newAddress.province,
+                    city: newAddress.city,
+                    tole_name: newAddress.tole_name,
+                    postal_code: newAddress.postal_code,
+                    phone: newAddress.phone,
+                    is_default: newAddress.is_default
+                })
+            })
+            const result = await response.json();
+            if (result?.success) {
+                toast.success("Shipping address addes!");
+            }
+        } catch (error) {
+            toast.error("Something went wrong!!");
+        }
+
     }
 
     return (
@@ -96,7 +132,7 @@ export default function ShippingInfo({
                         <Card
                             key={address.id}
                             className="p-4 cursor-pointer transition-all hover:border-primary/50 border-2 border-transparent"
-                            onClick={() => handleSelectAddress(address.id)}
+                        // onClick={() => handleSelectAddress(address.id)}
                         >
                             <div className="flex items-start gap-4">
                                 <RadioGroupItem value={address.id} id={`address-${address.id}`} />
