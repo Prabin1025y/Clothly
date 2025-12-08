@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
 import { toast } from "sonner"
+import { useQuery } from "@tanstack/react-query"
 
 export interface ShippingAddress {
     id: string
@@ -71,6 +72,24 @@ export default function ShippingInfo({
             onAddressSelect(selected)
         }
     }
+
+    const queryResult = useQuery({
+        queryKey: [ 'shipping-address' ],
+        queryFn: async () => {
+            try {
+                const response = await fetch(`${import.meta.env.VITE_BACKEN_URL}/shipping-addresses/get-shipping-address`, {
+                    method: "GET",
+                    credentials: 'include'
+                })
+                const result = await response.json();
+                if (result?.success) {
+                    return result?.data;
+                }
+            } catch (error) {
+                toast.error("Something went wrong!!");
+            }
+        }
+    })
 
     const handleAddAddress = async (newAddress: ShippingAddress) => {
         if (newAddress.is_default) {
