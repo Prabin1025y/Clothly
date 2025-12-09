@@ -12,12 +12,11 @@ import { ShieldUser } from 'lucide-react'
 import AdminHome from './pages/admin/AdminHome.tsx'
 import AdminLayout from './pages/admin/AdminLayout.tsx'
 import AdminProducts from './pages/admin/AdminProducts.tsx'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from "@/components/ui/sonner"
 import CheckoutPage from './pages/CheckoutPage.tsx'
+import { QueryProvider } from './provider/QueryProvider.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
-const queryClient = new QueryClient()
 
 if (!PUBLISHABLE_KEY) {
   throw new Error('Missing Publishable Key')
@@ -27,7 +26,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
-        <QueryClientProvider client={queryClient}>
+        <QueryProvider>
           <NavBar />
           <Routes>
             <Route path='/' element={<Home />} />
@@ -46,7 +45,7 @@ createRoot(document.getElementById('root')!).render(
           </Link>
           <Footer />
           <Toaster richColors position='top-right' theme='light' />
-        </QueryClientProvider>
+        </QueryProvider>
       </ClerkProvider>
     </BrowserRouter>
   </StrictMode>,

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
 import { toast } from "sonner"
 import { useQuery } from "@tanstack/react-query"
+import { useShippingAddresses } from "@/hooks/useShippingAddresses"
 
 export interface ShippingAddress {
     id: string
@@ -59,37 +60,28 @@ export default function ShippingInfo({
     onAddressSelect,
     onAddAddress,
 }: ShippingInfoProps) {
-    const [ selectedAddressId, setSelectedAddressId ] = useState(
-        addresses.find((addr) => addr.is_default)?.id || addresses[ 0 ]?.id,
-    )
+    const [ selectedAddressId, setSelectedAddressId ] = useState<number>(-1)
     const [ showForm, setShowForm ] = useState(false)
-    const [ shippingAddresses, setShippingAddresses ] = useState(addresses)
+    // const [ shippingAddresses, setShippingAddresses ] = useState(addresses)
 
     const handleSelectAddress = (addressId: string) => {
-        setSelectedAddressId(addressId)
-        const selected = shippingAddresses.find((addr) => addr.id === addressId)
+        setSelectedAddressId(Number(addressId))
+        const selected = data?.data?.find((addr) => addr.id === addressId)
         if (selected && onAddressSelect) {
             onAddressSelect(selected)
-        }
+        } //TODO remove this if statement.
     }
 
-    const queryResult = useQuery({
-        queryKey: [ 'shipping-address' ],
-        queryFn: async () => {
-            try {
-                const response = await fetch(`${import.meta.env.VITE_BACKEN_URL}/shipping-addresses/get-shipping-address`, {
-                    method: "GET",
-                    credentials: 'include'
-                })
-                const result = await response.json();
-                if (result?.success) {
-                    return result?.data;
-                }
-            } catch (error) {
-                toast.error("Something went wrong!!");
-            }
-        }
-    })
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+        isFetching,
+        isPlaceholderData
+    } = useShippingAddresses();
+
+
 
     const handleAddAddress = async (newAddress: ShippingAddress) => {
         if (newAddress.is_default) {
@@ -146,12 +138,11 @@ export default function ShippingInfo({
 
             {/* Existing Addresses */}
             <div className="space-y-3">
-                <RadioGroup value={selectedAddressId} onValueChange={handleSelectAddress}>
-                    {shippingAddresses.map((address) => (
+                <RadioGroup value={selectedAddressId.toString()} onValueChange={handleSelectAddress}>
+                    {data?.data?.map((address) => (
                         <Card
                             key={address.id}
                             className="p-4 cursor-pointer transition-all hover:border-primary/50 border-2 border-transparent"
-                        // onClick={() => handleSelectAddress(address.id)}
                         >
                             <div className="flex items-start gap-4">
                                 <RadioGroupItem value={address.id} id={`address-${address.id}`} />
