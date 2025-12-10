@@ -7,9 +7,9 @@ import { shippingAddressSchema } from "../validation/shipping.schema.js";
 const shippingRouter = Router()
 
 
-shippingRouter.post("/add-shipping-address", isAuthenticated, async (req, res) => {
+shippingRouter.post("/add-shipping-address", async (req, res) => {
     try {
-        const userId = req.userId || 1;//TODO: remove 1 in production
+        const userId = req.userId || 2;//TODO: remove 1 in production
 
         const parsed = shippingAddressSchema.parse(req.body)
 
@@ -55,8 +55,20 @@ shippingRouter.post("/add-shipping-address", isAuthenticated, async (req, res) =
                 ${is_default},
                 ${baseShippingCost}
             )
-            RETURNING *
+            RETURNING 
+                id, 
+                label,
+                recipient_name,
+                district,
+                province,
+                city,
+                tole_name,
+                postal_code,
+                phone,
+                is_default,
+                base_shipping_cost
         `
+        console.log(inserted_dataa);
 
         return res.status(201).json({ success: true, data: inserted_dataa[0] })
 

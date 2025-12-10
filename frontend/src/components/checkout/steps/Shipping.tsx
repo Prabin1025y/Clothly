@@ -8,8 +8,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
 import { toast } from "sonner"
-import { useQuery } from "@tanstack/react-query"
 import { useShippingAddresses } from "@/hooks/useShippingAddresses"
+import type { shippingAddressType } from "@/type/shippingAddress"
 
 export interface ShippingAddress {
     id: string
@@ -26,7 +26,7 @@ export interface ShippingAddress {
 
 interface ShippingInfoProps {
     addresses?: ShippingAddress[]
-    onAddressSelect?: (address: ShippingAddress) => void
+    onAddressSelect?: (address: shippingAddressType) => void
     onAddAddress?: (address: ShippingAddress) => void
 }
 

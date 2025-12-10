@@ -5,8 +5,8 @@ export interface shippingAddressType {
     district: string;
     province: string;
     city: string;
-    tole_name: string;
-    postal_code: string;
+    tole_name: string | null;
+    postal_code: string | null;
     phone: string;
     is_default: boolean;
     base_shipping_cost: string;
@@ -23,8 +23,8 @@ export interface createShippingAddressDto {
     district: string;
     province: string;
     city: string;
-    tole_name: string;
-    postal_code: string;
+    tole_name: string | null;
+    postal_code: string | null;
     phone: string;
     is_default: boolean;
 }
