@@ -7,9 +7,7 @@ import CheckoutProgressBar from "@/components/checkout/ProgressBar"
 import CartItemsStep from "@/components/checkout/steps/CartItems"
 import ShippingStep from "@/components/checkout/steps/Shipping"
 import PaymentStep from "@/components/checkout/steps/Payment"
-import { useQuery } from "@tanstack/react-query"
-import { toast } from "sonner"
-import type { CartDataType, CartItemType } from "@/type/cart"
+import type { CartItemType } from "@/type/cart"
 import { useCartItemStore } from "@/zustand/cartStore"
 import { useCartItems } from "@/hooks/useCartItems"
 
@@ -42,8 +40,8 @@ export default function CheckoutPage() {
                     isFetching={isFetching}
                     isLoading={isLoading}
                     isError={isError}
-                    isPlaceholderData={isPlaceholderData}
-                    items={cartItems}
+                    // isPlaceholderData={isPlaceholderData}
+                    cartItems={cartItems}
                 />
             case 2:
                 return <ShippingStep />
@@ -61,7 +59,7 @@ export default function CheckoutPage() {
         isLoading,
         isError,
         isFetching,
-        isPlaceholderData
+        // isPlaceholderData
     } = useCartItems();
 
 
@@ -81,11 +79,14 @@ export default function CheckoutPage() {
                     {/* Left Content Area */}
                     <div className="lg:col-span-2">
 
-                        <div className="mb-8">
-                            {currentStep === 1 && cartItems.length !== 0 && <h2 className="text-2xl font-bold mb-6">Cart Items</h2>}
+                        <div className="mb-8 flex items-center">
+                            {currentStep === 1 && cartItems.length !== 0 && <h2 className="text-2xl font-bold mb-6 fkex">Cart Items
+                                {!isLoading && isFetching && <span className="text-base font-normal text-sky-600 ml-3">↻ updating...</span>}
+                            </h2>}
                             {currentStep === 2 && <h2 className="text-2xl font-bold mb-6">Shipping Information</h2>}
                             {currentStep === 3 && <h2 className="text-2xl font-bold mb-6">Payment Method</h2>}
                             {currentStep === 4 && <h2 className="text-2xl font-bold mb-6">Order Complete</h2>}
+                            {/* <span>updating</span> */}
                         </div>
                         {renderStepContent()}
                         {/* Navigation Buttons */}

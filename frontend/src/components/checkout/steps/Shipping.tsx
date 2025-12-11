@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { AlertOctagon, Loader2, MapPin, Plus } from "lucide-react"
+import { AlertOctagon, Loader2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -25,9 +25,7 @@ export default function ShippingInfo() {
         data,
         isLoading,
         isError,
-        error,
         isFetching,
-        isPlaceholderData
     } = useShippingAddresses();
 
     useEffect(() => {

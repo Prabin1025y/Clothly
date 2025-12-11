@@ -12,14 +12,13 @@ import { useCartItemStore } from "@/zustand/cartStore";
 
 
 interface CartItemsStepProps {
-    items: CartItemType[];
+    cartItems: CartItemType[];
     isFetching: boolean;
     isLoading: boolean;
     isError: boolean;
-    isPlaceholderData: boolean;
 }
 
-export default function CartItemsStep({ items, isFetching, isLoading, isError, isPlaceholderData }: CartItemsStepProps) {
+export default function CartItemsStep({ cartItems, isFetching, isLoading, isError }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
     const [ currentVariantId, setCurrentVariantId ] = useState(-1);
@@ -84,7 +83,7 @@ export default function CartItemsStep({ items, isFetching, isLoading, isError, i
             </EmptyContent>
         </Empty>
 
-    if (items?.length === 0)
+    if (cartItems?.length === 0 && !isFetching)
         return <Empty >
             <EmptyHeader>
                 <EmptyMedia variant="icon">
@@ -103,11 +102,12 @@ export default function CartItemsStep({ items, isFetching, isLoading, isError, i
                 </div>
             </EmptyContent>
         </Empty>
+
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
             <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} variantId={currentVariantId} />
 
-            {items?.map((item, idx) => (
+            {cartItems?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
                     {/* Product Image */}
                     <div className="aspect-square w-full overflow-hidden rounded-t-md bg-gradient-to-br from-muted to-muted/50">
