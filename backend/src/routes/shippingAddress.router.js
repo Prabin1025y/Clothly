@@ -103,9 +103,7 @@ shippingRouter.get("/get-shipping-addresses", async (req, res) => {
             WHERE si.user_id = ${userId}
         `
 
-        console.log(shippingAddresses)
-
-        return res.status(201).json({ success: true })
+        return res.status(201).json({ success: true, data: shippingAddresses })
 
 
     } catch (error) {

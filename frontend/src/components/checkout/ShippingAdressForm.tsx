@@ -7,15 +7,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
-import type { ShippingAddress } from "./steps/Shipping"
+import type { CreateShippingAddressDto } from "@/type/shippingAddress"
+import { useCreateShippingAddress } from "@/hooks/useShippingAddresses"
 
 interface ShippingAddressFormProps {
-    onSubmit: (address: ShippingAddress) => void
-    onCancel: () => void
+    isOpen: boolean;
+    onClose: () => void;
 }
 
-export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormProps) {
-    const [ formData, setFormData ] = useState({
+export function ShippingAddressForm({ isOpen, onClose }: ShippingAddressFormProps) {
+    const createShippingAddress = useCreateShippingAddress();
+    const [ formData, setFormData ] = useState<CreateShippingAddressDto>({
         label: "",
         recipient_name: "",
         district: "",
@@ -24,28 +26,26 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
         tole_name: "",
         postal_code: "",
         phone: "",
-        is_default: false,
+        is_default: false
     })
 
-    const [ errors, setErrors ] = useState<Record<string, string>>({})
+    const [ errors, setErrors ] = useState<Partial<Record<keyof CreateShippingAddressDto, string>>>({})
 
-    const validateForm = () => {
-        const newErrors: Record<string, string> = {}
+    const validateForm = (): boolean => {
+        const newErrors: Partial<Record<keyof CreateShippingAddressDto, string>> = {};
 
         if (!formData.label.trim()) newErrors.label = "Label is required"
         if (!formData.recipient_name.trim()) newErrors.recipient_name = "Recipient name is required"
         if (!formData.district.trim()) newErrors.district = "District is required"
         if (!formData.province.trim()) newErrors.province = "Province is required"
         if (!formData.city.trim()) newErrors.city = "City is required"
-        if (!formData.tole_name.trim()) newErrors.tole_name = "Tole name is required"
-        if (!formData.postal_code.trim()) newErrors.postal_code = "Postal code is required"
         if (!formData.phone.trim()) newErrors.phone = "Phone is required"
         else if (!/^\+?[\d\-\s()]+$/.test(formData.phone) || formData.phone.replace(/\D/g, "").length < 10) {
             newErrors.phone = "Please enter a valid phone number"
         }
 
         setErrors(newErrors)
-        return Object.keys(newErrors).length === 0
+        return Object.keys(newErrors).length === 0;
     }
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -54,7 +54,9 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
             ...prev,
             [ name ]: type === "checkbox" ? checked : value,
         }))
-        if (errors[ name ]) {
+
+        // Clear error for this field when user starts typing
+        if (errors[ name as keyof CreateShippingAddressDto ]) {
             setErrors((prev) => ({
                 ...prev,
                 [ name ]: "",
@@ -62,17 +64,23 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
         }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         if (!validateForm()) return
 
-        const newAddress: ShippingAddress = {
-            id: Date.now().toString(),
-            ...formData,
-        }
+        try {
+            onClose();
+            await createShippingAddress.mutateAsync(formData);
 
-        onSubmit(newAddress)
+            resetForm();
+        } catch (error) {
+            console.error("Error while createing shipping address!! ", error);
+        }
+    }
+
+    // Reset form to initial state
+    const resetForm = () => {
         setFormData({
             label: "",
             recipient_name: "",
@@ -83,8 +91,12 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
             postal_code: "",
             phone: "",
             is_default: false,
-        })
-    }
+        });
+        setErrors({});
+    };
+
+    //Dont render if form is not open.
+    if (!isOpen) return null;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -179,7 +191,7 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
                         id="tole_name"
                         name="tole_name"
                         placeholder="Street or tole name"
-                        value={formData.tole_name}
+                        value={formData.tole_name ?? ""}
                         onChange={handleChange}
                         className={errors.tole_name ? "border-destructive" : ""}
                     />
@@ -192,7 +204,7 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
                         id="postal_code"
                         name="postal_code"
                         placeholder="e.g., 44600"
-                        value={formData.postal_code}
+                        value={formData.postal_code ?? ""}
                         onChange={handleChange}
                         className={errors.postal_code ? "border-destructive" : ""}
                     />
@@ -221,7 +233,7 @@ export function ShippingAddressForm({ onSubmit, onCancel }: ShippingAddressFormP
                 <Button type="submit" className="flex-1">
                     Add Address
                 </Button>
-                <Button type="button" variant="outline" onClick={onCancel}>
+                <Button type="button" variant="outline" onClick={onClose}>
                     Cancel
                 </Button>
             </div>

@@ -1,4 +1,4 @@
-export interface shippingAddressType {
+export interface ShippingAddressType {
     id: string;
     label: string;
     recipient_name: string;
@@ -12,12 +12,12 @@ export interface shippingAddressType {
     base_shipping_cost: string;
 }
 
-export interface getShippingAddressResponseType {
+export interface GetShippingAddressResponseType {
     success: boolean;
-    data: shippingAddressType[];
+    data: ShippingAddressType[];
 }
 
-export interface createShippingAddressDto {
+export interface CreateShippingAddressDto {
     label: string;
     recipient_name: string;
     district: string;

@@ -1,76 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { MapPin, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
-import { toast } from "sonner"
 import { useShippingAddresses } from "@/hooks/useShippingAddresses"
-import type { shippingAddressType } from "@/type/shippingAddress"
+import { useQueryClient } from "@tanstack/react-query"
 
-export interface ShippingAddress {
-    id: string
-    label: string
-    recipient_name: string
-    district: string
-    province: string
-    city: string
-    tole_name: string
-    postal_code: string
-    phone: string
-    is_default: boolean
-}
 
-interface ShippingInfoProps {
-    addresses?: ShippingAddress[]
-    onAddressSelect?: (address: shippingAddressType) => void
-    onAddAddress?: (address: ShippingAddress) => void
-}
-
-export default function ShippingInfo({
-    addresses = [
-        {
-            id: "1",
-            label: "Home",
-            recipient_name: "John Doe",
-            district: "Kathmandu",
-            province: "Bagmati",
-            city: "Kathmandu",
-            tole_name: "New Road",
-            postal_code: "44600",
-            phone: "+977-1-4234567",
-            is_default: true,
-        },
-        {
-            id: "2",
-            label: "Office",
-            recipient_name: "Jane Smith",
-            district: "Lalitpur",
-            province: "Bagmati",
-            city: "Lalitpur",
-            tole_name: "Patan Dhoka",
-            postal_code: "44700",
-            phone: "+977-1-5678901",
-            is_default: false,
-        },
-    ],
-    onAddressSelect,
-    onAddAddress,
-}: ShippingInfoProps) {
+export default function ShippingInfo() {
     const [ selectedAddressId, setSelectedAddressId ] = useState<number>(-1)
     const [ showForm, setShowForm ] = useState(false)
-    // const [ shippingAddresses, setShippingAddresses ] = useState(addresses)
 
     const handleSelectAddress = (addressId: string) => {
         setSelectedAddressId(Number(addressId))
-        const selected = data?.data?.find((addr) => addr.id === addressId)
-        if (selected && onAddressSelect) {
-            onAddressSelect(selected)
-        } //TODO remove this if statement.
     }
+    const queryClient = useQueryClient();
 
     const {
         data,
@@ -81,65 +29,55 @@ export default function ShippingInfo({
         isPlaceholderData
     } = useShippingAddresses();
 
+    useEffect(() => {
+        if (data?.data && Array.isArray(data?.data) && data?.data.length !== 0)
+            setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
+    }, [ data ])
 
+    if (isLoading)
+        return <div>Loading...</div>
 
-    const handleAddAddress = async (newAddress: ShippingAddress) => {
-        if (newAddress.is_default) {
-            const oldAddressClean = shippingAddresses.map(addr => {
-                if (addr.is_default) {
-                    return { ...addr, is_default: false }
-                } else {
-                    return addr;
-                }
-            });
-            setShippingAddresses(oldAddressClean.concat(newAddress))
-        } else {
-            setShippingAddresses([ ...shippingAddresses, newAddress ])
-        }
-        setShowForm(false)
-        try {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/shipping-addresses/add-shipping-address`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    label: newAddress.label,
-                    recipient_name: newAddress.recipient_name,
-                    district: newAddress.district,
-                    province: newAddress.province,
-                    city: newAddress.city,
-                    tole_name: newAddress.tole_name,
-                    postal_code: newAddress.postal_code,
-                    phone: newAddress.phone,
-                    is_default: newAddress.is_default
-                })
-            })
-            const result = await response.json();
-            if (result?.success) {
-                toast.success("Shipping address addes!");
-            }
-        } catch (error) {
-            toast.error("Something went wrong!!");
-        }
+    if (isError)
+        return (
+            <div className="container mx-auto px-4 py-8">
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                    <h2 className="text-xl font-semibold text-red-800 mb-2">
+                        Failed to load products
+                    </h2>
+                    <p className="text-red-600 mb-4">
+                        {error instanceof Error ? error.message : 'An error occurred'}
+                    </p>
+                    <button
+                        onClick={() => queryClient.invalidateQueries({ queryKey: [ 'shipping-addresses', 'list' ] })}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
 
-    }
+    const shippingAddresses = data?.data || [];
 
     return (
         <div className="w-full space-y-6">
-            <div>
+            {/* <div>
                 <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
                     <MapPin className="size-6" />
                     Shipping Address
                 </h2>
+                {isFetching && !isLoading && (
+                    <span className="ml-2 text-sm text-blue-600">
+                        ↻ Updating...
+                    </span>
+                )}
                 <p className="text-muted-foreground mb-6">Select an existing address or add a new one for delivery</p>
-            </div>
+            </div> */}
 
             {/* Existing Addresses */}
             <div className="space-y-3">
                 <RadioGroup value={selectedAddressId.toString()} onValueChange={handleSelectAddress}>
-                    {data?.data?.map((address) => (
+                    {shippingAddresses.map((address) => (
                         <Card
                             key={address.id}
                             className="p-4 cursor-pointer transition-all hover:border-primary/50 border-2 border-transparent"
@@ -188,7 +126,7 @@ export default function ShippingInfo({
                 {/* Add Address Form */}
                 {showForm && (
                     <div className="mt-4 p-4 border rounded-lg bg-muted/50">
-                        <ShippingAddressForm onSubmit={handleAddAddress} onCancel={() => setShowForm(false)} />
+                        <ShippingAddressForm isOpen={showForm} onClose={() => setShowForm(false)} />
                     </div>
                 )}
             </div>
