@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import type { CartItemType } from "@/type/cart"
 import { useQueryClient } from "@tanstack/react-query";
-import { ShoppingCart } from "lucide-react";
+import { AlertOctagon, Loader2, ShoppingCart } from "lucide-react";
 import { Link } from "react-router";
 import { toast } from "sonner";
 import { ProductEditOverlay } from "../EditOverlay";
@@ -14,9 +14,12 @@ import { useCartItemStore } from "@/zustand/cartStore";
 interface CartItemsStepProps {
     items: CartItemType[];
     isFetching: boolean;
+    isLoading: boolean;
+    isError: boolean;
+    isPlaceholderData: boolean;
 }
 
-export default function CartItemsStep({ items, isFetching }: CartItemsStepProps) {
+export default function CartItemsStep({ items, isFetching, isLoading, isError, isPlaceholderData }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
     const [ currentVariantId, setCurrentVariantId ] = useState(-1);
@@ -53,8 +56,34 @@ export default function CartItemsStep({ items, isFetching }: CartItemsStepProps)
         setCurrentVariantId(variantId ?? -1);
     }
 
-    if (!items && isFetching)
+    if (isLoading)
         return <div>Loading Cart...</div>
+
+    if (isError)
+        return <Empty >
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <AlertOctagon color="red" />
+                </EmptyMedia>
+                <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                <EmptyDescription className="text-red-400">
+                    An error occured while getting your cart items. Please try again!!
+                </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+                <div className="flex gap-2">
+                    {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                        <Loader2 className="animate-spin" /> Retrying...
+                    </Button> : <Button
+                        className="cursor-pointer bg-red-500"
+                        onClick={() => queryClient.invalidateQueries({ queryKey: [ "cart-items" ] })}
+                    >
+                        Retry
+                    </Button>}
+                </div>
+            </EmptyContent>
+        </Empty>
+
     if (items?.length === 0)
         return <Empty >
             <EmptyHeader>

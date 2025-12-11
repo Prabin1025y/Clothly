@@ -9,8 +9,9 @@ import ShippingStep from "@/components/checkout/steps/Shipping"
 import PaymentStep from "@/components/checkout/steps/Payment"
 import { useQuery } from "@tanstack/react-query"
 import { toast } from "sonner"
-import type { CartResponseType } from "@/type/cart"
+import type { CartDataType, CartItemType } from "@/type/cart"
 import { useCartItemStore } from "@/zustand/cartStore"
+import { useCartItems } from "@/hooks/useCartItems"
 
 const STEPS = [
     { id: 1, label: "Manage Cart" },
@@ -37,7 +38,13 @@ export default function CheckoutPage() {
     const renderStepContent = () => {
         switch (currentStep) {
             case 1:
-                return <CartItemsStep isFetching={isFetching} items={data?.[ 0 ].items} />
+                return <CartItemsStep
+                    isFetching={isFetching}
+                    isLoading={isLoading}
+                    isError={isError}
+                    isPlaceholderData={isPlaceholderData}
+                    items={cartItems}
+                />
             case 2:
                 return <ShippingStep />
             case 3:
@@ -49,34 +56,17 @@ export default function CheckoutPage() {
 
     const { cartItemsState } = useCartItemStore();
 
-    const queryResponse = useQuery({
-        queryKey: [ "cartitems" ],
-        staleTime: 24 * 60 * 60 * 1000,
-        queryFn: async () => {
-            try {
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/get-cart-items`, {
-                    method: "GET",
-                    credentials: 'include'
-                });
-                const result = await response.json();
-                console.log(result)
+    const {
+        data,
+        isLoading,
+        isError,
+        isFetching,
+        isPlaceholderData
+    } = useCartItems();
 
-                if (result?.success && Array.isArray(result?.data)) {
-                    return result?.data;
-                }
-                else
-                    throw new Error("Response not ok");
-            } catch (error) {
-                toast.error("Failed to fetch your cart!!")
-                console.error(error);
-                return []
-            }
-        }
-    })
 
-    const { isFetching } = queryResponse;
-
-    const data: CartResponseType[] = queryResponse.data;
+    const cartItems: CartItemType[] = data?.data?.items || []
+    const total_price = data?.data?.total_price || "0.00"
 
     return (
         <div className="min-h-screen bg-background p-8">
@@ -92,7 +82,7 @@ export default function CheckoutPage() {
                     <div className="lg:col-span-2">
 
                         <div className="mb-8">
-                            {currentStep === 1 && data?.[ 0 ]?.items?.length !== 0 && <h2 className="text-2xl font-bold mb-6">Cart Items</h2>}
+                            {currentStep === 1 && cartItems.length !== 0 && <h2 className="text-2xl font-bold mb-6">Cart Items</h2>}
                             {currentStep === 2 && <h2 className="text-2xl font-bold mb-6">Shipping Information</h2>}
                             {currentStep === 3 && <h2 className="text-2xl font-bold mb-6">Payment Method</h2>}
                             {currentStep === 4 && <h2 className="text-2xl font-bold mb-6">Order Complete</h2>}
@@ -110,7 +100,7 @@ export default function CheckoutPage() {
                             </Button>
                             <Button
                                 onClick={handleNext}
-                                disabled={currentStep === STEPS.length || data?.[ 0 ]?.items?.length === 0}
+                                disabled={currentStep === STEPS.length || cartItems.length === 0}
                                 className="px-8 py-6 bg-amber-500 hover:bg-amber-600 text-black font-bold"
                             >
                                 Next
@@ -128,12 +118,12 @@ export default function CheckoutPage() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Subtotal</span>
                                     <span className="font-medium text-base">
-                                        Rs. {data ? data[ 0 ].total_price.toLocaleString() : "..."}
+                                        Rs. {total_price}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Delivery</span>
-                                    <span className="font-medium text-base">Rs. {data?.[ 0 ]?.items?.length === 0 ? 0.00 : 100.00}</span>
+                                    <span className="font-medium text-base">Rs. {cartItems.length === 0 ? 0.00 : 100.00}</span>
                                 </div>
 
                                 {/* Total Amount */}
@@ -142,7 +132,7 @@ export default function CheckoutPage() {
                                     <span className="font-bold text-lg">
                                         Rs.{" "}
                                         {data
-                                            ? (Number(data[ 0 ].total_price) + 100).toLocaleString()
+                                            ? (Number(total_price) + 100).toLocaleString()
                                             : "..."}
                                     </span>
                                 </div>

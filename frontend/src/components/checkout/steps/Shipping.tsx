@@ -1,10 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { MapPin, Plus } from "lucide-react"
+import { AlertOctagon, Loader2, MapPin, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
 import { useShippingAddresses } from "@/hooks/useShippingAddresses"
@@ -39,22 +40,29 @@ export default function ShippingInfo() {
 
     if (isError)
         return (
-            <div className="container mx-auto px-4 py-8">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-                    <h2 className="text-xl font-semibold text-red-800 mb-2">
-                        Failed to load products
-                    </h2>
-                    <p className="text-red-600 mb-4">
-                        {error instanceof Error ? error.message : 'An error occurred'}
-                    </p>
-                    <button
-                        onClick={() => queryClient.invalidateQueries({ queryKey: [ 'shipping-addresses', 'list' ] })}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                    >
-                        Retry
-                    </button>
-                </div>
-            </div>
+            <Empty >
+                <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                        <AlertOctagon color="red" />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                    <EmptyDescription className="text-red-400">
+                        An error occured while getting your cart items. Please try again!!
+                    </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                    <div className="flex gap-2">
+                        {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                            <Loader2 className="animate-spin" /> Retrying...
+                        </Button> : <Button
+                            className="cursor-pointer bg-red-500"
+                            onClick={() => queryClient.invalidateQueries({ queryKey: [ "shipping-addresses", "list" ] })}
+                        >
+                            Retry
+                        </Button>}
+                    </div>
+                </EmptyContent>
+            </Empty>
         );
 
     const shippingAddresses = data?.data || [];

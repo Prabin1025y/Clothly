@@ -9,15 +9,27 @@ export interface CartItemType {
     updated_at: Date
     product_image_alt_text: string,
     product_image_url: string
+    //TODO add hexcolor, current color, current size
 }
 
-export interface CartResponseType {
+export interface CartDataType {
     cart_id: string
     items: CartItemType[]
     total_price: string
     type: string
     user_id: string
 }
+
+export interface GetCartItemsResponseType {
+    success: boolean;
+    data: CartDataType
+}
+
+
+
+
+
+
 
 type CartEditResponseType_SizeVariant = {
     size: string;

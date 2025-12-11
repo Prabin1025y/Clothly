@@ -177,7 +177,7 @@ export const editItemInCart = async (req, res) => {
 
 export const getCurrentCartItemByUserId = async (req, res) => {
     try {
-        const userId = req.userId || 1;
+        const userId = req.userId || 2;
 
         const cartItems = await sql`
             SELECT
@@ -230,8 +230,8 @@ export const getCurrentCartItemByUserId = async (req, res) => {
             AND c.type = 'active'
             GROUP BY c.id;
         `
-        // console.log(cartItems)
-        return res.status(200).json({ success: true, data: cartItems });
+        console.log(cartItems)
+        return res.status(200).json({ success: true, data: cartItems[0] });
     } catch (error) {
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
