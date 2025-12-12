@@ -1,8 +1,9 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, Minus, Plus } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { X, Minus, Plus, AlertOctagon, Loader2 } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { toast } from "sonner"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
@@ -84,10 +85,39 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
 
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 {
-                    (variantId === -1 || isLoading) ?
-                        <ProductDetailsSkeleton onClose={onClose} />
-                        :
-                        <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden">
+                    (() => {
+
+                        if (variantId === -1 || isLoading)
+                            return <ProductDetailsSkeleton onClose={onClose} />
+
+                        if (isError)
+                            return (
+                                <Empty className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300€" >
+                                    <EmptyHeader>
+                                        <EmptyMedia variant="icon">
+                                            <AlertOctagon color="red" />
+                                        </EmptyMedia>
+                                        <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                                        <EmptyDescription className="text-red-400">
+                                            An error occured while getting info about this item. Please try again!!
+                                        </EmptyDescription>
+                                    </EmptyHeader>
+                                    <EmptyContent>
+                                        <div className="flex gap-2">
+                                            {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                                                <Loader2 className="animate-spin" /> Retrying...
+                                            </Button> : <Button
+                                                className="cursor-pointer bg-red-500"
+                                                onClick={() => queryClient.invalidateQueries({ queryKey: [ "cart-items", "detail", variantId.toString() ] })}
+                                            >
+                                                Retry
+                                            </Button>}
+                                        </div>
+                                    </EmptyContent>
+                                </Empty>
+                            );
+
+                        return <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden">
                             {/* Close button */}
                             <button
                                 onClick={onClose}
@@ -215,6 +245,11 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                 </div>
                             </div>
                         </div>
+                    })()
+                    // (variantId === -1 || isLoading) ?
+                    //     <ProductDetailsSkeleton onClose={onClose} />
+                    //     :
+
                 }
             </div>
         </>
