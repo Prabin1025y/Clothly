@@ -16,6 +16,7 @@ import { useUser } from '@clerk/clerk-react';
 import ProductPageSkeleton from '@/Skeletons/ProductDisplaySkeleton';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { useAddItemToCart } from '@/hooks/useCartItems';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -31,6 +32,7 @@ export default function ProductPage() {
 
     const { productId } = useParams();
     const queryClient = useQueryClient();
+    const addItemToCart = useAddItemToCart();
 
     const groupProductVariants = (variants: ProductVariant[]): ModifiedProductVariant[] => {
         if (!Array.isArray(variants)) {
@@ -61,35 +63,22 @@ export default function ProductPage() {
         return Array.from(map.values());
     }
 
-    const { isSignedIn } = useUser();
 
     const handleAddToCart = async () => {
         try {
-            if (!isSignedIn) {
-                alert("Please sign in first.")
-            } else {
-                setIsAddingToCart(true);
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/add-item-to-cart`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        "variant_id": selectedSize.variant_id,
-                        "quantity": quantity
-                    })
-                });
+            // setIsAddingToCart(true);
+            await addItemToCart.mutateAsync({
+                variantId: selectedSize.variant_id,
+                quantity: quantity,
+                name: product.name,
+                slug: product.slug,
+                price: Number(product.current_price),
+                url: product.primary_image.url,
+                alt_text: product.primary_image.alt_text
+            })
 
-                const result = await response.json();
-                if (result?.success) {
-                    queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
-                    toast.success("Item added to cart!");
-                }
-            }
         } catch (error) {
             console.error("Error occured!! Please try again.");
-            toast.error("Something went wrong. Try again!")
         } finally {
             setIsAddingToCart(false);
         }

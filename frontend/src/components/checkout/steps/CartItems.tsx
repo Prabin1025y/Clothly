@@ -5,10 +5,10 @@ import type { CartItemType } from "@/type/cart"
 import { useQueryClient } from "@tanstack/react-query";
 import { AlertOctagon, Loader2, ShoppingCart } from "lucide-react";
 import { Link } from "react-router";
-import { toast } from "sonner";
 import { ProductEditOverlay } from "../EditOverlay";
 import { useState } from "react";
 import { useCartItemStore } from "@/zustand/cartStore";
+import { useDeleteCartItems } from "@/hooks/useCartItems";
 
 
 interface CartItemsStepProps {
@@ -24,30 +24,32 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
     const [ currentVariantId, setCurrentVariantId ] = useState(-1);
 
     const queryClient = useQueryClient()
+    const deleteCartItem = useDeleteCartItems();
     const { setCartItemsState, cartItemsState } = useCartItemStore();
 
     const handleDeleteItem = async (variantId: number) => {
-        if (variantId === -1)
-            return toast.error("No such product in your cart!!");
-        try {
-            setCartItemsState("deleting");
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/delete-cart-item/${variantId}`, {
-                method: "DELETE",
-                credentials: "include"
-            })
-            const result = await response.json();
-            if (!response.ok || result?.data?.length === 0) {
-                return toast.error("Something went wrong!!");
-            }
-            toast.success("Item removed from cart!");
-            queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
-            // console.log(result);
-        } catch (error) {
-            toast.error("Something went wrong!!");
-            console.log(error);
-        } finally {
-            setCartItemsState("none");
-        }
+        await deleteCartItem.mutateAsync(variantId.toString())
+        // if (variantId === -1)
+        //     return toast.error("No such product in your cart!!");
+        // try {
+        //     setCartItemsState("deleting");
+        //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/delete-cart-item/${variantId}`, {
+        //         method: "DELETE",
+        //         credentials: "include"
+        //     })
+        //     const result = await response.json();
+        //     if (!response.ok || result?.data?.length === 0) {
+        //         return toast.error("Something went wrong!!");
+        //     }
+        //     toast.success("Item removed from cart!");
+        //     queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
+        //     // console.log(result);
+        // } catch (error) {
+        //     toast.error("Something went wrong!!");
+        //     console.log(error);
+        // } finally {
+        //     setCartItemsState("none");
+        // }
     }
 
     const handleEditButtonClicked = async (variantId: number) => {

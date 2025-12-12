@@ -1,9 +1,18 @@
 import { axiosClient } from "@/lib/axios"
-import type { GetCartItemsResponseType } from "@/type/cart";
+import type { addItemToCartDto, CartItemType, GetCartItemsResponseType } from "@/type/cart";
 
 export const cartItemsServices = {
     getCartItems: async (): Promise<GetCartItemsResponseType> => {
         const { data } = await axiosClient.get(`/api/carts/get-cart-items`);
         return data;
+    },
+
+    addItemToCart: async (newItem: addItemToCartDto): Promise<CartItemType> => {
+        const { data } = await axiosClient.post(`/api/carts/add-item-to-cart`, { variant_id: newItem.variantId, quantity: newItem.quantity });
+        return data;
+    },
+
+    deleteCartItem: async (variantId: string): Promise<void> => {
+        await axiosClient.delete(`/api/carts/delete-cart-item/${variantId}`);
     }
 }

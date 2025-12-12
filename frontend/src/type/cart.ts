@@ -25,6 +25,16 @@ export interface GetCartItemsResponseType {
     data: CartDataType
 }
 
+export interface addItemToCartDto {
+    variantId: string,
+    quantity: number,
+    url: string,
+    alt_text: string,
+    price: number
+    name: string,
+    slug: string
+}
+
 
 
 

@@ -61,9 +61,41 @@ export const addItemToCart = async (req, res) => {
                 WHERE id = $2
             `, [quantity * productCurrentPrice, cart_id])
 
+        const otherData = await client.query(`
+                SELECT 
+                    pv.product_id,
+                    p.name AS product_name,
+                    p.slug,
+                    pi.url,
+                    pi.alt_text
+                FROM product_variants pv
+                JOIN products p 
+                    ON p.id = pv.product_id
+                LEFT JOIN product_images pi 
+                    ON pi.product_id = pv.product_id 
+                    AND pi.is_primary = TRUE
+                WHERE pv.id = $1
+                LIMIT 1;
+            `, [variant_id])
+
+        // console.log("other data: ", otherData.rows[0])
+        // console.log("cart data: ", insertedCartItems.rows[0])
+        const finalData = {
+            product_name: otherData.rows[0].product_name,
+            product_slug: otherData.rows[0].slug,
+            id: Number(insertedCartItems.rows[0].id),
+            variant_id: variant_id,
+            quantity: quantity,
+            price_snapshot: Number(insertedCartItems.rows[0].price_snapshot),
+            added_at: insertedCartItems.rows[0].added_at,
+            updated_at: insertedCartItems.rows[0].updated_at,
+            product_image_alt_text: otherData.rows[0].alt_text,
+            product_image_url: otherData.rows[0].url
+        }
+
         await client.query("COMMIT");
 
-        return res.status(201).json({ success: true, data: insertedCartItems.rows[0] });
+        return res.status(201).json(finalData);
     } catch (error) {
         await client.query("ROLLBACK");
         logger.error("Error while adding item to cart: ", error);
