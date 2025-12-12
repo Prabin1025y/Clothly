@@ -4,10 +4,11 @@ import { useEffect, useState } from "react"
 import { X, Minus, Plus } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import type { CartEditResponseType } from "@/type/cart"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
 import { useCartItemStore } from "@/zustand/cartStore"
+import { useCartInfoFromVariantId } from "@/hooks/useCartItems"
+import type { GetCartInfoFromVariantIdResponseType_ProductVariant, GetCartInfoFromVariantIdResponseType_SizeVariant } from "@/type/cart"
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -16,37 +17,13 @@ interface ProductEditOverlayProps {
 }
 
 export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOverlayProps) {
-    const [ selectedColor, setSelectedColor ] = useState<CartEditResponseType[ 'all_variants' ][ number ] | null>(null)
-    const [ selectedSize, setSelectedSize ] = useState<CartEditResponseType[ 'all_variants' ][ number ][ 'sizes' ][ number ] | null>(null)
+    const [ selectedColor, setSelectedColor ] = useState<GetCartInfoFromVariantIdResponseType_ProductVariant | null>(null)
+    const [ selectedSize, setSelectedSize ] = useState<GetCartInfoFromVariantIdResponseType_SizeVariant | null>(null)
     const [ quantity, setQuantity ] = useState(0)
 
     const queryClient = useQueryClient();
     const { setCartItemsState } = useCartItemStore();
-    const queryResponse = useQuery({
-        queryKey: [ 'edit', variantId ],
-        queryFn: async () => {
-            try {
-                if (variantId === -1) return {}
-                const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/get-cart-info-by-variant-id/${variantId}`, {
-                    method: "GET",
-                    credentials: "include"
-                });
-                if (!response.ok) {
-                    toast.error("Error occured please try again later!!");
-                    throw new Error("Response not ok!");
-                }
-                const result = await response.json()
-                console.log(result)
-                return result?.data?.[ 0 ];
-            } catch (error) {
-                console.error("Error while fetching product from productId.", error)
-            }
-        },
-        staleTime: 0
-    })
-
-    const data: CartEditResponseType = queryResponse.data;
-    const { isFetching } = queryResponse;
+    const { data, isFetching, isLoading, isError } = useCartInfoFromVariantId(variantId.toString());
 
     const handleSave = async () => {
         if (!Number.isInteger(Number(quantity))) {
@@ -95,7 +72,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
         setSelectedSize(selectedColor?.sizes?.find(item => item.size == data?.size) ?? null)
     }, [ selectedColor ])
 
-    if (!isOpen) return null
+    if (!isOpen) return null;
 
 
     return (
@@ -107,7 +84,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
 
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
                 {
-                    (variantId === -1 || isFetching || !data) ?
+                    (variantId === -1 || isLoading) ?
                         <ProductDetailsSkeleton onClose={onClose} />
                         :
                         <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden">

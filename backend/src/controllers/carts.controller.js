@@ -428,7 +428,7 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 img.alt_text;
                 `;
 
-        res.status(200).json({ success: true, data: queryResult })
+        res.status(200).json(queryResult?.[0])
     } catch (error) {
         await client.query("ROLLBACK");
         logger.error("Error while getting cart item: ", error);

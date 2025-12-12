@@ -6,7 +6,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const cartItemKeys = {
-    all: [ 'cart-items' ] as const
+    all: [ 'cart-items' ] as const,
+
+    details: () => [ ...cartItemKeys.all, 'detail' ] as const,
+    detail: (variantId: string) => [ ...cartItemKeys.details(), variantId ] as const,
 }
 
 //Fetch all Cart items of a use
@@ -136,5 +139,14 @@ export function useDeleteCartItems() {
             queryClient.invalidateQueries({ queryKey: cartItemKeys.all });
         }
 
+    })
+}
+
+//Get cart item info by its variant id
+export function useCartInfoFromVariantId(variantId: string) {
+    return useQuery({
+        queryKey: cartItemKeys.detail(variantId),
+        queryFn: () => cartItemsServices.getCartInfoByVariantId(variantId),
+        staleTime: 10 * 60 * 1000
     })
 }

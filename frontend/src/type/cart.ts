@@ -35,25 +35,19 @@ export interface addItemToCartDto {
     slug: string
 }
 
-
-
-
-
-
-
-type CartEditResponseType_SizeVariant = {
+export interface GetCartInfoFromVariantIdResponseType_SizeVariant {
     size: string;
     available: number;
     variant_id: number;
     current_price: number;
 };
 
-type CartEditResponseType_ProductVariant = {
+export interface GetCartInfoFromVariantIdResponseType_ProductVariant {
     color: string;
-    sizes: CartEditResponseType_SizeVariant[];
+    sizes: GetCartInfoFromVariantIdResponseType_SizeVariant[];
 };
 
-export type CartEditResponseType = {
+export interface GetCartInfoFromVariantIdResponseType {
     name: string;
     short_description: string;
     variant_id: string; // The data sample uses a string "9" here
@@ -65,5 +59,5 @@ export type CartEditResponseType = {
     cart_quantity: string; // The data sample uses a string "1" here
     primary_image_url: string;
     primary_image_alt_text: string;
-    all_variants: CartEditResponseType_ProductVariant[];
+    all_variants: GetCartInfoFromVariantIdResponseType_ProductVariant[];
 };
