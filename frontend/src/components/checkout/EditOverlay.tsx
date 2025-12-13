@@ -14,17 +14,17 @@ import type { GetCartInfoFromVariantIdResponseType_ProductVariant, GetCartInfoFr
 interface ProductEditOverlayProps {
     isOpen: boolean
     onClose: () => void
-    variantId: number
+    cartItemId: number
 }
 
-export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOverlayProps) {
+export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditOverlayProps) {
     const [ selectedColor, setSelectedColor ] = useState<GetCartInfoFromVariantIdResponseType_ProductVariant | null>(null)
     const [ selectedSize, setSelectedSize ] = useState<GetCartInfoFromVariantIdResponseType_SizeVariant | null>(null)
     const [ quantity, setQuantity ] = useState(0)
 
     const queryClient = useQueryClient();
     const { setCartItemsState } = useCartItemStore();
-    const { data, isFetching, isLoading, isError } = useCartInfoFromVariantId(variantId.toString());
+    const { data, isFetching, isLoading, isError } = useCartInfoFromVariantId(cartItemId.toString());
 
     const handleSave = async () => {
         if (!Number.isInteger(Number(quantity))) {
@@ -47,7 +47,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                 },
                 body: JSON.stringify({
                     quantity: quantity,
-                    old_variant_id: variantId,
+                    old_variant_id: cartItemId,
                     variant_id: selectedSize?.variant_id
                 })
             })
@@ -87,7 +87,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                 {
                     (() => {
 
-                        if (variantId === -1 || isLoading)
+                        if (cartItemId === -1 || isLoading)
                             return <ProductDetailsSkeleton onClose={onClose} />
 
                         if (isError)
@@ -108,7 +108,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                                 <Loader2 className="animate-spin" /> Retrying...
                                             </Button> : <Button
                                                 className="cursor-pointer bg-red-500"
-                                                onClick={() => queryClient.invalidateQueries({ queryKey: [ "cart-items", "detail", variantId.toString() ] })}
+                                                onClick={() => queryClient.invalidateQueries({ queryKey: [ "cart-items", "detail", cartItemId.toString() ] })}
                                             >
                                                 Retry
                                             </Button>}
@@ -146,7 +146,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                     {/* Header */}
                                     <div className="space-y-2">
                                         <h2 className="text-3xl font-medium tracking-wide text-foreground">{data?.name}</h2>
-                                        <p className="text-sm text-muted-foreground">Classic design with modern comfort</p>
+                                        <p className="text-sm text-muted-foreground">{data?.short_description}</p>
                                     </div>
 
                                     {/* Pricing */}
@@ -237,7 +237,7 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                                             onClick={handleSave}
                                             disabled={!selectedSize || ((selectedSize?.variant_id === Number(data?.variant_id)) && quantity === Number(data?.cart_quantity))}
 
-                                            className="flex-1 py-0 h-full text-inherit px-4 rounded-lg bg-accent text-primary-foreground font-medium hover:opacity-90 transition-opacity duration-200"
+                                            className="flex-1 py-0 h-full px-4 rounded-lg bg-accent text-primary-foreground font-medium hover:opacity-90 transition-opacity duration-200"
                                         >
                                             Save
                                         </Button>
@@ -246,9 +246,6 @@ export function ProductEditOverlay({ isOpen, onClose, variantId }: ProductEditOv
                             </div>
                         </div>
                     })()
-                    // (variantId === -1 || isLoading) ?
-                    //     <ProductDetailsSkeleton onClose={onClose} />
-                    //     :
 
                 }
             </div>

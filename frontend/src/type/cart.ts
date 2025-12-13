@@ -56,8 +56,15 @@ export interface GetCartInfoFromVariantIdResponseType {
     size: string;
     color: string;
     available: number;
-    cart_quantity: string; // The data sample uses a string "1" here
+    cart_quantity: number;
+    cart_item_id: string;
     primary_image_url: string;
     primary_image_alt_text: string;
     all_variants: GetCartInfoFromVariantIdResponseType_ProductVariant[];
 };
+
+export interface EditCartItemDto {
+    quantity: number;
+    old_variant_id: number;
+    variant_id: number;
+}

@@ -1,6 +1,6 @@
 import { handleApiError } from "@/lib/axios";
 import { cartItemsServices } from "@/service/cartItemsService";
-import type { addItemToCartDto, CartItemType, GetCartItemsResponseType } from "@/type/cart";
+import type { addItemToCartDto, CartItemType, EditCartItemDto, GetCartItemsResponseType } from "@/type/cart";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ export const cartItemKeys = {
     all: [ 'cart-items' ] as const,
 
     details: () => [ ...cartItemKeys.all, 'detail' ] as const,
-    detail: (variantId: string) => [ ...cartItemKeys.details(), variantId ] as const,
+    detail: (cartItemId: string) => [ ...cartItemKeys.details(), cartItemId ] as const,
 }
 
 //Fetch all Cart items of a use
@@ -143,10 +143,23 @@ export function useDeleteCartItems() {
 }
 
 //Get cart item info by its variant id
-export function useCartInfoFromVariantId(variantId: string) {
+export function useCartInfoFromVariantId(cartItemId: string) {
     return useQuery({
-        queryKey: cartItemKeys.detail(variantId),
-        queryFn: () => cartItemsServices.getCartInfoByVariantId(variantId),
+        queryKey: cartItemKeys.detail(cartItemId),
+        queryFn: () => cartItemsServices.getCartInfoByVariantId(cartItemId),
         staleTime: 10 * 60 * 1000
+    })
+}
+
+//Edit cart item
+export function useEditCartItem() {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: cartItemsServices.editCartItem,
+
+        onMutate: async (updatedInfo: EditCartItemDto) => {
+
+        }
     })
 }

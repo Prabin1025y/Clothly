@@ -114,82 +114,59 @@ export const editItemInCart = async (req, res) => {
 
         await client.query("BEGIN");
 
-        const userId = req.userId || 1; //TODO remove 1 in production
+        const userId = req.userId || 2; //TODO remove 1 in production
 
-        // Fetch price of new variant
-        const variant_data = await client.query(
-            `SELECT current_price FROM product_variants WHERE id = $1`,
-            [variant_id]
-        );
+        const currentCart = await client.query(`
+                SELECT id
+                FROM carts
+                WHERE userId = $1
+                    AND type = 'active'
+            `, [userId])
 
-        if (variant_data.rowCount === 0)
-            throw new Error("No such product found");
+        if (currentCart.rowCount === 0)
+            return res.status(404).json({ message: "No such cart found!!" });
 
-        const productCurrentPrice = variant_data.rows[0].current_price;
+        const cartId = currentCart.rows[0].id;
 
-        // Get or create active cart
-        const data = await client.query(`
-            SELECT id FROM carts 
-            WHERE user_id = $1 AND type = 'active'
-        `, [userId]);
+        const updateCart = await client.query(`
+                WITH old_item AS (
+                    SELECT 
+                        ci.id,
+                        ci.quantity AS old_quantity,
+                        ci.price_snapshot AS old_price,
+                        pv.current_price AS new_price
+                    FROM cart_items ci
+                    JOIN product_variants pv ON pv.id = $1
+                    WHERE ci.cart_id = $2
+                        AND ci.variant_id = $3
+                )
+                UPDATE cart_items ci
+                SET
+                    quantity = $4,
+                    variant_id = $1,
+                    price_snapshot = old_item.new_price,
+                    updated_at = NOW()
+                FROM old_item
+                WHERE ci.id = old_item.id
+                RETURNING
+                    (old_item.old_quantity * old_item.old_price) AS old_total,
+                    ($4 * old_item.new_price) AS new_total;
+                
+            `, [variant_id, cartId, old_variant_id, quantity]);
 
-        let cart_id;
-        if (data.rowCount === 0) {
-            const today = new Date();
-            today.setDate(today.getDate() + 30);
-
-            const cart_data = await client.query(`
-                INSERT INTO carts (user_id, expires_at)
-                VALUES ($1, $2)
-                RETURNING id
-            `, [userId, today.toISOString()]);
-
-            cart_id = cart_data.rows[0].id;
-        } else {
-            cart_id = data.rows[0].id;
+        if (updateCart.rowCount === 0) {
+            await client.query("ROLLBACK");
+            return res.status(404).json({ message: "No such cart found!!" });
         }
 
-        // DELETE OLD CART ITEM if exists
-        if (old_variant_id) {
-            // Fetch old item details
-            const old_item = await client.query(`
-                SELECT quantity, price_snapshot
-                FROM cart_items
-                WHERE cart_id = $1 AND variant_id = $2
-            `, [cart_id, old_variant_id]);
+        const { old_total, new_total } = updateCart.rows[0];
 
-            if (old_item.rowCount > 0) {
-                const { quantity: oldQty, price_snapshot: oldPrice } = old_item.rows[0];
-
-                // Deduct price from total cart price
-                await client.query(`
-                    UPDATE carts
-                    SET total_price = total_price - $1
-                    WHERE id = $2
-                `, [oldQty * oldPrice, cart_id]);
-
-                // Delete old cart item
-                await client.query(`
-                    DELETE FROM cart_items 
-                    WHERE cart_id = $1 AND variant_id = $2
-                `, [cart_id, old_variant_id]);
-            }
-        }
-
-        // INSERT NEW VARIANT
-        const insertedCartItems = await client.query(`
-            INSERT INTO cart_items 
-            (cart_id, variant_id, quantity, price_snapshot)
-            VALUES ($1, $2, $3, $4)
-            RETURNING *
-        `, [cart_id, variant_id, quantity, productCurrentPrice]);
-
-        // Update total price
         await client.query(`
-            UPDATE carts
-            SET total_price = total_price + $1
-            WHERE id = $2
-        `, [quantity * productCurrentPrice, cart_id]);
+                UPDATE carts
+                SET
+                    total_price = total_price - $1 + $2
+                WHERE id = $3;
+            `, [old_total, new_total, cartId]);
 
         await client.query("COMMIT");
 
@@ -353,14 +330,16 @@ export const getCartInfoFromVariantId = async (req, res) => {
                     LIMIT 1
             ),
 
-            cart_quantity AS (
-                SELECT 
-                SUM(ci.quantity) AS quantity
+            cart_item AS (
+                SELECT
+                    ci.id AS cart_item_id,
+                    ci.quantity
                 FROM carts c
                 JOIN cart_items ci ON ci.cart_id = c.id
                 JOIN target_variant tv ON tv.variant_id = ci.variant_id
                 WHERE c.user_id = ${userId}
                 AND c.type = 'active'
+                LIMIT 1
             ),
 
             other_variants AS (
@@ -394,8 +373,9 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 tv.color,
                 tv.available,
 
-                -- user cart quantity
-                COALESCE(cq.quantity, 0) AS cart_quantity,
+                -- user cart info
+                COALESCE(ci.quantity, 0) AS cart_quantity,
+                ci.cart_item_id,
                 
                 -- primary image
                 img.url AS primary_image_url,
@@ -411,7 +391,7 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 ) AS all_variants
             FROM product_info pi
             JOIN target_variant tv ON TRUE
-            LEFT JOIN cart_quantity cq ON TRUE
+            LEFT JOIN cart_item ci ON TRUE
             LEFT JOIN primary_image img ON TRUE
             LEFT JOIN other_variants ov ON ov.product_id = pi.product_id
             GROUP BY 
@@ -423,14 +403,17 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 tv.size,
                 tv.color,
                 tv.available,
-                cq.quantity,
                 img.url,
-                img.alt_text;
+                img.alt_text,
+                ci.quantity,
+                ci.cart_item_id;
                 `;
+
+        console.log(queryResult?.[0])
 
         res.status(200).json(queryResult?.[0])
     } catch (error) {
-        await client.query("ROLLBACK");
+        // await client.query("ROLLBACK");
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
 
