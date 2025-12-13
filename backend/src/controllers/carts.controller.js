@@ -41,19 +41,49 @@ export const addItemToCart = async (req, res) => {
                     VALUES ($1, $2)
                     RETURNING id
                 `, [userId, today.toISOString()])
-            // console.log(cart_data)
             cart_id = cart_data.rows[0].id
         } else {
             cart_id = data.rows[0].id
-            // console.log(cart_id)
         }
 
-        const insertedCartItems = await client.query(`
+        //check if cart item has same variant id, if yess just increase updated at and quantity
+        const existingCartItem = await client.query(`
+                SELECT id 
+                FROM cart_items 
+                WHERE cart_id = $1 
+                    AND variant_id = $2
+            `, [cart_id, variant_id])
+
+        let insertedCartItem;
+        if (existingCartItem.rowCount === 0) {
+            insertedCartItem = await client.query(`
                 INSERT INTO cart_items 
                 (cart_id, variant_id, quantity, price_snapshot)
                 VALUES ($1, $2, $3, $4)
-                RETURNING *
+                RETURNING 
+                    id,
+                    updated_at,
+                    added_at,
+                    price_snapshot;
             `, [cart_id, variant_id, quantity, productCurrentPrice])
+        } else {
+            const cartItemId = existingCartItem.rows[0].id;
+            insertedCartItem = await client.query(`
+                    UPDATE cart_items 
+                    SET 
+                        quantity = quantity + $1,
+                        updated_at = NOW()
+                    WHERE id = $2
+                    RETURNING 
+                        id,
+                        updated_at,
+                        added_at,
+                        price_snapshot;
+                `, [quantity, cartItemId])
+        }
+
+        if (insertedCartItem.rowCount === 0)
+            throw new Error("No data inserted!!");
 
         await client.query(`
                 UPDATE carts
@@ -79,16 +109,16 @@ export const addItemToCart = async (req, res) => {
             `, [variant_id])
 
         // console.log("other data: ", otherData.rows[0])
-        // console.log("cart data: ", insertedCartItems.rows[0])
+        // console.log("cart data: ", insertedCartItem.rows[0])
         const finalData = {
             product_name: otherData.rows[0].product_name,
             product_slug: otherData.rows[0].slug,
-            id: Number(insertedCartItems.rows[0].id),
+            id: Number(insertedCartItem.rows[0].id),
             variant_id: variant_id,
             quantity: quantity,
-            price_snapshot: Number(insertedCartItems.rows[0].price_snapshot),
-            added_at: insertedCartItems.rows[0].added_at,
-            updated_at: insertedCartItems.rows[0].updated_at,
+            price_snapshot: Number(insertedCartItem.rows[0].price_snapshot),
+            added_at: insertedCartItem.rows[0].added_at,
+            updated_at: insertedCartItem.rows[0].updated_at,
             product_image_alt_text: otherData.rows[0].alt_text,
             product_image_url: otherData.rows[0].url
         }
@@ -172,7 +202,7 @@ export const editItemInCart = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            data: insertedCartItems.rows[0]
+            data: insertedCartItem.rows[0]
         });
 
     } catch (error) {
@@ -207,6 +237,7 @@ export const getCurrentCartItemByUserId = async (req, res) => {
                         'quantity', SUM(ci.quantity),
                         'price_snapshot', ci.price_snapshot,
                         'product_name', p.name,
+                        'cart_item_id', ci.id,
                         'product_slug', p.slug,
                         'product_image_url', pi.url,
                         'product_image_alt_text', pi.alt_text,
@@ -227,6 +258,7 @@ export const getCurrentCartItemByUserId = async (req, res) => {
 
                 GROUP BY
                     ci.cart_id,
+                    ci.id,
                     ci.variant_id,
                     ci.price_snapshot,
                     p.name,
@@ -239,7 +271,7 @@ export const getCurrentCartItemByUserId = async (req, res) => {
             AND c.type = 'active'
             GROUP BY c.id;
         `
-        console.log(cartItems)
+        // console.log(cartItems)
         return res.status(200).json({ success: true, data: cartItems[0] });
     } catch (error) {
         logger.error("Error while getting cart item: ", error);
@@ -291,13 +323,138 @@ export const deleteItemFromCart = async (req, res) => {
     }
 }
 
-export const getCartInfoFromVariantId = async (req, res) => {
+export const getCartItemDetail = async (req, res) => {
     try {
-        const productVariantId = req.params.variantId;
+        const { cartItemId } = req.params;
         const userId = req.userId || 1;
 
+        // const queryResult = await sql`
+        //     WITH target_variant AS (
+        //         SELECT
+        //             pv.id AS variant_id,
+        //             pv.product_id,
+        //             pv.current_price,
+        //             pv.original_price,
+        //             pv.size,
+        //             pv.color,
+        //             pv.available
+        //         FROM product_variants pv
+        //         WHERE pv.id = ${productVariantId}
+        //         ),
+
+        //         product_info AS (
+        //             SELECT 
+        //             p.id AS product_id,
+        //             p.name,
+        //             p.short_description
+        //             FROM products p
+        //         JOIN target_variant tv ON p.id = tv.product_id
+        //         ),
+
+        //     primary_image AS (
+        //         SELECT 
+        //             pi.product_id,
+        //             pi.url,
+        //             pi.alt_text
+        //             FROM product_images pi
+        //             JOIN target_variant tv ON tv.product_id = pi.product_id
+        //             WHERE pi.is_primary = TRUE
+        //             LIMIT 1
+        //     ),
+
+        //     cart_item AS (
+        //         SELECT
+        //             ci.id AS cart_item_id,
+        //             ci.quantity
+        //         FROM carts c
+        //         JOIN cart_items ci ON ci.cart_id = c.id
+        //         JOIN target_variant tv ON tv.variant_id = ci.variant_id
+        //         WHERE c.user_id = ${userId}
+        //         AND c.type = 'active'
+        //         LIMIT 1
+        //     ),
+
+        //     other_variants AS (
+        //         SELECT 
+        //             pv.product_id,
+        //             pv.color,
+        //             jsonb_agg(
+        //                 jsonb_build_object(
+        //                     'variant_id', pv.id,
+        //                     'size', pv.size,
+        //                     'available', pv.available,
+        //                     'current_price', pv.current_price
+        //                 )
+        //                 ORDER BY pv.size
+        //             ) AS sizes
+        //         FROM product_variants pv
+        //         JOIN target_variant tv ON tv.product_id = pv.product_id
+        //         GROUP BY pv.product_id, pv.color
+        //     )
+
+        //     SELECT
+        //         -- product
+        //         pi.name,
+        //         pi.short_description,
+
+        //         -- selected variant
+        //         tv.variant_id,
+        //         tv.current_price,
+        //         tv.original_price,
+        //         tv.size,
+        //         tv.color,
+        //         tv.available,
+
+        //         -- user cart info
+        //         COALESCE(ci.quantity, 0) AS cart_quantity,
+        //         ci.cart_item_id,
+
+        //         -- primary image
+        //         img.url AS primary_image_url,
+        //         img.alt_text AS primary_image_alt_text,
+
+        //         -- grouped variants list
+        //         jsonb_agg(
+        //             jsonb_build_object(
+        //                 'color', ov.color,
+        //                 'sizes', ov.sizes
+        //             )
+        //             ORDER BY ov.color
+        //         ) AS all_variants
+        //     FROM product_info pi
+        //     JOIN target_variant tv ON TRUE
+        //     LEFT JOIN cart_item ci ON TRUE
+        //     LEFT JOIN primary_image img ON TRUE
+        //     LEFT JOIN other_variants ov ON ov.product_id = pi.product_id
+        //     GROUP BY 
+        //         pi.name, 
+        //         pi.short_description,
+        //         tv.variant_id,
+        //         tv.current_price,
+        //         tv.original_price,
+        //         tv.size,
+        //         tv.color,
+        //         tv.available,
+        //         img.url,
+        //         img.alt_text,
+        //         ci.quantity,
+        //         ci.cart_item_id;
+        //         `;
+
         const queryResult = await sql`
-            WITH target_variant AS (
+            WITH target_cart_item AS (
+                SELECT
+                    ci.id AS cart_item_id,
+                    ci.quantity,
+                    ci.variant_id
+                FROM carts c
+                JOIN cart_items ci ON ci.cart_id = c.id
+                WHERE ci.id = ${cartItemId}
+                AND c.user_id = ${userId}
+                AND c.type = 'active'
+            ),
+
+            target_variant AS (
                 SELECT
                     pv.id AS variant_id,
                     pv.product_id,
@@ -307,38 +464,26 @@ export const getCartInfoFromVariantId = async (req, res) => {
                     pv.color,
                     pv.available
                 FROM product_variants pv
-                WHERE pv.id = ${productVariantId}
-                ),
+                JOIN target_cart_item tci ON tci.variant_id = pv.id
+            ),
 
-                product_info AS (
-                    SELECT 
+            product_info AS (
+                SELECT 
                     p.id AS product_id,
                     p.name,
                     p.short_description
-                    FROM products p
+                FROM products p
                 JOIN target_variant tv ON p.id = tv.product_id
-                ),
+            ),
 
             primary_image AS (
                 SELECT 
                     pi.product_id,
                     pi.url,
                     pi.alt_text
-                    FROM product_images pi
-                    JOIN target_variant tv ON tv.product_id = pi.product_id
-                    WHERE pi.is_primary = TRUE
-                    LIMIT 1
-            ),
-
-            cart_item AS (
-                SELECT
-                    ci.id AS cart_item_id,
-                    ci.quantity
-                FROM carts c
-                JOIN cart_items ci ON ci.cart_id = c.id
-                JOIN target_variant tv ON tv.variant_id = ci.variant_id
-                WHERE c.user_id = ${userId}
-                AND c.type = 'active'
+                FROM product_images pi
+                JOIN target_variant tv ON tv.product_id = pi.product_id
+                WHERE pi.is_primary = TRUE
                 LIMIT 1
             ),
 
@@ -374,13 +519,13 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 tv.available,
 
                 -- user cart info
-                COALESCE(ci.quantity, 0) AS cart_quantity,
-                ci.cart_item_id,
-                
+                tci.quantity AS cart_quantity,
+                tci.cart_item_id,
+
                 -- primary image
                 img.url AS primary_image_url,
                 img.alt_text AS primary_image_alt_text,
-                
+
                 -- grouped variants list
                 jsonb_agg(
                     jsonb_build_object(
@@ -389,11 +534,13 @@ export const getCartInfoFromVariantId = async (req, res) => {
                     )
                     ORDER BY ov.color
                 ) AS all_variants
+
             FROM product_info pi
             JOIN target_variant tv ON TRUE
-            LEFT JOIN cart_item ci ON TRUE
+            JOIN target_cart_item tci ON TRUE
             LEFT JOIN primary_image img ON TRUE
             LEFT JOIN other_variants ov ON ov.product_id = pi.product_id
+
             GROUP BY 
                 pi.name, 
                 pi.short_description,
@@ -405,9 +552,10 @@ export const getCartInfoFromVariantId = async (req, res) => {
                 tv.available,
                 img.url,
                 img.alt_text,
-                ci.quantity,
-                ci.cart_item_id;
-                `;
+                tci.quantity,
+                tci.cart_item_id;
+            `;
+
 
         console.log(queryResult?.[0])
 

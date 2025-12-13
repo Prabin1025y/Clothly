@@ -16,8 +16,8 @@ export const cartItemsServices = {
         await axiosClient.delete(`/api/carts/delete-cart-item/${variantId}`);
     },
 
-    getCartInfoByVariantId: async (variantId: string): Promise<GetCartInfoFromVariantIdResponseType> => {
-        const { data } = await axiosClient.get(`/api/carts/get-cart-info-by-variant-id/${variantId}`);
+    getCartInfoByVariantId: async (cartItemId: string): Promise<GetCartInfoFromVariantIdResponseType> => {
+        const { data } = await axiosClient.get(`/api/carts/get-cart-item-detail/${cartItemId}`);
         return data;
     },
 

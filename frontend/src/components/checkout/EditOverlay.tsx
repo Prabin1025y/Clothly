@@ -8,8 +8,8 @@ import { toast } from "sonner"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
 import { useCartItemStore } from "@/zustand/cartStore"
-import { useCartInfoFromVariantId } from "@/hooks/useCartItems"
 import type { GetCartInfoFromVariantIdResponseType_ProductVariant, GetCartInfoFromVariantIdResponseType_SizeVariant } from "@/type/cart"
+import { useCartItemDetail } from "@/hooks/useCartItems";
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -24,7 +24,8 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditO
 
     const queryClient = useQueryClient();
     const { setCartItemsState } = useCartItemStore();
-    const { data, isFetching, isLoading, isError } = useCartInfoFromVariantId(cartItemId.toString());
+    // console.log(cartItemId);
+    const { data, isFetching, isLoading, isError } = useCartItemDetail(cartItemId.toString());
 
     const handleSave = async () => {
         if (!Number.isInteger(Number(quantity))) {
@@ -92,7 +93,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditO
 
                         if (isError)
                             return (
-                                <Empty className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300€" >
+                                <Empty className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-300" >
                                     <EmptyHeader>
                                         <EmptyMedia variant="icon">
                                             <AlertOctagon color="red" />

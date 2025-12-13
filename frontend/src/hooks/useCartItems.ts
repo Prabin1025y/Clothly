@@ -43,7 +43,7 @@ export function useAddItemToCart() {
                     if (!old) return old;
 
                     const optimisticCartItem: CartItemType = {
-                        id: Date.now(),
+                        cart_item_id: Date.now(),
                         added_at: new Date(),
                         updated_at: new Date(),
                         quantity: newItem.quantity,
@@ -143,7 +143,7 @@ export function useDeleteCartItems() {
 }
 
 //Get cart item info by its variant id
-export function useCartInfoFromVariantId(cartItemId: string) {
+export function useCartItemDetail(cartItemId: string) {
     return useQuery({
         queryKey: cartItemKeys.detail(cartItemId),
         queryFn: () => cartItemsServices.getCartInfoByVariantId(cartItemId),

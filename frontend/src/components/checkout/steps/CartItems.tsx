@@ -21,7 +21,7 @@ interface CartItemsStepProps {
 export default function CartItemsStep({ cartItems, isFetching, isLoading, isError }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
-    const [ currentVariantId, setCurrentVariantId ] = useState(-1);
+    const [ currentCartItemId, setCurrentCartItemId ] = useState<number>(-1);
 
     const queryClient = useQueryClient()
     const deleteCartItem = useDeleteCartItems();
@@ -29,32 +29,12 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
 
     const handleDeleteItem = async (variantId: number) => {
         await deleteCartItem.mutateAsync(variantId.toString())
-        // if (variantId === -1)
-        //     return toast.error("No such product in your cart!!");
-        // try {
-        //     setCartItemsState("deleting");
-        //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/delete-cart-item/${variantId}`, {
-        //         method: "DELETE",
-        //         credentials: "include"
-        //     })
-        //     const result = await response.json();
-        //     if (!response.ok || result?.data?.length === 0) {
-        //         return toast.error("Something went wrong!!");
-        //     }
-        //     toast.success("Item removed from cart!");
-        //     queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
-        //     // console.log(result);
-        // } catch (error) {
-        //     toast.error("Something went wrong!!");
-        //     console.log(error);
-        // } finally {
-        //     setCartItemsState("none");
-        // }
     }
 
-    const handleEditButtonClicked = async (variantId: number) => {
+    const handleEditButtonClicked = async (cartItemId: number) => {
         setShowEditOverlay(true);
-        setCurrentVariantId(variantId ?? -1);
+        console.log("handle edit button clicked: ", cartItemId);
+        setCurrentCartItemId(cartItemId);
     }
 
     if (isLoading)
@@ -107,7 +87,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} variantId={currentVariantId} />
+            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} cartItemId={currentCartItemId} />
 
             {cartItems?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -137,7 +117,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
                         {/* Action Buttons */}
                         <div className="flex gap-2">
                             <Button
-                                onClick={() => handleEditButtonClicked(item.variant_id)}
+                                onClick={() => handleEditButtonClicked(item.cart_item_id)}
                                 variant="outline"
                                 disabled={cartItemsState !== "none"}
                                 size="sm"

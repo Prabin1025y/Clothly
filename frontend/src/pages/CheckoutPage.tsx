@@ -64,6 +64,7 @@ export default function CheckoutPage() {
 
 
     const cartItems: CartItemType[] = data?.data?.items || []
+    // console.log(cartItems)
     const total_price = data?.data?.total_price || "0.00"
 
     return (
