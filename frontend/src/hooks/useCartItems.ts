@@ -8,6 +8,8 @@ import { toast } from "sonner";
 export const cartItemKeys = {
     all: [ 'cart-items' ] as const,
 
+    lists: () => [ ...cartItemKeys.all, 'list' ] as const,
+
     details: () => [ ...cartItemKeys.all, 'detail' ] as const,
     detail: (cartItemId: string) => [ ...cartItemKeys.details(), cartItemId ] as const,
 }
@@ -15,7 +17,7 @@ export const cartItemKeys = {
 //Fetch all Cart items of a use
 export function useCartItems() {
     return useQuery({
-        queryKey: cartItemKeys.all,
+        queryKey: cartItemKeys.lists(),
         queryFn: () => cartItemsServices.getCartItems(),
         staleTime: 5 * 60 * 1000
     })
@@ -32,13 +34,13 @@ export function useAddItemToCart() {
         onMutate: async (newItem: addItemToCartDto) => {
             if (!isSignedIn)
                 throw new Error("Please sign in first!!");
-            await queryClient.cancelQueries({ queryKey: cartItemKeys.all });
+            await queryClient.cancelQueries({ queryKey: cartItemKeys.lists() });
 
-            const previousCartItems = queryClient.getQueriesData({ queryKey: cartItemKeys.all });
+            const previousCartItems = queryClient.getQueriesData({ queryKey: cartItemKeys.lists() });
 
             //Optimistically add item to cart
             queryClient.setQueriesData<GetCartItemsResponseType>(
-                { queryKey: cartItemKeys.all },
+                { queryKey: cartItemKeys.lists() },
                 (old) => {
                     if (!old) return old;
 
@@ -86,7 +88,7 @@ export function useAddItemToCart() {
         },
 
         onSettled: (_data) => {
-            queryClient.invalidateQueries({ queryKey: cartItemKeys.all })
+            queryClient.invalidateQueries({ queryKey: cartItemKeys.lists() })
         }
     })
 }
@@ -99,12 +101,12 @@ export function useDeleteCartItems() {
         mutationFn: cartItemsServices.deleteCartItem,
 
         onMutate: async (variantId: string) => {
-            await queryClient.cancelQueries({ queryKey: cartItemKeys.all });
+            await queryClient.cancelQueries({ queryKey: cartItemKeys.lists() });
 
-            const previousItemInCart = queryClient.getQueriesData({ queryKey: cartItemKeys.all });
+            const previousItemInCart = queryClient.getQueriesData({ queryKey: cartItemKeys.lists() });
 
             //Optimistically remove cart item from list.
-            queryClient.setQueryData<GetCartItemsResponseType>(cartItemKeys.all, (old) => {
+            queryClient.setQueryData<GetCartItemsResponseType>(cartItemKeys.lists(), (old) => {
                 if (!old) return old;
 
                 const deletedItemPrice = old.data.items.find((value) => value.variant_id === Number(variantId))?.price_snapshot ?? 0
@@ -136,7 +138,7 @@ export function useDeleteCartItems() {
         },
 
         onSettled: (_data) => {
-            queryClient.invalidateQueries({ queryKey: cartItemKeys.all });
+            queryClient.invalidateQueries({ queryKey: cartItemKeys.lists() });
         }
 
     })
@@ -147,7 +149,8 @@ export function useCartItemDetail(cartItemId: string) {
     return useQuery({
         queryKey: cartItemKeys.detail(cartItemId),
         queryFn: () => cartItemsServices.getCartItemDetail(cartItemId),
-        staleTime: 10 * 60 * 1000
+        staleTime: 10 * 60 * 1000,
+        enabled: cartItemId !== "-1"
     })
 }
 
@@ -180,6 +183,39 @@ export function useEditCartItem() {
                 }
             );
 
+            queryClient.setQueriesData<GetCartItemsResponseType>(
+                { queryKey: cartItemKeys.lists() },
+                (old) => {
+                    if (!old) return old;
+
+                    console.log("old", old);
+                    let oldItemQuantity: number = 0;
+                    const itemsArrayModified: CartItemType[] = old?.data?.items.map(item => {
+                        if (item.variant_id === updatedInfo.old_variant_id) {
+                            oldItemQuantity = item.quantity;
+                            return {
+                                ...item,
+                                quantity: updatedInfo.quantity,
+                                updated_at: new Date(),
+                                variant_id: updatedInfo.variant_id
+                            };
+                        }
+                        else {
+                            return item;
+                        }
+                    })
+
+                    return {
+                        ...old,
+                        data: {
+                            ...old.data,
+                            items: itemsArrayModified,
+                            total_price: (Number(old.data.total_price) - (oldItemQuantity * updatedInfo.current_price) + (updatedInfo.quantity * updatedInfo.current_price)).toFixed(2)
+                        }
+                    }
+                }
+            )
+
             toast.info("Edit in progress!!");
 
             return { previousCartItemDetail, updatedInfo };
@@ -202,6 +238,8 @@ export function useEditCartItem() {
         onSettled: (_data, _error, _variables, onMutateResult) => {
             if (onMutateResult?.updatedInfo.cart_item_id)
                 queryClient.invalidateQueries({ queryKey: cartItemKeys.detail(onMutateResult?.updatedInfo.cart_item_id.toString()) })
+
+            queryClient.invalidateQueries({ queryKey: cartItemKeys.lists() })
         }
     })
 }

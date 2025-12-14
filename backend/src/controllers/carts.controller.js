@@ -141,6 +141,7 @@ export const editItemInCart = async (req, res) => {
     try {
         const parsed = cartItemEditSchema.parse(req.body);
         const { variant_id, old_variant_id, quantity } = parsed;
+        // console.log(parsed)
 
         await client.query("BEGIN");
 
@@ -149,14 +150,16 @@ export const editItemInCart = async (req, res) => {
         const currentCart = await client.query(`
                 SELECT id
                 FROM carts
-                WHERE userId = $1
+                WHERE user_id = $1
                     AND type = 'active'
             `, [userId])
 
         if (currentCart.rowCount === 0)
-            return res.status(404).json({ message: "No such cart found!!" });
+            return res.status(404).json({ message: "No such cart found1!!" });
 
         const cartId = currentCart.rows[0].id;
+
+        // console.log([variant_id, cartId, old_variant_id, quantity]);
 
         const updateCart = await client.query(`
                 WITH old_item AS (
@@ -186,7 +189,8 @@ export const editItemInCart = async (req, res) => {
 
         if (updateCart.rowCount === 0) {
             await client.query("ROLLBACK");
-            return res.status(404).json({ message: "No such cart found!!" });
+            // console.log(updateCart)
+            return res.status(404).json({ message: "No such cart found2!!" });
         }
 
         const { old_total, new_total } = updateCart.rows[0];
@@ -202,7 +206,7 @@ export const editItemInCart = async (req, res) => {
 
         return res.status(201).json({
             success: true,
-            data: insertedCartItem.rows[0]
+            data: updateCart.rows[0]
         });
 
     } catch (error) {

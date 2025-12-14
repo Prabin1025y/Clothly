@@ -8,16 +8,17 @@ import { toast } from "sonner"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
 import { useCartItemStore } from "@/zustand/cartStore"
-import { useCartItemDetail } from "@/hooks/useCartItems";
+import { useCartItemDetail, useEditCartItem } from "@/hooks/useCartItems";
 import type { GetCartItemDetailResponseType_ProductVariant, GetCartItemDetailResponseType_SizeVariant } from "@/type/cart";
 
 interface ProductEditOverlayProps {
     isOpen: boolean
     onClose: () => void
     cartItemId: number
+    variantId: number
 }
 
-export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditOverlayProps) {
+export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId }: ProductEditOverlayProps) {
     const [ selectedColor, setSelectedColor ] = useState<GetCartItemDetailResponseType_ProductVariant | null>(null)
     const [ selectedSize, setSelectedSize ] = useState<GetCartItemDetailResponseType_SizeVariant | null>(null)
     const [ quantity, setQuantity ] = useState(0)
@@ -26,6 +27,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditO
     const { setCartItemsState } = useCartItemStore();
     // console.log(cartItemId);
     const { data, isFetching, isLoading, isError } = useCartItemDetail(cartItemId.toString());
+    const editCartItem = useEditCartItem();
 
     const handleSave = async () => {
         if (!Number.isInteger(Number(quantity))) {
@@ -40,25 +42,18 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditO
 
         try {
             setCartItemsState("updating");
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/carts/edit-item-in-cart`, {
-                method: "POST",
-                credentials: "include",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    quantity: quantity,
-                    old_variant_id: cartItemId,
-                    variant_id: selectedSize?.variant_id
-                })
+            // onClose()
+            await editCartItem.mutateAsync({
+                cart_item_id: cartItemId,
+                variant_id: selectedSize.variant_id,
+                old_variant_id: variantId,
+                color: selectedColor?.color ?? "",
+                quantity: quantity,
+                size: selectedSize.size,
+                current_price: Number(data?.current_price) ?? 0
             })
-            const result = await response.json();
-            if (result?.success) {
-                queryClient.invalidateQueries({ queryKey: [ 'cartitems' ] })
-            }
-            console.log(result);
-            onClose()
         } catch (error) {
+            console.error("Error occured while updateing cart item:", error)
             toast.error("Something went wrong!!");
         } finally {
             setCartItemsState("none");

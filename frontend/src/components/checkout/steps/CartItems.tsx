@@ -18,10 +18,15 @@ interface CartItemsStepProps {
     isError: boolean;
 }
 
+interface CurrentCartItemType {
+    id: number;
+    variantId: number;
+}
+
 export default function CartItemsStep({ cartItems, isFetching, isLoading, isError }: CartItemsStepProps) {
 
     const [ showEditOverlay, setShowEditOverlay ] = useState(false);
-    const [ currentCartItemId, setCurrentCartItemId ] = useState<number>(-1);
+    const [ currentCartItem, setCurrentCartItem ] = useState<CurrentCartItemType>({} as CurrentCartItemType);
 
     const queryClient = useQueryClient()
     const deleteCartItem = useDeleteCartItems();
@@ -31,10 +36,10 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
         await deleteCartItem.mutateAsync(variantId.toString())
     }
 
-    const handleEditButtonClicked = async (cartItemId: number) => {
+    const handleEditButtonClicked = async (cartItemId: number, variantId: number) => {
         setShowEditOverlay(true);
         console.log("handle edit button clicked: ", cartItemId);
-        setCurrentCartItemId(cartItemId);
+        setCurrentCartItem({ id: cartItemId, variantId: variantId });
     }
 
     if (isLoading)
@@ -87,7 +92,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
 
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} cartItemId={currentCartItemId} />
+            <ProductEditOverlay isOpen={showEditOverlay} onClose={() => setShowEditOverlay(false)} cartItemId={currentCartItem.id} variantId={currentCartItem.variantId} />
 
             {cartItems?.map((item, idx) => (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-shadow">
@@ -117,7 +122,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
                         {/* Action Buttons */}
                         <div className="flex gap-2">
                             <Button
-                                onClick={() => handleEditButtonClicked(item.cart_item_id)}
+                                onClick={() => handleEditButtonClicked(item.cart_item_id, item.variant_id)}
                                 variant="outline"
                                 disabled={cartItemsState !== "none"}
                                 size="sm"

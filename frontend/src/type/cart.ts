@@ -73,4 +73,5 @@ export interface EditCartItemDto {
     cart_item_id: number;
     color: string;
     size: string;
+    current_price: number;
 }
