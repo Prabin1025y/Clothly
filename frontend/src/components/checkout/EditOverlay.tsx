@@ -8,8 +8,8 @@ import { toast } from "sonner"
 import ProductDetailsSkeleton from "./EditOverlaySkeleton"
 import { Button } from "../ui/button"
 import { useCartItemStore } from "@/zustand/cartStore"
-import type { GetCartInfoFromVariantIdResponseType_ProductVariant, GetCartInfoFromVariantIdResponseType_SizeVariant } from "@/type/cart"
 import { useCartItemDetail } from "@/hooks/useCartItems";
+import type { GetCartItemDetailResponseType_ProductVariant, GetCartItemDetailResponseType_SizeVariant } from "@/type/cart";
 
 interface ProductEditOverlayProps {
     isOpen: boolean
@@ -18,8 +18,8 @@ interface ProductEditOverlayProps {
 }
 
 export function ProductEditOverlay({ isOpen, onClose, cartItemId }: ProductEditOverlayProps) {
-    const [ selectedColor, setSelectedColor ] = useState<GetCartInfoFromVariantIdResponseType_ProductVariant | null>(null)
-    const [ selectedSize, setSelectedSize ] = useState<GetCartInfoFromVariantIdResponseType_SizeVariant | null>(null)
+    const [ selectedColor, setSelectedColor ] = useState<GetCartItemDetailResponseType_ProductVariant | null>(null)
+    const [ selectedSize, setSelectedSize ] = useState<GetCartItemDetailResponseType_SizeVariant | null>(null)
     const [ quantity, setQuantity ] = useState(0)
 
     const queryClient = useQueryClient();

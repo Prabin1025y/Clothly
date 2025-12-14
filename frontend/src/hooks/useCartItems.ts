@@ -1,6 +1,6 @@
 import { handleApiError } from "@/lib/axios";
 import { cartItemsServices } from "@/service/cartItemsService";
-import type { addItemToCartDto, CartItemType, EditCartItemDto, GetCartItemsResponseType } from "@/type/cart";
+import type { addItemToCartDto, CartItemType, EditCartItemDto, GetCartItemDetailResponseType, GetCartItemsResponseType } from "@/type/cart";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -146,7 +146,7 @@ export function useDeleteCartItems() {
 export function useCartItemDetail(cartItemId: string) {
     return useQuery({
         queryKey: cartItemKeys.detail(cartItemId),
-        queryFn: () => cartItemsServices.getCartInfoByVariantId(cartItemId),
+        queryFn: () => cartItemsServices.getCartItemDetail(cartItemId),
         staleTime: 10 * 60 * 1000
     })
 }
@@ -159,7 +159,49 @@ export function useEditCartItem() {
         mutationFn: cartItemsServices.editCartItem,
 
         onMutate: async (updatedInfo: EditCartItemDto) => {
+            const cartItemId = updatedInfo.cart_item_id.toString();
+            await queryClient.cancelQueries({ queryKey: cartItemKeys.detail(cartItemId) });
 
+            const previousCartItemDetail = queryClient.getQueriesData({ queryKey: cartItemKeys.detail(cartItemId) });
+
+            //Optimistically edit cart item info and cartItems as well.
+            queryClient.setQueriesData<GetCartItemDetailResponseType>(
+                { queryKey: cartItemKeys.detail(cartItemId) },
+                (old) => {
+                    if (!old) return old;
+
+                    return {
+                        ...old,
+                        cart_quantity: updatedInfo.quantity,
+                        variant_id: updatedInfo.variant_id.toString(),
+                        color: updatedInfo.color,
+                        size: updatedInfo.size,
+                    };
+                }
+            );
+
+            toast.info("Edit in progress!!");
+
+            return { previousCartItemDetail, updatedInfo };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousCartItemDetail) {
+                context.previousCartItemDetail.forEach(([ queryKey, data ]) => {
+                    queryClient.setQueryData(queryKey, data);
+                })
+            }
+
+            toast.error(handleApiError(error));
+        },
+
+        onSuccess: () => {
+            toast.success("Edit Successful!");
+        },
+
+        onSettled: (_data, _error, _variables, onMutateResult) => {
+            if (onMutateResult?.updatedInfo.cart_item_id)
+                queryClient.invalidateQueries({ queryKey: cartItemKeys.detail(onMutateResult?.updatedInfo.cart_item_id.toString()) })
         }
     })
 }

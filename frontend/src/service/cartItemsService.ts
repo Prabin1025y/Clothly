@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios"
-import type { addItemToCartDto, CartItemType, EditCartItemDto, GetCartInfoFromVariantIdResponseType, GetCartItemsResponseType } from "@/type/cart";
+import type { addItemToCartDto, CartItemType, EditCartItemDto, GetCartItemDetailResponseType, GetCartItemsResponseType } from "@/type/cart";
 
 export const cartItemsServices = {
     getCartItems: async (): Promise<GetCartItemsResponseType> => {
@@ -16,13 +16,14 @@ export const cartItemsServices = {
         await axiosClient.delete(`/api/carts/delete-cart-item/${variantId}`);
     },
 
-    getCartInfoByVariantId: async (cartItemId: string): Promise<GetCartInfoFromVariantIdResponseType> => {
+    getCartItemDetail: async (cartItemId: string): Promise<GetCartItemDetailResponseType> => {
         const { data } = await axiosClient.get(`/api/carts/get-cart-item-detail/${cartItemId}`);
         return data;
     },
 
     editCartItem: async (updatedInfo: EditCartItemDto): Promise<void> => {
-        const { data } = await axiosClient.post(`/api/carts/edit-item-in-cart`, updatedInfo);
+        const { cart_item_id, color, size, ...payload } = updatedInfo;
+        const { data } = await axiosClient.post(`/api/carts/edit-item-in-cart`, payload);
         return data;
     }
 }

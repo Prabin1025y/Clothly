@@ -35,19 +35,19 @@ export interface addItemToCartDto {
     slug: string
 }
 
-export interface GetCartInfoFromVariantIdResponseType_SizeVariant {
+export interface GetCartItemDetailResponseType_SizeVariant {
     size: string;
     available: number;
     variant_id: number;
     current_price: number;
 };
 
-export interface GetCartInfoFromVariantIdResponseType_ProductVariant {
+export interface GetCartItemDetailResponseType_ProductVariant {
     color: string;
-    sizes: GetCartInfoFromVariantIdResponseType_SizeVariant[];
+    sizes: GetCartItemDetailResponseType_SizeVariant[];
 };
 
-export interface GetCartInfoFromVariantIdResponseType {
+export interface GetCartItemDetailResponseType {
     name: string;
     short_description: string;
     variant_id: string; // The data sample uses a string "9" here
@@ -60,11 +60,17 @@ export interface GetCartInfoFromVariantIdResponseType {
     cart_item_id: string;
     primary_image_url: string;
     primary_image_alt_text: string;
-    all_variants: GetCartInfoFromVariantIdResponseType_ProductVariant[];
+    all_variants: GetCartItemDetailResponseType_ProductVariant[];
 };
 
 export interface EditCartItemDto {
+    //payload
     quantity: number;
     old_variant_id: number;
     variant_id: number;
+
+    //to edit optimistically
+    cart_item_id: number;
+    color: string;
+    size: string;
 }
