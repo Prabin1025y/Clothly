@@ -28,7 +28,7 @@ export function QueryProvider({ children }: { children: ReactNode }) {
                         refetchOnWindowFocus: false, //TODO true in production
 
                         // Do not refetch on mount if cached data is still fresh
-                        refetchOnMount: false,
+                        // refetchOnMount: false,
                     },
 
                     mutations: {
