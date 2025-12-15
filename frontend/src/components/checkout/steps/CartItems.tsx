@@ -30,7 +30,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
 
     const queryClient = useQueryClient()
     const deleteCartItem = useDeleteCartItems();
-    const { setCartItemsState, cartItemsState } = useCartItemStore();
+    // const { setCartItemsState, cartItemsState } = useCartItemStore();
 
     const handleDeleteItem = async (variantId: number) => {
         await deleteCartItem.mutateAsync(variantId.toString())
@@ -124,7 +124,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
                             <Button
                                 onClick={() => handleEditButtonClicked(item.cart_item_id, item.variant_id)}
                                 variant="outline"
-                                disabled={cartItemsState !== "none"}
+                                // disabled={cartItemsState !== "none"}
                                 size="sm"
                                 className="flex-1 text-xs bg-transparent"
                             >
@@ -132,7 +132,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
                             </Button>
                             <Button
                                 variant="outline"
-                                disabled={cartItemsState !== "none"}
+                                // disabled={cartItemsState !== "none"}
                                 size="sm"
                                 onClick={() => handleDeleteItem(Number(item.variant_id) ?? -1)}
                                 className="flex-1 text-xs text-red-600 hover:text-red-700 bg-transparent"

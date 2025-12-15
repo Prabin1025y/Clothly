@@ -42,7 +42,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
 
         try {
             setCartItemsState("updating");
-            // onClose()
+            onClose()
             await editCartItem.mutateAsync({
                 cart_item_id: cartItemId,
                 variant_id: selectedSize.variant_id,
