@@ -46,7 +46,7 @@ export default function CheckoutPage() {
             case 2:
                 return <ShippingStep />
             case 3:
-                return <PaymentStep />
+                return <PaymentStep totalPrice={Number(total_price)} />
             default:
                 return null
         }
