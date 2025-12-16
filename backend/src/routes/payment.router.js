@@ -1,8 +1,9 @@
 import { Router } from "express";
-import { pool, sql } from "../config/db.js";
+import { sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 import paymentSchema from "../validation/payment.schema.js";
+import CryptoJs from 'crypto-js'
 
 const paymentRouter = Router()
 
@@ -12,9 +13,7 @@ const generateSignature = (total_amount, transaction_uuid, product_code) => {
     return CryptoJs.enc.Base64.stringify(hash);
 }
 
-paymentRouter.post("/create-signature", async (req, res) => {
-    // const client = await pool.connect();
-
+paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
     try {
         const parsed = paymentSchema.parse(req.body);
         const { total_amount, transaction_uuid, product_code } = parsed;
@@ -33,7 +32,6 @@ paymentRouter.post("/create-signature", async (req, res) => {
         return res.status(201).json({ signature: hashSignature });
 
     } catch (error) {
-        // await client.query("ROLLBACK");
         logger.error("Error while generating signature: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })
     }

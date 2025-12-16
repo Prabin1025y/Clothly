@@ -8,7 +8,7 @@ import CartItemsStep from "@/components/checkout/steps/CartItems"
 import ShippingStep from "@/components/checkout/steps/Shipping"
 import PaymentStep from "@/components/checkout/steps/Payment"
 import type { CartItemType } from "@/type/cart"
-import { useCartItemStore } from "@/zustand/cartStore"
+// import { useCartItemStore } from "@/zustand/cartStore"
 import { useCartItems } from "@/hooks/useCartItems"
 
 const STEPS = [
@@ -52,7 +52,7 @@ export default function CheckoutPage() {
         }
     }
 
-    const { cartItemsState } = useCartItemStore();
+    // const { cartItemsState } = useCartItemStore();
 
     const {
         data,
@@ -142,7 +142,7 @@ export default function CheckoutPage() {
 
 
                             {/* Checkout Button */}
-                            <p className="text-xs text-red-500 mb-0">
+                            {/* <p className="text-xs text-red-500 mb-0">
                                 * Shipping address not confirmed
                             </p>
                             <Button
@@ -151,7 +151,7 @@ export default function CheckoutPage() {
                             >
                                 CHECKOUT
                                 {cartItemsState}
-                            </Button>
+                            </Button> */}
 
 
                             {/* Payment Methods */}

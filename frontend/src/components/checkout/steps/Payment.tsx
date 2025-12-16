@@ -1,47 +1,90 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
 import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/components/ui/item"
-import { useEffect, useState } from "react"
 import { v4 as uuidv4 } from 'uuid';
-import CryptoJs from 'crypto-js';
+import { useGenerateSignature } from "@/hooks/usePayment"
+import { toast } from "sonner"
+import type { FormDataType } from "@/type/payment"
+import { useEffect, useState } from "react";
+import { Loader } from "lucide-react";
 
 export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
-    const [ formData, setFormData ] = useState({
-        amount: totalPrice.toString(),
-        tax_amount: "0",
-        total_amount: totalPrice.toString(),
-        transaction_uuid: uuidv4(),
-        product_service_charge: "0",
-        product_delivery_charge: "0",
-        product_code: "EPAYTEST",
-        success_url: "http://localhost:5173/checkout",
-        failure_url: "http://localhost:5173/checkout",
-        signed_field_names: "total_amount,transaction_uuid,product_code",
-        signature: ""
-    })
+    const [ loading, setLoading ] = useState(false)
+
+    const generateSignature = useGenerateSignature();
     const handlePayment = async () => {
-        const form = document.createElement("form");
-        form.method = "POST";
-        form.action = "https://rc-epay.esewa.com.np/api/epay/main/v2/form";
+        try {
+            setLoading(true);
+            let formData: FormDataType = {
+                amount: totalPrice.toString(),
+                tax_amount: "0",
+                total_amount: totalPrice.toString(),
+                transaction_uuid: uuidv4(),
+                product_service_charge: "0",
+                product_delivery_charge: "0",
+                product_code: "EPAYTEST",
+                success_url: "http://localhost:5173/checkout",
+                failure_url: "http://localhost:5173/checkout",
+                signed_field_names: "total_amount,transaction_uuid,product_code",
+                signature: ""
+            }
+
+            const { signature } = await generateSignature.mutateAsync({
+                product_code: formData.product_code,
+                total_amount: totalPrice.toString(),
+                transaction_uuid: formData.transaction_uuid
+            })
+
+            if (!signature)
+                return toast.error("No transaction signature found!");
+
+            formData[ 'signature' ] = signature;
 
 
-        Object.entries(formData).forEach(([ key, value ]) => {
-            const input = document.createElement("input");
-            input.type = "hidden";
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-        });
+            const form = document.createElement("form");
+            form.method = "POST";
+            form.action = "https://rc-epay.esewa.com.np/api/epay/main/v2/form";
 
-        document.body.appendChild(form);
-        form.submit();
+
+            Object.entries(formData).forEach(([ key, value ]) => {
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = key;
+                input.value = value;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false)
+        }
     }
+
+    useEffect(() => {
+        if (loading) {
+            document.body.style.overflow = "hidden";
+        } else {
+            document.body.style.overflow = "";
+        }
+
+        // cleanup
+        return () => {
+            document.body.style.overflow = "";
+        };
+    }, [ loading ])
+
+
     return (
         <div className="space-y-6">
+            {loading && <div className="w-screen h-screen bg-black/20 backdrop-blur-sm fixed z-30 inset-0 flex items-center justify-center">
+                <Loader className="animate-spin shadow-2xl shadow-white" color="orange" size={50} />
+            </div>}
             {/* Payment Method Selection */}
-            <Card className="p-6">
-                <h3 className="font-bold text-lg mb-4">Select Payment Method</h3>
+            <div className="p-6 ">
+                {/* <h3 className="font-bold text-lg mb-4">Select Payment Method</h3> */}
                 <Item variant="outline">
                     <ItemMedia>
                         <Avatar className="size-10">
@@ -64,7 +107,7 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                         </Button>
                     </ItemActions>
                 </Item>
-            </Card>
+            </div>
         </div>
     )
 }
