@@ -1,0 +1,42 @@
+import { Router } from "express";
+import { pool, sql } from "../config/db.js";
+import logger from "../config/logger.js";
+import isAuthenticated from "../middlewares/isAuthenticated.js";
+import paymentSchema from "../validation/payment.schema.js";
+
+const paymentRouter = Router()
+
+const generateSignature = (total_amount, transaction_uuid, product_code) => {
+    const hashString = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
+    const hash = CryptoJs.HmacSHA256(hashString, process.env.ESEWA_SECRET);
+    return CryptoJs.enc.Base64.stringify(hash);
+}
+
+paymentRouter.post("/create-signature", async (req, res) => {
+    // const client = await pool.connect();
+
+    try {
+        const parsed = paymentSchema.parse(req.body);
+        const { total_amount, transaction_uuid, product_code } = parsed;
+        const userId = req.userId || 2; //TODO: remove 1 during production
+
+        const cart = await sql`SELECT total_price FROM carts WHERE user_id = ${userId} AND type='active'`
+        console.log(cart)
+        if (cart.length == 0)
+            return res.status(404).json({ success: false, message: "No such cart found." })
+
+        if (!total_amount === cart?.[0]?.total_price)
+            return res.status(400).json({ success: false, message: "Something went wrong on your side." })
+
+        const hashSignature = generateSignature(total_amount, transaction_uuid, product_code);
+
+        return res.status(201).json({ signature: hashSignature });
+
+    } catch (error) {
+        // await client.query("ROLLBACK");
+        logger.error("Error while generating signature: ", error);
+        return res.status(500).json({ success: false, message: "Internal server error" })
+    }
+})
+
+export default paymentRouter;

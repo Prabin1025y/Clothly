@@ -16,6 +16,7 @@ import shippingRouter from "./routes/shippingAddress.router.js"
 import orderRouter from "./routes/orders.router.js"
 import { bufferUpload, diskUpload } from "./config/multer.js"
 import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageUpload.controller.js"
+import paymentRouter from "./routes/payment.router.js"
 
 const PORT = process.env.PORT
 
@@ -38,6 +39,7 @@ app.use("/api/reviews", reviewsRouter)
 app.use("/api/carts", cartRouter);
 app.use("/api/shipping-addresses", shippingRouter);
 app.use("/api/orders", orderRouter);
+app.use("/api/payment", paymentRouter);
 
 app.get("/", (req, res) => {
     res.json("Api working fine");

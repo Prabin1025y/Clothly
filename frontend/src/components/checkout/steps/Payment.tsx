@@ -5,13 +5,12 @@ import { Item, ItemActions, ItemContent, ItemMedia, ItemTitle } from "@/componen
 import { useEffect, useState } from "react"
 import { v4 as uuidv4 } from 'uuid';
 import CryptoJs from 'crypto-js';
-import { axiosClient } from "@/lib/axios"
 
 export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
     const [ formData, setFormData ] = useState({
-        amount: "100",
+        amount: totalPrice.toString(),
         tax_amount: "0",
-        total_amount: "100",
+        total_amount: totalPrice.toString(),
         transaction_uuid: uuidv4(),
         product_service_charge: "0",
         product_delivery_charge: "0",
@@ -19,39 +18,25 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
         success_url: "http://localhost:5173/checkout",
         failure_url: "http://localhost:5173/checkout",
         signed_field_names: "total_amount,transaction_uuid,product_code",
-        signature: "",
-        secret: "8gBm/:&EnhH.1/q"
+        signature: ""
     })
     const handlePayment = async () => {
-        const payload = new FormData();
-        payload.append("amount", formData.amount);
-        payload.append("tax_amount", formData.tax_amount);
-        payload.append("total_amount", formData.total_amount);
-        payload.append("transaction_uuid", formData.transaction_uuid);
-        payload.append("product_service_charge", formData.product_service_charge);
-        payload.append("product_delivery_charge", formData.product_delivery_charge);
-        payload.append("product_code", formData.product_code);
-        payload.append("success_url", formData.success_url);
-        payload.append("failure_url", formData.failure_url);
-        payload.append("signed_field_names", formData.signed_field_names);
-        payload.append("signature", formData.signature);
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = "https://rc-epay.esewa.com.np/api/epay/main/v2/form";
 
-        await axiosClient.post("https://rc-epay.esewa.com.np/api/epay/main/v2/form", payload);
+
+        Object.entries(formData).forEach(([ key, value ]) => {
+            const input = document.createElement("input");
+            input.type = "hidden";
+            input.name = key;
+            input.value = value;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
     }
-
-    const generateSignature = (total_amount: string, transaction_uuid: string, product_code: string, secret: string) => {
-        const hashString = `total_amount=${total_amount},transaction_uuid=${transaction_uuid},product_code=${product_code}`;
-        const hash = CryptoJs.HmacSHA256(hashString, secret);
-        return CryptoJs.enc.Base64.stringify(hash);
-    }
-
-    useEffect(() => {
-        const { total_amount, transaction_uuid, product_code, secret } = formData;
-        const hashedSignature = generateSignature(total_amount, transaction_uuid, product_code, secret)
-
-        setFormData({ ...formData, signature: hashedSignature })
-    }, [ formData.amount ])
-
     return (
         <div className="space-y-6">
             {/* Payment Method Selection */}
