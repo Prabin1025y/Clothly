@@ -6,19 +6,21 @@ import isAuthenticated from "../middlewares/isAuthenticated.js";
 
 const orderRouter = Router()
 
-orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
+orderRouter.post("/create-order", async (req, res) => {
     const client = await pool.connect();
 
     try {
         const parsed = orderSchema.parse(req.body);
-        const { cart_id, shipping_address_id, billing_address_id, payment_method, notes } = parsed;
+        const { shipping_address_id, billing_address_id, payment_method, notes } = parsed;
         await client.query("BEGIN")
+        const userId = req.userId || 2; //TODO: remove 1 during production
 
-        const cart = await client.query(`SELECT id FROM carts WHERE id = $1`, [cart_id])
+        const cart = await client.query(`SELECT id FROM carts WHERE user_id = $1 AND type='active'`, [userId])
         if (cart.rowCount == 0)
-            return res.status(404).json({ success: false, message: "No such cart found." })
+            return res.status(404).json({ success: false, message: "No such cart found!" })
 
-        const userId = req.userId || 1; //TODO: remove 1 during production
+        const cart_id = cart.rows[0].id
+
 
         const cartItemsData = await client.query(`
                 SELECT 
@@ -35,6 +37,9 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
                 WHERE ci.cart_id = $1 AND c.user_id = $2
             `, [cart_id, userId])
 
+        if (cartItemsData.rowCount === 0)
+            return res.status(404).json({ success: false, message: "Your cart is empty!" })
+
         const cartItems = cartItemsData.rows
 
         const totalPrice = cartItems.reduce((prevValue, element) => (prevValue + element.quantity * element.unit_price), 0)
@@ -45,6 +50,9 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
                 FROM shipping_addresses
                 WHERE id = $1
             `, [shipping_address_id])
+
+        if (shippingAddressData.rowCount === 0)
+            return res.status(404).json({ success: false, message: "Invalid Shipping Address!" });
 
         const baseShippingCost = shippingAddressData.rows[0].base_shipping_cost
         const shippingCost = payment_method === "cod" ? (+baseShippingCost) + 50.0 : (+baseShippingCost);
@@ -76,7 +84,10 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
             payment_method,
             new Date(),
             notes
-        ])
+        ]);
+
+        if (createdOrder.rowCount === 0)
+            return res.status(500).json({ success: false, message: "Failed to place order!" })
 
         const orderId = createdOrder.rows[0].id
         const noOfData = 5
