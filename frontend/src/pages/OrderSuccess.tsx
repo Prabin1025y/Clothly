@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import { useCartItems } from "@/hooks/useCartItems"
-import type { CartItemType } from "@/type/cart"
+import type { SuccessfulPaymentDataType } from "@/type/payment"
 import { CheckCircle2 } from "lucide-react"
-import { Link } from "react-router"
+import { useEffect, useState } from "react"
+import { Link, useNavigate, useSearchParams } from "react-router"
+import { toast } from "sonner"
 
 export default function OrderSuccessPage() {
     // Mock transaction data - in a real app, this would come from URL params or API
@@ -13,37 +14,24 @@ export default function OrderSuccessPage() {
         transaction_uuid: "250610-162413",
     }
 
-    // Mock ordered items - in a real app, this would come from API
-    const orderedItems = [
-        {
-            id: 1,
-            name: "Cotton T-Shirt",
-            size: "M",
-            color: "Navy Blue",
-            quantity: 2,
-            price: 299.99,
-            image: "/navy-blue-cotton-t-shirt.jpg",
-        },
-        {
-            id: 2,
-            name: "Denim Jeans",
-            size: "32",
-            color: "Dark Wash",
-            quantity: 1,
-            price: 499.99,
-            image: "/dark-wash-denim-jeans.jpg",
-        },
-    ]
+    const [ search ] = useSearchParams()
+    const dataQuery = search.get("data");
+    const [ data, setData ] = useState<SuccessfulPaymentDataType>({} as SuccessfulPaymentDataType)
+    const navigate = useNavigate()
 
-    const {
-        data,
-        isLoading,
-        isError,
-        isFetching,
-        // isPlaceholderData
-    } = useCartItems();
-
-    const cartItems: CartItemType[] = data?.data?.items || []
+    useEffect(() => {
+        console.log(dataQuery)
+        if (dataQuery) {
+            try {
+                setData(JSON.parse(atob(dataQuery)))
+            } catch (error) {
+                toast.error("Invalid payment Id!!")
+                navigate("/")
+            }
+        }
+        else
+            navigate("/");
+    }, [ search ])
 
     return (
         <div className="min-h-screen bg-background">
@@ -68,21 +56,21 @@ export default function OrderSuccessPage() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center pb-4 border-b border-border">
                                 <span className="text-muted-foreground">Transaction Code</span>
-                                <span className="font-mono font-semibold text-foreground">{transaction.transaction_code}</span>
+                                <span className="font-mono font-semibold text-foreground">{data?.transaction_code || "-"}</span>
                             </div>
                             <div className="flex justify-between items-center pb-4 border-b border-border">
                                 <span className="text-muted-foreground">Transaction ID</span>
-                                <span className="font-mono text-sm text-foreground">{transaction.transaction_uuid}</span>
+                                <span className="font-mono text-sm text-foreground">{data?.transaction_uuid || "-"}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2">
                                 <span className="text-lg font-medium text-foreground">Total Amount</span>
-                                <span className="text-2xl font-bold text-foreground">${transaction.total_amount.toFixed(2)}</span>
+                                <span className="text-2xl font-bold text-foreground">Rs. {data?.total_amount || "-.--"}</span>
                             </div>
                         </div>
                     </Card>
 
                     {/* Ordered Items */}
-                    <div className="mb-8">
+                    {/* <div className="mb-8">
                         <h2 className="text-2xl font-semibold text-foreground mb-6">Your Order</h2>
                         <div className="grid gap-4 md:gap-6">
                             {cartItems.map((item) => (
@@ -114,7 +102,7 @@ export default function OrderSuccessPage() {
                                 </Card>
                             ))}
                         </div>
-                    </div>
+                    </div> */}
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">

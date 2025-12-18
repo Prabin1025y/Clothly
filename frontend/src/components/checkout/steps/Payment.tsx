@@ -42,7 +42,7 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                 product_service_charge: "0",
                 product_delivery_charge: "0",
                 product_code: "EPAYTEST",
-                success_url: "http://localhost:5173/checkout",
+                success_url: "http://localhost:5173/order-success",
                 failure_url: "http://localhost:5173/checkout",
                 signed_field_names: "total_amount,transaction_uuid,product_code",
                 signature: ""
