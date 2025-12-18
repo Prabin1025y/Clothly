@@ -10,14 +10,17 @@ import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
 import { useShippingAddresses } from "@/hooks/useShippingAddresses"
 import { useQueryClient } from "@tanstack/react-query"
+import { useInfoStore } from "@/zustand/infoStore"
 
 
 export default function ShippingInfo() {
-    const [ selectedAddressId, setSelectedAddressId ] = useState<number>(-1)
+    // const [ selectedAddressId, setSelectedAddressId ] = useState<number>(-1)
     const [ showForm, setShowForm ] = useState(false)
+    const { setCurrentShippingAddressId, currentShippingAddressId } = useInfoStore();
 
     const handleSelectAddress = (addressId: string) => {
-        setSelectedAddressId(Number(addressId))
+        // setSelectedAddressId(Number(addressId))
+        setCurrentShippingAddressId(Number(addressId))
     }
     const queryClient = useQueryClient();
 
@@ -30,7 +33,8 @@ export default function ShippingInfo() {
 
     useEffect(() => {
         if (data?.data && Array.isArray(data?.data) && data?.data.length !== 0)
-            setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
+            setCurrentShippingAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
+        // setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
     }, [ data ])
 
     if (isLoading)
@@ -82,7 +86,7 @@ export default function ShippingInfo() {
 
             {/* Existing Addresses */}
             <div className="space-y-3">
-                <RadioGroup value={selectedAddressId.toString()} onValueChange={handleSelectAddress}>
+                <RadioGroup value={currentShippingAddressId?.toString()} onValueChange={handleSelectAddress}>
                     {shippingAddresses.map((address) => (
                         <Card
                             key={address.id}

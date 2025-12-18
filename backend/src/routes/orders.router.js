@@ -43,7 +43,6 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
         const cartItems = cartItemsData.rows
 
         const totalPrice = cartItems.reduce((prevValue, element) => (prevValue + element.quantity * element.unit_price), 0)
-        console.log(cartItemsData)
 
         const shippingAddressData = await client.query(`
                 SELECT base_shipping_cost 
@@ -56,9 +55,6 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
 
         const baseShippingCost = shippingAddressData.rows[0].base_shipping_cost
         const shippingCost = payment_method === "cod" ? (+baseShippingCost) + 50.0 : (+baseShippingCost);
-
-        console.log(payment_method === "cod")
-        console.log(shippingCost)
 
         const createdOrder = await client.query(`
                 INSERT INTO orders (
@@ -117,11 +113,7 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
                 VALUES ${orderItemPlaceholder}
             `, orderItemValues);
 
-        if (insertedOrderItems.rowCount > 0) {
-            await client.query(`
-                DELETE FROM carts WHERE id = $1
-                `, [cart_id])
-        } else {
+        if (insertedOrderItems.rowCount === 0) {
             await client.query("ROLLBACK");
             return res.status(400).json({ message: "Order was not placed for some reason!" })
         }

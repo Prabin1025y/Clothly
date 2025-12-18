@@ -4,11 +4,12 @@ import type { CreateOrderDto } from "@/type/orders";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cartItemKeys } from "./useCartItems";
 
 export const orderKeys = {
     all: [ 'orders' ] as const,
 
-    lists: () => [ ...orderKeys.all, "list" ] as const,
+    lists: () => [ ...orderKeys.all, "list" ] as const
 }
 
 export function useCreateOrder() {
@@ -29,6 +30,10 @@ export function useCreateOrder() {
 
         onError: (error) => {
             toast.error(handleApiError(error));
+        },
+
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: cartItemKeys.all })
         }
 
     })

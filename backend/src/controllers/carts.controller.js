@@ -1,3 +1,4 @@
+import { success } from "zod";
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import { cartItemEditSchema, cartItemSchema } from "../validation/cartItem.schema.js";
@@ -275,8 +276,21 @@ export const getCurrentCartItemByUserId = async (req, res) => {
             AND c.type = 'active'
             GROUP BY c.id;
         `
+        if (!!cartItems[0])
+            return res.status(200).json({ success: true, data: cartItems[0] });
+        else
+            return res.status(200).json({
+                success: true,
+                data: {
+                    cart_id: "-1",
+                    items: [],
+                    total_price: "0.00",
+                    type: "active",
+                    user_id: userId
+                }
+            })
+
         // console.log(cartItems)
-        return res.status(200).json({ success: true, data: cartItems[0] });
     } catch (error) {
         logger.error("Error while getting cart item: ", error);
         return res.status(500).json({ success: false, message: "Internal server error" })

@@ -7,14 +7,33 @@ import { toast } from "sonner"
 import type { FormDataType } from "@/type/payment"
 import { useEffect, useState } from "react";
 import { Loader } from "lucide-react";
+import { useCreateOrder } from "@/hooks/useOrders";
+import { useInfoStore } from "@/zustand/infoStore";
 
 export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
     const [ loading, setLoading ] = useState(false)
 
     const generateSignature = useGenerateSignature();
+    const { currentShippingAddressId } = useInfoStore();
+    const createOrder = useCreateOrder();
     const handlePayment = async () => {
         try {
             setLoading(true);
+            if (!currentShippingAddressId) {
+                toast.error("Invalid shipping address!");
+                return;
+            }
+
+            const { success } = await createOrder.mutateAsync({
+                shipping_address_id: currentShippingAddressId,
+                payment_method: "esewa",
+                notes: "give it to me fast!!" //TODO: change this part
+            })
+
+            if (!success) {
+                throw new Error("Order could not be placed")
+            }
+
             let formData: FormDataType = {
                 amount: totalPrice.toString(),
                 tax_amount: "0",

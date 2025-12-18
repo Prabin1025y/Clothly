@@ -37,4 +37,47 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
     }
 })
 
+paymentRouter.get("/payment-success", async (req, res) => {
+    try {
+        const userId = req.userId || 2;
+        if (!userId)
+            return res.status(401).json({ message: "Unauthorized!!" });
+
+        await sql`
+            UPDATE orders
+            SET status='paid'
+            WHERE user_id = ${userId} AND status='pending'
+        `
+
+        await sql`
+            UPDATE carts SET type='saved' WHERE user_id=${userId} AND type='active'
+        `
+
+        res.status(200).json({ success: true });
+
+    } catch (error) {
+        logger.error("Error while marking payment succeed: ", error);
+        return res.status(500).json({ message: "Internal server error" })
+    }
+})
+
+paymentRouter.get("/payment-failure", async (req, res) => {
+    try {
+        const userId = req.userId || 2;
+        if (!userId)
+            return res.status(401).json({ message: "Unauthorized!!" });
+
+        await sql`
+            DELETE FROM orders
+            WHERE user_id=${userId} AND status='pending'
+        `
+
+        res.status(200).json({ success: true });
+
+    } catch (error) {
+        logger.error("Error while marking payment failed: ", error);
+        return res.status(500).json({ message: "Internal server error" })
+    }
+})
+
 export default paymentRouter;
