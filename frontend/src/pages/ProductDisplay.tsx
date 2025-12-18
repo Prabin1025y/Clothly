@@ -78,7 +78,7 @@ export default function ProductPage() {
             })
 
         } catch (error) {
-            console.error("Error occured!! Please try again.");
+            console.error("Error occured!! Please try again.", error);
         } finally {
             setIsAddingToCart(false);
         }

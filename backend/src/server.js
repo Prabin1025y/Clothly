@@ -18,6 +18,14 @@ import { bufferUpload, diskUpload } from "./config/multer.js"
 import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageUpload.controller.js"
 import paymentRouter from "./routes/payment.router.js"
 
+process.on('uncaughtException', (err) => {
+    console.error('UNCAUGHT EXCEPTION:', err)
+})
+
+process.on('unhandledRejection', (reason) => {
+    console.error('UNHANDLED REJECTION:', reason)
+})
+
 const PORT = process.env.PORT
 
 const app = express()

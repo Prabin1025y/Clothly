@@ -11,7 +11,7 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
 
     try {
         const parsed = orderSchema.parse(req.body);
-        const { shipping_address_id, billing_address_id, payment_method, notes } = parsed;
+        const { shipping_address_id, payment_method, notes } = parsed;
         await client.query("BEGIN")
         const userId = req.userId || 2; //TODO: remove 1 during production
 

@@ -43,6 +43,7 @@ export function useAddItemToCart() {
                 { queryKey: cartItemKeys.lists() },
                 (old) => {
                     if (!old) return old;
+                    console.log(old)
 
                     const optimisticCartItem: CartItemType = {
                         cart_item_id: Date.now(),
