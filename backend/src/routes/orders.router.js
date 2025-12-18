@@ -1,12 +1,12 @@
 import { Router } from "express";
-import { pool } from "../config/db.js";
+import { pool, sql } from "../config/db.js";
 import orderSchema from "../validation/orders.schema.js";
 import logger from "../config/logger.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 
 const orderRouter = Router()
 
-orderRouter.post("/create-order", async (req, res) => {
+orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
     const client = await pool.connect();
 
     try {
@@ -86,8 +86,10 @@ orderRouter.post("/create-order", async (req, res) => {
             notes
         ]);
 
-        if (createdOrder.rowCount === 0)
+        if (createdOrder.rowCount === 0) {
+            await client.query("ROLLBACK");
             return res.status(500).json({ success: false, message: "Failed to place order!" })
+        }
 
         const orderId = createdOrder.rows[0].id
         const noOfData = 5
@@ -119,18 +121,68 @@ orderRouter.post("/create-order", async (req, res) => {
             await client.query(`
                 DELETE FROM carts WHERE id = $1
                 `, [cart_id])
+        } else {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ message: "Order was not placed for some reason!" })
         }
 
         await client.query("COMMIT");
 
-        return res.status(201).json({ success: true, data: insertedOrderItems });
+        return res.status(201).json({ success: true });
 
     } catch (error) {
         await client.query("ROLLBACK");
         logger.error("Error while creating as order: ", error);
-        return res.status(500).json({ success: false, message: "Internal server error" })
+        return res.status(500).json({ message: "Internal server error" })
     } finally {
         client.release()
+    }
+})
+
+orderRouter.get("/order-items", async (req, res) => {
+    try {
+        const userId = req.userId || 2; //TODO: remove 1 during production
+
+        const orderIds = await sql`
+            SELECT id FROM orders WHERE user_id=${userId}
+        `;
+        if (!Array.isArray(orderIds) || orderIds.length === 0) {
+            res.status(200).json([]);
+        }
+
+        console.log(orderIds)
+
+        const orderItems = await sql`
+            SELECT
+                oi.product_id,
+                oi.variant_id,
+                oi.product_name,
+                oi.quantity,
+                oi.unit_price,
+                oi.created_at,
+
+                p.slug,
+                pv.color,
+                pv.size,
+                pi.url,
+                pi.alt_text
+
+            FROM order_items oi
+            JOIN products p ON p.id = oi.product_id
+            JOIN product_variants pv ON pv.id = oi.variant_id
+            LEFT JOIN product_images pi
+                ON pi.product_id = oi.product_id
+            AND pi.is_primary = TRUE
+
+            WHERE oi.order_id = ANY(${orderIds.map(o => o.id)});
+
+        `
+
+        console.log(orderItems)
+        res.status(201).json({ success: true })
+    } catch (error) {
+        logger.error("Error while getting orders: ", error);
+        return res.status(500).json({ message: "Internal server error" });
     }
 })
 
