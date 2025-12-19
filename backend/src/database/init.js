@@ -201,9 +201,10 @@ async function init_products(client) {
             created_by BIGINT REFERENCES users(id),
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-            deleted_at TIMESTAMP WITH TIME ZONE
+            deleted_at TIMESTAMP WITH TIME ZONE,
             search_vector TSVECTOR GENERATED ALWAYS AS (
-                setweight(to_tsvector('english', coalesce(name, '')), 'A')
+                setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
+                setweight(to_tsvector('english', coalesce(short_description, '')), 'B')
             ) STORED
         );
     `);
@@ -239,6 +240,8 @@ async function init_product_variants(client) {
             product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
             sku VARCHAR(128) UNIQUE,
             color VARCHAR(128) NOT NULL,
+            hex_color CHAR(7) NOT NULL,
+            CHECK (hex_color ~ '^#[0-9A-Fa-f]{6}$'),
             size VARCHAR(32) NOT NULL,
             original_price NUMERIC(12,2),
             current_price NUMERIC(12,2),
@@ -256,21 +259,6 @@ async function init_product_variants(client) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_variants_product ON product_variants(product_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_variants_sku ON product_variants(sku);`);
 }
-
-// async function init_inventories(client) {
-//     await client.query`
-//         CREATE TABLE IF NOT EXISTS inventories(
-//             id BIGSERIAL PRIMARY KEY,
-//             variant_id BIGINT NOT NULL UNIQUE REFERENCES product_variants(id) ON DELETE CASCADE,
-//             available INT NOT NULL DEFAULT 0 CHECK(available >= 0),
-//             reserved INT NOT NULL DEFAULT 0 CHECK(reserved >= 0),
-//             on_hold INT NOT NULL DEFAULT 0 CHECK(on_hold >= 0),
-//             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-//     );
-//     `
-
-//     await client.query`CREATE INDEX IF NOT EXISTS idx_inventories_variant ON inventories(variant_id);`
-// }
 
 async function init_product_details(client) {
     await client.query(`
@@ -311,7 +299,8 @@ async function init_orders(client) {
         CREATE TABLE IF NOT EXISTS orders (
             id BIGSERIAL PRIMARY KEY,
             public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
-            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+            user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
+            transaction_id VARCHAR(255) DEFAULT NULL,
             status order_status NOT NULL DEFAULT 'pending',
             subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
             shipping_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -343,7 +332,7 @@ async function init_order_items(client) {
         CREATE TABLE IF NOT EXISTS order_items (
             id BIGSERIAL PRIMARY KEY,
             order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-            product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE SET NULL,
+            product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
             variant_id BIGINT REFERENCES product_variants(id) ON DELETE SET NULL,
             product_name VARCHAR(512),
             quantity INT NOT NULL CHECK (quantity > 0),
@@ -442,7 +431,7 @@ async function init_messages(client) {
         CREATE TABLE IF NOT EXISTS messages (
             id BIGSERIAL PRIMARY KEY,
             thread_id BIGINT NOT NULL REFERENCES message_threads(id) ON DELETE CASCADE,
-            sender_id BIGINT NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+            sender_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
             body TEXT NOT NULL,
             attachments JSONB,
             is_read BOOLEAN NOT NULL DEFAULT FALSE,

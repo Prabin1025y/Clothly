@@ -11,9 +11,9 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
 
     try {
         const parsed = orderSchema.parse(req.body);
-        const { shipping_address_id, payment_method, notes } = parsed;
+        const { shipping_address_id, payment_method, notes, transaction_uuid } = parsed;
         await client.query("BEGIN")
-        const userId = req.userId || 2; //TODO: remove 1 during production
+        const userId = req.userId || 1; //TODO: remove 1 during production
 
         const cart = await client.query(`SELECT id FROM carts WHERE user_id = $1 AND type='active'`, [userId])
         if (cart.rowCount == 0)
@@ -66,9 +66,10 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
                     billing_address_id,
                     payment_method,
                     placed_at,
-                    notes
+                    notes,
+                    transaction_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
                 RETURNING id
             `, [
             userId,
@@ -79,7 +80,8 @@ orderRouter.post("/create-order", isAuthenticated, async (req, res) => {
             shipping_address_id,
             payment_method,
             new Date(),
-            notes
+            notes,
+            transaction_uuid
         ]);
 
         if (createdOrder.rowCount === 0) {

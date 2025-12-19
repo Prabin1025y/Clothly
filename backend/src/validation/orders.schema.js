@@ -7,7 +7,7 @@ const orderSchema = z.object({
     payment_method: z.string().max(255),
     notes: z.string().optional(),
     // total_amount: z.string(),
-    // transaction_uuid: z.string(),
+    transaction_uuid: z.string().trim().nonempty(),
     // product_code: z.string()
 });
 

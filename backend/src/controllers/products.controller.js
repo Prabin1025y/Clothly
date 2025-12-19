@@ -113,7 +113,7 @@ export const addProduct = async (req, res) => {
             `, [primary_image_id, product_id])
 
         //Same as image above
-        const no_of_fields_in_variants = 6
+        const no_of_fields_in_variants = 7
         const variant_placeholder = variants.map((_, i) => (
             `(${product_id},
             $${no_of_fields_in_variants * i + 1},
@@ -121,12 +121,14 @@ export const addProduct = async (req, res) => {
             $${no_of_fields_in_variants * i + 3},
             $${no_of_fields_in_variants * i + 4},
             $${no_of_fields_in_variants * i + 5},
-            $${no_of_fields_in_variants * i + 6})`
+            $${no_of_fields_in_variants * i + 6},
+            $${no_of_fields_in_variants * i + 7})`
         )).join(", ");
 
         const variant_values = variants.flatMap(variant => [
             variant.sku,
             variant.color,
+            variant.hex_color,
             variant.size,
             variant.original_price,
             variant.current_price,
@@ -139,6 +141,7 @@ export const addProduct = async (req, res) => {
                 product_id,
                 sku,
                 color,
+                hex_color,
                 size,
                 original_price,
                 current_price,

@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { useGetPaymentSuccess } from "@/hooks/usePayment"
 import type { SuccessfulPaymentDataType } from "@/type/payment"
 import { CheckCircle2 } from "lucide-react"
 import { useEffect, useState } from "react"
@@ -7,23 +8,18 @@ import { Link, useNavigate, useSearchParams } from "react-router"
 import { toast } from "sonner"
 
 export default function OrderSuccessPage() {
-    // Mock transaction data - in a real app, this would come from URL params or API
-    const transaction = {
-        transaction_code: "000AWEO",
-        total_amount: 1000.0,
-        transaction_uuid: "250610-162413",
-    }
-
     const [ search ] = useSearchParams()
     const dataQuery = search.get("data");
-    const [ data, setData ] = useState<SuccessfulPaymentDataType>({} as SuccessfulPaymentDataType)
+    const [ transaction, setTransaction ] = useState<SuccessfulPaymentDataType>({} as SuccessfulPaymentDataType)
     const navigate = useNavigate()
+
+    const { data, isError, error, isLoading } = useGetPaymentSuccess(transaction.transaction_uuid);
 
     useEffect(() => {
         console.log(dataQuery)
         if (dataQuery) {
             try {
-                setData(JSON.parse(atob(dataQuery)))
+                setTransaction(JSON.parse(atob(dataQuery)))
             } catch (error) {
                 toast.error("Invalid payment Id!!")
                 navigate("/")
@@ -32,6 +28,13 @@ export default function OrderSuccessPage() {
         else
             navigate("/");
     }, [ search ])
+
+    if (isError || !data?.success) {
+        console.log(error)
+        navigate("/")
+    }
+    if (isLoading)
+        return <div>Loading...</div>
 
     return (
         <div className="min-h-screen bg-background">
@@ -56,15 +59,15 @@ export default function OrderSuccessPage() {
                         <div className="space-y-4">
                             <div className="flex justify-between items-center pb-4 border-b border-border">
                                 <span className="text-muted-foreground">Transaction Code</span>
-                                <span className="font-mono font-semibold text-foreground">{data?.transaction_code || "-"}</span>
+                                <span className="font-mono font-semibold text-foreground">{transaction?.transaction_code || "-"}</span>
                             </div>
                             <div className="flex justify-between items-center pb-4 border-b border-border">
                                 <span className="text-muted-foreground">Transaction ID</span>
-                                <span className="font-mono text-sm text-foreground">{data?.transaction_uuid || "-"}</span>
+                                <span className="font-mono text-sm text-foreground">{transaction?.transaction_uuid || "-"}</span>
                             </div>
                             <div className="flex justify-between items-center pt-2">
                                 <span className="text-lg font-medium text-foreground">Total Amount</span>
-                                <span className="text-2xl font-bold text-foreground">Rs. {data?.total_amount || "-.--"}</span>
+                                <span className="text-2xl font-bold text-foreground">Rs. {transaction?.total_amount || "-.--"}</span>
                             </div>
                         </div>
                     </Card>

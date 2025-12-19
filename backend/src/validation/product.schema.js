@@ -11,6 +11,7 @@ const productImageSchema = z.object({
 const productVariantSchema = z.object({
     sku: z.string().min(1, "sku is required"),
     color: z.string().min(1, "color is required"),
+    hex_color: z.string().trim().regex(/^#[0-9A-Fa-f]{6}$/, { message: "Invalid hex color (expected #RRGGBB)" }).transform((v) => v.toUpperCase()),
     size: z.string().min(1, "size is required"),
     original_price: z.coerce.number().nonnegative(),
     current_price: z.coerce.number().nonnegative().optional(),

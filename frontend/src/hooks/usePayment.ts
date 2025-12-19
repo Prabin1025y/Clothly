@@ -1,7 +1,8 @@
 import { handleApiError } from "@/lib/axios";
 import { paymentServices } from "@/service/paymentService";
+import type { GeneralPostResponseType } from "@/type";
 import type { GenerateSignatureDto } from "@/type/payment";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery, type UseQueryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export function useGenerateSignature() {
@@ -15,5 +16,14 @@ export function useGenerateSignature() {
         onError: (error) => {
             toast.error(handleApiError(error));
         }
+    })
+}
+
+export function useGetPaymentSuccess(transactionUuid: string, options?: Omit<UseQueryOptions<GeneralPostResponseType>, 'queryKey' | 'queryFn'>) {
+    return useQuery({
+        queryKey: [ "payment-success", transactionUuid ],
+        staleTime: "static",
+        queryFn: () => paymentServices.getOrderSuccessData(transactionUuid),
+        enabled: !!transactionUuid
     })
 }
