@@ -9,7 +9,7 @@ const shippingRouter = Router()
 
 shippingRouter.post("/add-shipping-address", async (req, res) => {
     try {
-        const userId = req.userId || 2;//TODO: remove 1 in production
+        const userId = req.userId || 1;//TODO: remove 1 in production
 
         const parsed = shippingAddressSchema.parse(req.body)
 
@@ -81,7 +81,7 @@ shippingRouter.post("/add-shipping-address", async (req, res) => {
 
 shippingRouter.get("/get-shipping-addresses", async (req, res) => {
     try {
-        const userId = req.userId || 2;//TODO: remove 2 in production
+        const userId = req.userId || 1;//TODO: remove 2 in production
 
         if (!userId)
             return res.status(401).json({ success: false, message: "Unauthenticated!!" });

@@ -24,10 +24,13 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                 return;
             }
 
+            const transaction_uuid = uuidv4();
+
             const { success } = await createOrder.mutateAsync({
                 shipping_address_id: currentShippingAddressId,
                 payment_method: "esewa",
-                notes: "give it to me fast!!" //TODO: change this part
+                notes: "give it to me fast!!", //TODO: change this part
+                transaction_uuid: transaction_uuid
             })
 
             if (!success) {
@@ -38,7 +41,7 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                 amount: totalPrice.toString(),
                 tax_amount: "0",
                 total_amount: totalPrice.toString(),
-                transaction_uuid: uuidv4(),
+                transaction_uuid: transaction_uuid,
                 product_service_charge: "0",
                 product_delivery_charge: "0",
                 product_code: "EPAYTEST",

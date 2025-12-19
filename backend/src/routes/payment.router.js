@@ -39,7 +39,7 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
 
 paymentRouter.get("/payment-success/:id", async (req, res) => {
     try {
-        const userId = req.userId || 2;
+        const userId = req.userId || 1;
         const { id: transaction_uuid } = req.params
 
         if (!userId)
@@ -51,8 +51,13 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
             WHERE user_id = ${userId} AND status='pending'
         `
 
+        console.log(order)
+        console.log(transaction_uuid)
+
         if (!Array.isArray(order) || order.length === 0)
             return res.status(403).json({ message: "Unauthorized!!" });
+
+        console.log(order[0].transaction_id !== transaction_uuid)
 
         if (order[0].transaction_id !== transaction_uuid)
             return res.status(403).json({ message: "Unauthorized!!" });

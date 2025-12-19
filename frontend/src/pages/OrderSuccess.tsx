@@ -22,6 +22,7 @@ export default function OrderSuccessPage() {
                 setTransaction(JSON.parse(atob(dataQuery)))
             } catch (error) {
                 toast.error("Invalid payment Id!!")
+                console.log("Error in catch of ordersuccess useeffect", error)
                 navigate("/")
             }
         }
@@ -29,7 +30,7 @@ export default function OrderSuccessPage() {
             navigate("/");
     }, [ search ])
 
-    if (isError || !data?.success) {
+    if (isError) {
         console.log(error)
         navigate("/")
     }
