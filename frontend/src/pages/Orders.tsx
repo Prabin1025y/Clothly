@@ -67,7 +67,7 @@ export default function OrdersPage() {
                 {/* Header */}
                 <div className="mb-8">
                     <h1 className="text-4xl font-light tracking-tight text-foreground">Orders</h1>
-                    <p className="mt-2 text-sm text-muted-foreground">Manage and track your order history</p>
+                    <p className="mt-2 text-sm text-muted-foreground">Manage and track your </p>
                 </div>
 
                 {/* Filters and Sorting */}
