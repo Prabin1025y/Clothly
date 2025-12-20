@@ -11,5 +11,10 @@ export const orderServices = {
     getOrderByTransactionId: async (transactionId: string): Promise<OrderType[]> => {
         const { data } = await axiosClient.get(`/api/orders/order-items/${transactionId}`);
         return data;
+    },
+
+    getOrder: async (): Promise<OrderType[]> => {
+        const { data } = await axiosClient.get("/api/orders/order-items");
+        return data;
     }
 }

@@ -151,6 +151,7 @@ export const getOrderItems = async (req, res) => {
                 oi.quantity,
                 oi.unit_price,
                 oi.created_at,
+                o.status,
 
                 p.slug,
                 pv.color,
@@ -160,6 +161,7 @@ export const getOrderItems = async (req, res) => {
                 pi.alt_text
 
             FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
             JOIN products p ON p.id = oi.product_id
             JOIN product_variants pv ON pv.id = oi.variant_id
             LEFT JOIN product_images pi
@@ -171,7 +173,7 @@ export const getOrderItems = async (req, res) => {
         `
 
         console.log(orderItems)
-        res.status(201).json({ success: true })
+        res.status(201).json(orderItems)
     } catch (error) {
         logger.error("Error while getting orders: ", error);
         return res.status(500).json({ message: "Internal server error" });

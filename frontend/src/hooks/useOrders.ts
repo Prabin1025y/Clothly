@@ -49,3 +49,10 @@ export function useOrderItemsByTransactionId(transactionId: string) {
         enabled: !!transactionId
     })
 }
+
+export function useOrderItems() {
+    return useQuery({
+        queryKey: orderKeys.lists(),
+        queryFn: () => orderServices.getOrder(),
+    })
+}

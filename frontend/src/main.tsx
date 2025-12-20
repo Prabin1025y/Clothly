@@ -17,6 +17,7 @@ import CheckoutPage from './pages/CheckoutPage.tsx'
 import { QueryProvider } from './provider/QueryProvider.tsx'
 import OrderSuccessPage from './pages/OrderSuccess.tsx'
 import OrderFailedPage from './pages/OrderFailed.tsx'
+import OrdersPage from './pages/Orders.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')!).render(
             <Route path='/product/:productId' element={<ProductPage />} />
             <Route path='/checkout' element={<CheckoutPage />} />
             <Route path='/order-success' element={<OrderSuccessPage />} />
+            <Route path='/orders' element={<OrdersPage />} />
             <Route path='/order-failure' element={<OrderFailedPage />} />
             <Route path="/admin" element={<AdminLayout />} >
               <Route path='/admin' element={<AdminHome />} />

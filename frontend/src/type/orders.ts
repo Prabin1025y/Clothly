@@ -15,6 +15,7 @@ export interface OrderType {
     slug: string;
     color: string;
     hex_color: string;
+    status: string;
     size: string;
     url: string;
     alt_text: string;
