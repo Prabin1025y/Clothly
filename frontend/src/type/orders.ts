@@ -4,3 +4,18 @@ export interface CreateOrderDto {
     notes: string | undefined;
     transaction_uuid: string;
 }
+
+export interface OrderType {
+    product_id: string;
+    variant_id: string;
+    product_name: string;
+    quantity: number;
+    unit_price: string;
+    created_at: string;
+    slug: string;
+    color: string;
+    hex_color: string;
+    size: string;
+    url: string;
+    alt_text: string;
+}

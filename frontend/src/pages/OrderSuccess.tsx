@@ -13,7 +13,9 @@ export default function OrderSuccessPage() {
     const [ transaction, setTransaction ] = useState<SuccessfulPaymentDataType>({} as SuccessfulPaymentDataType)
     const navigate = useNavigate()
 
-    const { data, isError, error, isLoading } = useGetPaymentSuccess(transaction.transaction_uuid);
+    // const { data, isError, error, isLoading } = useGetPaymentSuccess(transaction.transaction_uuid);
+    // const { data: orderData, isError: isOrderError, isLoading: isOrderLoading, error: orderError } = useOrderItemsByTransactionId(transaction?.transaction_uuid);
+    const { data, isLoading, isError, error } = useGetPaymentSuccess(transaction?.transaction_uuid)
 
     useEffect(() => {
         console.log(dataQuery)
@@ -36,6 +38,8 @@ export default function OrderSuccessPage() {
     }
     if (isLoading)
         return <div>Loading...</div>
+
+    const orders = data ?? []
 
     return (
         <div className="min-h-screen bg-background">
@@ -74,39 +78,39 @@ export default function OrderSuccessPage() {
                     </Card>
 
                     {/* Ordered Items */}
-                    {/* <div className="mb-8">
+                    <div className="mb-8">
                         <h2 className="text-2xl font-semibold text-foreground mb-6">Your Order</h2>
                         <div className="grid gap-4 md:gap-6">
-                            {cartItems.map((item) => (
-                                <Card key={item.cart_item_id} className="overflow-hidden">
+                            {orders.map((order) => (
+                                <Card key={order.variant_id} className="overflow-hidden">
                                     <div className="flex flex-col sm:flex-row gap-6 p-6">
                                         <div className="w-full sm:w-32 h-32 bg-muted rounded-lg overflow-hidden flex-shrink-0">
                                             <img
-                                                src={item.product_image_url || "/placeholder.svg"}
-                                                alt={item.product_image_alt_text}
+                                                src={order.url || "/placeholder.svg"}
+                                                alt={order.alt_text}
                                                 className="w-full h-full object-cover"
                                             />
                                         </div>
                                         <div className="flex-1 space-y-2">
-                                            <h3 className="text-lg font-semibold text-foreground">{item.product_name}</h3>
+                                            <h3 className="text-lg font-semibold text-foreground">{order.product_name}</h3>
                                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                                                 <span>
-                                                    Size: <span className="text-foreground">XL</span>
+                                                    Size: <span className="text-foreground">{order.size}</span>
                                                 </span>
                                                 <span>
-                                                    Color: <span className="text-foreground">Beige</span>
+                                                    Color: <span className="text-foreground">{order.color}</span>
                                                 </span>
                                                 <span>
-                                                    Quantity: <span className="text-foreground">{item.quantity}</span>
+                                                    Quantity: <span className="text-foreground">{order.quantity}</span>
                                                 </span>
                                             </div>
-                                            <p className="text-lg font-semibold text-foreground pt-2">${item.price_snapshot.toFixed(2)}</p>
+                                            <p className="text-lg font-semibold text-foreground pt-2">${order.unit_price}</p>
                                         </div>
                                     </div>
                                 </Card>
                             ))}
                         </div>
-                    </div> */}
+                    </div>
 
                     {/* Action Buttons */}
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -118,11 +122,11 @@ export default function OrderSuccessPage() {
                         </Button>
                     </div>
 
-                    {/* Additional Info */}
+                    {/* Additional Info
                     <div className="mt-12 text-center text-sm text-muted-foreground">
                         <p>A confirmation email has been sent to your registered email address.</p>
                         <p className="mt-2">For any questions, please contact our support team.</p>
-                    </div>
+                    </div> */}
                 </div>
             </div>
         </div>

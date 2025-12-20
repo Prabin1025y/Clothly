@@ -20,11 +20,11 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
         const userId = req.userId || 2; //TODO: remove 1 during production
 
         const cart = await sql`SELECT total_price FROM carts WHERE user_id = ${userId} AND type='active'`
-        console.log(cart)
+        console.log(cart, Number(total_amount).toFixed(2).toString())
         if (cart.length == 0)
             return res.status(404).json({ success: false, message: "No such cart found." })
 
-        if (!total_amount === cart?.[0]?.total_price)
+        if (Number(total_amount).toFixed(2).toString() !== cart?.[0]?.total_price)
             return res.status(400).json({ success: false, message: "Something went wrong on your side." })
 
         const hashSignature = generateSignature(total_amount, transaction_uuid, product_code);
@@ -48,7 +48,7 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
         const order = await sql`
             SELECT id, transaction_id
             FROM orders
-            WHERE user_id = ${userId} AND status='pending'
+            WHERE user_id = ${userId} AND status='pending' AND transaction_id=${transaction_uuid}
         `
 
         console.log(order)

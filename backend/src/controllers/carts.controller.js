@@ -1,4 +1,3 @@
-import { success } from "zod";
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import { cartItemEditSchema, cartItemSchema } from "../validation/cartItem.schema.js";
@@ -314,14 +313,16 @@ export const deleteItemFromCart = async (req, res) => {
             USING carts c
             WHERE ci.cart_id = c.id
                 AND c.user_id = $1
+                AND c.type = 'active'
                 AND ci.variant_id = $2
             RETURNING ci.*;
         `, [userId, productVariantId])
 
-        // console.log(deletedItem);
+        console.log(deletedItem.rows);
 
         if (deletedItem.rowCount > 0) {
             const deletedPrice = deletedItem.rows.reduce((price, row) => price + Number(row.price_snapshot) * row.quantity, 0)
+            console.log(deletedPrice, deletedItem.rows[0].cart_id)
             await client.query(`
             UPDATE carts
                 SET total_price = total_price - $1

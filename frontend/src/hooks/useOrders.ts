@@ -2,14 +2,15 @@ import { handleApiError } from "@/lib/axios";
 import { orderServices } from "@/service/orderService";
 import type { CreateOrderDto } from "@/type/orders";
 import { useUser } from "@clerk/clerk-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cartItemKeys } from "./useCartItems";
 
 export const orderKeys = {
     all: [ 'orders' ] as const,
 
-    lists: () => [ ...orderKeys.all, "list" ] as const
+    lists: () => [ ...orderKeys.all, "list" ] as const,
+    list: (transactionId: string) => [ ...orderKeys.lists(), transactionId ] as const
 }
 
 export function useCreateOrder() {
@@ -38,4 +39,13 @@ export function useCreateOrder() {
 
     })
 
+}
+
+export function useOrderItemsByTransactionId(transactionId: string) {
+    return useQuery({
+        queryKey: orderKeys.list(transactionId),
+        queryFn: () => orderServices.getOrderByTransactionId(transactionId),
+        staleTime: Infinity,
+        enabled: !!transactionId
+    })
 }

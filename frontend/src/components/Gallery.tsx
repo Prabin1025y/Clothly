@@ -61,7 +61,7 @@ export function Gallery() {
     if (error)
         return <div>OOPS!! SOMETHING WENT WRONG!!</div>
 
-    console.log(data);
+    // console.log(data);
 
     return (
         <div className="w-full mx-auto p-6">

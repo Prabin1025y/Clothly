@@ -63,7 +63,7 @@ export function useAddItemToCart() {
                         data: {
                             ...old.data,
                             items: [ ...old.data.items, optimisticCartItem ],
-                            total_price: (Number(old.data.total_price) + optimisticCartItem.price_snapshot).toString()
+                            total_price: (Number(old.data.total_price) + optimisticCartItem.price_snapshot * optimisticCartItem.quantity).toString()
                         }
                     };
                 }
@@ -110,7 +110,8 @@ export function useDeleteCartItems() {
             queryClient.setQueryData<GetCartItemsResponseType>(cartItemKeys.lists(), (old) => {
                 if (!old) return old;
 
-                const deletedItemPrice = old.data.items.find((value) => value.variant_id === Number(variantId))?.price_snapshot ?? 0
+                const deletedItem = old.data.items.find((value) => value.variant_id === Number(variantId))
+                const deletedItemPrice = (deletedItem?.price_snapshot ?? 0) * (deletedItem?.quantity ?? 0)
 
                 return {
                     ...old,

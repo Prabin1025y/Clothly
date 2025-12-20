@@ -25,11 +25,12 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
             }
 
             const transaction_uuid = uuidv4();
+            console.log(transaction_uuid);
 
             const { success } = await createOrder.mutateAsync({
                 shipping_address_id: currentShippingAddressId,
                 payment_method: "esewa",
-                notes: "give it to me fast!!", //TODO: change this part
+                notes: "give it to me fast fast!!", //TODO: change this part
                 transaction_uuid: transaction_uuid
             })
 
