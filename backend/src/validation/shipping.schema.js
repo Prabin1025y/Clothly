@@ -10,7 +10,7 @@ export const shippingAddressSchema = z.object({
     tole_name: z.string().trim().max(512, "Tole name must be 512 characters or less.").default(null).optional(),
     postal_code: z.string().trim().max(32, "Postal code must be 32 characters or less.").default(null).optional(),
     phone: z.string().trim().min(6, "Phone number is too short.").max(50, "Phone number must be 50 characters or less."),
-    is_default: z.boolean().default(false).optional(),
+    // is_default: z.boolean().default(false).optional(),
 }).strict(); // Use .strict() to forbid unknown keys in the input
 
 export const getShippingAddressSchema = z.object({

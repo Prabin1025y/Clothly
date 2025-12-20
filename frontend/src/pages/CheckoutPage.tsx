@@ -10,6 +10,7 @@ import PaymentStep from "@/components/checkout/steps/Payment"
 import type { CartItemType } from "@/type/cart"
 // import { useCartItemStore } from "@/zustand/cartStore"
 import { useCartItems } from "@/hooks/useCartItems"
+import { useInfoStore } from "@/zustand/infoStore"
 
 const STEPS = [
     { id: 1, label: "Manage Cart" },
@@ -19,6 +20,7 @@ const STEPS = [
 
 export default function CheckoutPage() {
     const [ currentStep, setCurrentStep ] = useState(1)
+    const { currentShippingAddress } = useInfoStore()
 
 
     const handleNext = () => {
@@ -34,6 +36,8 @@ export default function CheckoutPage() {
     }
 
     const renderStepContent = () => {
+        if (currentStep === 3)
+            console.log(total_price, delivery_charge, Number(total_price) + delivery_charge)
         switch (currentStep) {
             case 1:
                 return <CartItemsStep
@@ -46,7 +50,7 @@ export default function CheckoutPage() {
             case 2:
                 return <ShippingStep />
             case 3:
-                return <PaymentStep totalPrice={Number(total_price)} />
+                return <PaymentStep totalPrice={Number(total_price) + delivery_charge} />
             default:
                 return null
         }
@@ -66,6 +70,10 @@ export default function CheckoutPage() {
     const cartItems: CartItemType[] = data?.data?.items || []
     // console.log(cartItems)
     const total_price = data?.data?.total_price || "0.00"
+    const delivery_charge = Number((cartItems.length === 0 || !!!currentShippingAddress) ? 0.00 : currentShippingAddress.base_shipping_cost)
+    const nextButtonDisabled = currentStep === STEPS.length ||
+        cartItems.length === 0 ||
+        (currentStep === 2 && !!!currentShippingAddress)
 
     return (
         <div className="min-h-screen bg-background p-8">
@@ -102,7 +110,7 @@ export default function CheckoutPage() {
                             </Button>
                             <Button
                                 onClick={handleNext}
-                                disabled={currentStep === STEPS.length || cartItems.length === 0}
+                                disabled={nextButtonDisabled}
                                 className="px-8 py-6 bg-amber-500 hover:bg-amber-600 text-black font-bold"
                             >
                                 Next
@@ -125,7 +133,7 @@ export default function CheckoutPage() {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Delivery</span>
-                                    <span className="font-medium text-base">Rs. {cartItems.length === 0 ? 0.00 : 100.00}</span>
+                                    <span className="font-medium text-base">Rs. {(delivery_charge)}</span>
                                 </div>
 
                                 {/* Total Amount */}
@@ -134,7 +142,7 @@ export default function CheckoutPage() {
                                     <span className="font-bold text-lg">
                                         Rs.{" "}
                                         {data
-                                            ? (Number(total_price) + 100).toLocaleString()
+                                            ? (Number(total_price) + delivery_charge).toLocaleString()
                                             : "..."}
                                     </span>
                                 </div>

@@ -72,7 +72,7 @@ export const createOrder = async (req, res) => {
             userId,
             totalPrice,
             shippingCost,
-            totalPrice,
+            Number(totalPrice) + shippingCost,
             shipping_address_id,
             shipping_address_id,
             payment_method,

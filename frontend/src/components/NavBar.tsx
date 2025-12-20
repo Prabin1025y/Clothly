@@ -51,12 +51,13 @@ const NavBar = () => {
                 <Link to="/shop" className="text-white hover:text-accent transition-colors">
                     Shop
                 </Link>
+                <Link to="/orders" className="text-white hover:text-accent transition-colors">
+                    Orders
+                </Link>
                 <Link to="#" className="text-white hover:text-accent transition-colors">
                     About
                 </Link>
-                <Link to="#" className="text-white hover:text-accent transition-colors">
-                    Contact
-                </Link>
+
             </nav>
 
             <div className="flex items-center gap-1 md:gap-4">

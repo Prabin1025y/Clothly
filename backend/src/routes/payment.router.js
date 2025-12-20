@@ -19,12 +19,12 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
         const { total_amount, transaction_uuid, product_code } = parsed;
         const userId = req.userId || 2; //TODO: remove 1 during production
 
-        const cart = await sql`SELECT total_price FROM carts WHERE user_id = ${userId} AND type='active'`
-        console.log(cart, Number(total_amount).toFixed(2).toString())
-        if (cart.length == 0)
+        const order = await sql`SELECT total_amount FROM orders WHERE user_id = ${userId} AND status='pending' AND transaction_id=${transaction_uuid}`
+        console.log(order, Number(total_amount).toFixed(2).toString())
+        if (order.length == 0)
             return res.status(404).json({ success: false, message: "No such cart found." })
 
-        if (Number(total_amount).toFixed(2).toString() !== cart?.[0]?.total_price)
+        if (Number(total_amount).toFixed(2).toString() !== order?.[0]?.total_amount)
             return res.status(400).json({ success: false, message: "Something went wrong on your side." })
 
         const hashSignature = generateSignature(total_amount, transaction_uuid, product_code);

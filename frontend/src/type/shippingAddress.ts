@@ -26,5 +26,5 @@ export interface CreateShippingAddressDto {
     tole_name: string | null;
     postal_code: string | null;
     phone: string;
-    is_default: boolean;
+    // is_default: boolean;
 }

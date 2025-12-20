@@ -14,21 +14,20 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
     const [ loading, setLoading ] = useState(false)
 
     const generateSignature = useGenerateSignature();
-    const { currentShippingAddressId } = useInfoStore();
+    const { currentShippingAddress } = useInfoStore();
     const createOrder = useCreateOrder();
     const handlePayment = async () => {
         try {
             setLoading(true);
-            if (!currentShippingAddressId) {
+            if (!currentShippingAddress) {
                 toast.error("Invalid shipping address!");
                 return;
             }
 
             const transaction_uuid = uuidv4();
-            console.log(transaction_uuid);
 
             const { success } = await createOrder.mutateAsync({
-                shipping_address_id: currentShippingAddressId,
+                shipping_address_id: Number(currentShippingAddress.id),
                 payment_method: "esewa",
                 notes: "give it to me fast fast!!", //TODO: change this part
                 transaction_uuid: transaction_uuid
@@ -47,7 +46,7 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                 product_delivery_charge: "0",
                 product_code: "EPAYTEST",
                 success_url: "http://localhost:5173/order-success",
-                failure_url: "http://localhost:5173/checkout",
+                failure_url: "http://localhost:5173/order-failure",
                 signed_field_names: "total_amount,transaction_uuid,product_code",
                 signature: ""
             }

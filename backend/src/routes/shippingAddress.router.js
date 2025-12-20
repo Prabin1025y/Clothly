@@ -21,12 +21,19 @@ shippingRouter.post("/add-shipping-address", async (req, res) => {
             city,
             tole_name,
             postal_code,
-            phone,
-            is_default
+            phone
         } = parsed
 
         //TODO: Calculate base shipping cost based on distance
         const baseShippingCost = 100;
+
+        const shipping_addresses = await sql`
+            SELECT id FROM shipping_addresses WHERE user_id = ${userId} LIMIT 1
+        `
+
+        let isDefault = false;
+        if (shipping_addresses.length === 0)
+            isDefault = true;
 
         const inserted_dataa = await sql`
             INSERT INTO shipping_addresses (
@@ -52,7 +59,7 @@ shippingRouter.post("/add-shipping-address", async (req, res) => {
                 ${tole_name},
                 ${postal_code},
                 ${phone},
-                ${is_default},
+                ${isDefault},
                 ${baseShippingCost}
             )
             RETURNING 

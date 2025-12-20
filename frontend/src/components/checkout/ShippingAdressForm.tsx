@@ -6,7 +6,7 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
+// import { Checkbox } from "@/components/ui/checkbox"
 import type { CreateShippingAddressDto } from "@/type/shippingAddress"
 import { useCreateShippingAddress } from "@/hooks/useShippingAddresses"
 
@@ -25,8 +25,8 @@ export function ShippingAddressForm({ isOpen, onClose }: ShippingAddressFormProp
         city: "",
         tole_name: "",
         postal_code: "",
-        phone: "",
-        is_default: false
+        phone: ""
+        // is_default: false
     })
 
     const [ errors, setErrors ] = useState<Partial<Record<keyof CreateShippingAddressDto, string>>>({})
@@ -89,8 +89,8 @@ export function ShippingAddressForm({ isOpen, onClose }: ShippingAddressFormProp
             city: "",
             tole_name: "",
             postal_code: "",
-            phone: "",
-            is_default: false,
+            phone: ""
+            // is_default: false,
         });
         setErrors({});
     };
@@ -212,7 +212,7 @@ export function ShippingAddressForm({ isOpen, onClose }: ShippingAddressFormProp
                 </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-2">
+            {/* <div className="flex items-center space-x-2 pt-2">
                 <Checkbox
                     id="is_default"
                     name="is_default"
@@ -227,7 +227,7 @@ export function ShippingAddressForm({ isOpen, onClose }: ShippingAddressFormProp
                 <Label htmlFor="is_default" className="font-normal cursor-pointer">
                     Set as default address
                 </Label>
-            </div>
+            </div> */}
 
             <div className="flex gap-3 pt-4">
                 <Button type="submit" className="flex-1">

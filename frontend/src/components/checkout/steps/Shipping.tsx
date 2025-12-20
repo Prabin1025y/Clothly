@@ -16,11 +16,11 @@ import { useInfoStore } from "@/zustand/infoStore"
 export default function ShippingInfo() {
     // const [ selectedAddressId, setSelectedAddressId ] = useState<number>(-1)
     const [ showForm, setShowForm ] = useState(false)
-    const { setCurrentShippingAddressId, currentShippingAddressId } = useInfoStore();
+    const { setCurrentShippingAddress, currentShippingAddress } = useInfoStore();
 
-    const handleSelectAddress = (addressId: string) => {
+    const handleSelectAddress = (id: string) => {
         // setSelectedAddressId(Number(addressId))
-        setCurrentShippingAddressId(Number(addressId))
+        setCurrentShippingAddress(shippingAddresses.find(address => address.id === id) ?? null)
     }
     const queryClient = useQueryClient();
 
@@ -33,7 +33,7 @@ export default function ShippingInfo() {
 
     useEffect(() => {
         if (data?.data && Array.isArray(data?.data) && data?.data.length !== 0)
-            setCurrentShippingAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
+            setCurrentShippingAddress(data?.data?.find(address => address.is_default) ?? data?.data[ 0 ])
         // setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
     }, [ data ])
 
@@ -86,7 +86,7 @@ export default function ShippingInfo() {
 
             {/* Existing Addresses */}
             <div className="space-y-3">
-                <RadioGroup value={currentShippingAddressId?.toString()} onValueChange={handleSelectAddress}>
+                <RadioGroup value={currentShippingAddress?.id?.toString()} onValueChange={handleSelectAddress}>
                     {shippingAddresses.map((address) => (
                         <Card
                             key={address.id}
