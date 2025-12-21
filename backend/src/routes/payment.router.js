@@ -19,10 +19,10 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
         const { total_amount, transaction_uuid, product_code } = parsed;
         const userId = req.userId || 2; //TODO: remove 1 during production
 
-        const order = await sql`SELECT total_amount FROM orders WHERE user_id = ${userId} AND status='pending' AND transaction_id=${transaction_uuid}`
+        const order = await sql`SELECT total_amount FROM orders WHERE user_id = ${userId} AND paid_at IS NULL AND transaction_id=${transaction_uuid}`
         console.log(order, Number(total_amount).toFixed(2).toString())
         if (order.length == 0)
-            return res.status(404).json({ success: false, message: "No such cart found." })
+            return res.status(404).json({ success: false, message: "No such order found." })
 
         if (Number(total_amount).toFixed(2).toString() !== order?.[0]?.total_amount)
             return res.status(400).json({ success: false, message: "Something went wrong on your side." })
@@ -48,7 +48,7 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
         const order = await sql`
             SELECT id, transaction_id
             FROM orders
-            WHERE user_id = ${userId} AND status='pending' AND transaction_id=${transaction_uuid}
+            WHERE user_id = ${userId} AND paid_at IS NULL AND transaction_id=${transaction_uuid}
         `
 
         console.log(order)
@@ -64,8 +64,14 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
 
         await sql`
             UPDATE orders
-            SET status='paid'
+            SET paid_at = ${new Date}
             WHERE id = ${order[0]?.id}
+        `
+
+        await sql`
+            UPDATE order_items
+            SET status='paid'
+            WHERE order_id=${order[0]?.id} AND status='pending'
         `
 
         await sql`
@@ -87,8 +93,9 @@ paymentRouter.get("/payment-failure", async (req, res) => {
             return res.status(401).json({ message: "Unauthorized!!" });
 
         await sql`
-            DELETE FROM orders
-            WHERE user_id=${userId} AND status='pending'
+            UPDATE orders 
+            SET deleted_at = ${new Date()}
+            WHERE user_id=${userId} AND deleted_at IS NULL AND paid_at IS NULL
         `
 
         res.status(200).json({ success: true });

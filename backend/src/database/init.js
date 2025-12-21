@@ -314,6 +314,7 @@ async function init_orders(client) {
             paid_at TIMESTAMP WITH TIME ZONE,
             shipped_at TIMESTAMP WITH TIME ZONE,
             delivered_at TIMESTAMP WITH TIME ZONE,
+            deleted_at TIMESTAMP WITH TIME ZONE,
             notes TEXT,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
