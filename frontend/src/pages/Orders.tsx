@@ -56,9 +56,6 @@ export default function OrdersPage() {
         setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
     }
 
-
-
-
     console.log(data)
 
     return (

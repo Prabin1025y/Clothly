@@ -9,8 +9,10 @@ export const createOrder = async (req, res) => {
         console.log(req.body)
         const parsed = orderSchema.parse(req.body);
         const { shipping_address_id, payment_method, notes, transaction_uuid } = parsed;
-        await client.query("BEGIN")
         const userId = req.userId || 1; //TODO: remove 1 during production
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
 
         const cart = await client.query(`SELECT id FROM carts WHERE user_id = $1 AND type='active'`, [userId])
         if (cart.rowCount == 0)
@@ -53,6 +55,7 @@ export const createOrder = async (req, res) => {
         const baseShippingCost = shippingAddressData.rows[0].base_shipping_cost
         const shippingCost = payment_method === "cod" ? (+baseShippingCost) + 50.0 : (+baseShippingCost);
 
+        await client.query("BEGIN")
         const createdOrder = await client.query(`
                 INSERT INTO orders (
                     user_id,
@@ -72,7 +75,7 @@ export const createOrder = async (req, res) => {
             userId,
             totalPrice,
             shippingCost,
-            Number(totalPrice) + shippingCost,
+            +(totalPrice + shippingCost).toFixed(2),
             shipping_address_id,
             shipping_address_id,
             payment_method,
@@ -112,7 +115,7 @@ export const createOrder = async (req, res) => {
                 VALUES ${orderItemPlaceholder}
             `, orderItemValues);
 
-        if (insertedOrderItems.rowCount === 0) {
+        if (insertedOrderItems.rowCount !== cartItems.length) {
             await client.query("ROLLBACK");
             return res.status(400).json({ message: "Order was not placed for some reason!" })
         }
@@ -134,24 +137,24 @@ export const getOrderItems = async (req, res) => {
     try {
         const userId = req.userId || 1; //TODO: remove 1 during production
 
-        const orderIds = await sql`
-            SELECT id FROM orders WHERE user_id=${userId} AND status='paid'
-        `;
-        if (!Array.isArray(orderIds) || orderIds.length === 0) {
-            res.status(200).json([]);
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
         }
 
-        console.log(orderIds)
 
         const orderItems = await sql`
             SELECT
                 oi.product_id,
+                oi.public_id,
                 oi.variant_id,
                 oi.product_name,
                 oi.quantity,
                 oi.unit_price,
                 oi.created_at,
-                o.status,
+                oi.status,
+
+                o.id AS order_id,
+                o.transaction_id,
 
                 p.slug,
                 pv.color,
@@ -162,18 +165,21 @@ export const getOrderItems = async (req, res) => {
 
             FROM order_items oi
             JOIN orders o ON o.id = oi.order_id
-            JOIN products p ON p.id = oi.product_id
-            JOIN product_variants pv ON pv.id = oi.variant_id
-            LEFT JOIN product_images pi
-                ON pi.product_id = oi.product_id
-            AND pi.is_primary = TRUE
+            LEFT JOIN products p ON p.id = oi.product_id
+            LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+            LEFT JOIN LATERAL (
+                SELECT url, alt_text
+                FROM product_images
+                WHERE product_id = oi.product_id
+                AND is_primary = TRUE
+                LIMIT 1
+            ) pi ON TRUE
 
-            WHERE oi.order_id = ANY(${orderIds.map(o => o.id)});
-
+            WHERE o.user_id = ${userId} AND oi.status='paid' AND o.paid_at IS NOT NULL;
         `
 
         console.log(orderItems)
-        res.status(201).json(orderItems)
+        res.status(200).json(orderItems)
     } catch (error) {
         logger.error("Error while getting orders: ", error);
         return res.status(500).json({ message: "Internal server error" });
@@ -183,24 +189,25 @@ export const getOrderItems = async (req, res) => {
 export const getOrderItemsByTransactionId = async (req, res) => {
     try {
         const userId = req.userId || 1; //TODO: remove 1 during production
-        const { id: transaction_id } = req.params
-
-        const orderIds = await sql`
-            SELECT id FROM orders WHERE user_id=${userId} AND transaction_id=${transaction_id}
-        `;
-        if (!Array.isArray(orderIds) || orderIds.length === 0) {
-            res.status(200).json([]);
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
         }
 
+        const { id: transaction_id } = req.params
 
         const orderItems = await sql`
             SELECT
                 oi.product_id,
+                oi.public_id,
                 oi.variant_id,
                 oi.product_name,
                 oi.quantity,
                 oi.unit_price,
                 oi.created_at,
+                oi.status,
+
+                o.id AS order_id,
+                o.transaction_id,
 
                 p.slug,
                 pv.color,
@@ -210,18 +217,23 @@ export const getOrderItemsByTransactionId = async (req, res) => {
                 pi.alt_text
 
             FROM order_items oi
-            JOIN products p ON p.id = oi.product_id
-            JOIN product_variants pv ON pv.id = oi.variant_id
-            LEFT JOIN product_images pi
-                ON pi.product_id = oi.product_id
-            AND pi.is_primary = TRUE
+            JOIN orders o ON o.id = oi.order_id
+            LEFT JOIN products p ON p.id = oi.product_id
+            LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+            LEFT JOIN LATERAL (
+                SELECT url, alt_text
+                FROM product_images
+                WHERE product_id = oi.product_id
+                AND is_primary = TRUE
+                LIMIT 1
+            ) pi ON TRUE
 
-            WHERE oi.order_id = ${orderIds[0].id};
+            WHERE o.user_id = ${userId} AND oi.status='paid' AND o.transaction_id=${transaction_id} AND o.paid_at IS NOT NULL;
 
         `
 
         console.log(orderItems)
-        res.status(201).json(orderItems)
+        res.status(200).json(orderItems)
     } catch (error) {
         logger.error("Error while getting orders: ", error);
         return res.status(500).json({ message: "Internal server error" });

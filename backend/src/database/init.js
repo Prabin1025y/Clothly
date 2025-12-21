@@ -100,7 +100,7 @@ async function init_enums(client) {
 
             -- order_status
             IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
-                CREATE TYPE order_status AS ENUM ('pending','paid','shipped','delivered','cancelled','refunded','returned');
+                CREATE TYPE order_status AS ENUM ('pending','paid','shipped','delivered','cancelled','refunded','returned', 'expired');
             END IF;
 
             -- cart_type
@@ -301,7 +301,6 @@ async function init_orders(client) {
             public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
             user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
             transaction_id VARCHAR(255) DEFAULT NULL,
-            status order_status NOT NULL DEFAULT 'pending',
             subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
             shipping_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
             tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
@@ -315,7 +314,6 @@ async function init_orders(client) {
             paid_at TIMESTAMP WITH TIME ZONE,
             shipped_at TIMESTAMP WITH TIME ZONE,
             delivered_at TIMESTAMP WITH TIME ZONE,
-            cancelled_at TIMESTAMP WITH TIME ZONE,
             notes TEXT,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
@@ -323,27 +321,32 @@ async function init_orders(client) {
     `);
 
     await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_placed_at ON orders(placed_at);`);
+    await client.query(`CREATE UNIQUE INDEX ON orders(transaction_id) WHERE transaction_id IS NOT NULL;`);
 }
 
 async function init_order_items(client) {
     await client.query(`
         CREATE TABLE IF NOT EXISTS order_items (
             id BIGSERIAL PRIMARY KEY,
+            public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
             order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
             product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
             variant_id BIGINT REFERENCES product_variants(id) ON DELETE SET NULL,
             product_name VARCHAR(512),
+            status order_status NOT NULL DEFAULT 'pending',
             quantity INT NOT NULL CHECK (quantity > 0),
             unit_price NUMERIC(12,2) NOT NULL,
+            cancelled_at TIMESTAMP WITH TIME ZONE,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
         );
     `);
 
     await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_status ON order_items(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_public_id ON order_items(public_id);`);
 }
 
 async function init_carts(client) {
