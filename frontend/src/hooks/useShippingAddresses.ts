@@ -46,7 +46,7 @@ export function useCreateShippingAddress() {
                 (old) => {
                     if (!old) return old;
 
-                    const optimisticShippingAddress: ShippingAddressType = {
+                    const optimisticShippingAddress: ShippingAddressType = { //TODO
                         ...newShippingAddress,
                         id: `temp-${Date.now()}`,
                         base_shipping_cost: "100.00"

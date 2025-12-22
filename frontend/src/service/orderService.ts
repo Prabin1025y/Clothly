@@ -16,5 +16,10 @@ export const orderServices = {
     getOrder: async (): Promise<OrderType[]> => {
         const { data } = await axiosClient.get("/api/orders/order-items");
         return data;
+    },
+
+    cancelOrder: async (public_id: string): Promise<GeneralPostResponseType> => {
+        const { data } = await axiosClient.delete(`/api/orders/cancel-order/${public_id}`);
+        return data;
     }
 }

@@ -178,7 +178,7 @@ export const getOrderItems = async (req, res) => {
             WHERE o.user_id = ${userId} AND oi.status='paid' AND o.paid_at IS NOT NULL AND o.status='paid';
         `
 
-        console.log(orderItems)
+        // console.log(orderItems)
         res.status(200).json(orderItems)
     } catch (error) {
         logger.error("Error while getting orders: ", error);
@@ -261,19 +261,20 @@ export const cancelOrder = async (req, res) => {
                 oi.order_id,
                 o.user_id
             FROM order_items oi
-            LEFT JOIN orders ON o.id = oi.order_id
+            LEFT JOIN orders o ON o.id = oi.order_id
             WHERE 
                 oi.public_id = ${public_id} AND
                 oi.status = 'paid'
         `
         if (orderItem.length === 0)
             return res.status(404).json({ message: "No such order found!!" });
+        // console.log("Order item", orderItem)
 
-        if (orderItem.user_id != userId)
+        if (orderItem[0].user_id != userId)
             return res.status(401).json({ message: "Unauthorized!!" })
 
         await client.query("BEGIN");
-        const cancelledOrder = await client.query(`
+        const cancelledOrderItemsResult = await client.query(`
                 UPDATE order_items
                 SET 
                     status='cancelled',
@@ -287,11 +288,44 @@ export const cancelOrder = async (req, res) => {
                     quantity
             `, [new Date(), public_id])
 
-        if (cancelledOrder.rowCount === 0)
+        if (cancelledOrderItemsResult.rowCount === 0)
             throw new Error("Order item could not be cancelled!!");
 
-        console.log(cancelledOrder.rows)
+        const cancelledOrderItems = cancelledOrderItemsResult.rows[0];
 
+        const cancelledOrderResult = await client.query(`
+                UPDATE orders
+                SET subtotal = subtotal - $1,
+                    total_amount = total_amount - $1,
+                    updated_at = $2
+                WHERE 
+                    id=$3 AND
+                    status = 'paid' AND
+                    paid_at IS NOT NULL
+            `, [Number(cancelledOrderItems.unit_price) * cancelledOrderItems.quantity, new Date(), cancelledOrderItems.order_id])
+
+        if (cancelledOrderResult.rowCount === 0)
+            throw new Error("Order item could not be cancelled!!");
+
+        const remainingOrderItemData = await sql`
+            SELECT public_id
+            FROM order_items
+            WHERE
+                order_id = ${cancelledOrderItems.order_id} AND
+                status != 'cancelled'
+        `
+
+        if (remainingOrderItemData.length === 0) {
+            // All order items of this order is cancelled
+            await client.query(`
+                    UPDATE orders 
+                    SET status='cancelled'
+                    WHERE id=$1
+                `, [cancelledOrderItems.order_id])
+        }
+
+        // console.log(cancelledOrderItemsResult.rows)
+        await client.query("COMMIT");
 
         res.status(200).json({ success: true });
     } catch (error) {

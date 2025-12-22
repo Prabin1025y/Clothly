@@ -1,6 +1,6 @@
 import { handleApiError } from "@/lib/axios";
 import { orderServices } from "@/service/orderService";
-import type { CreateOrderDto } from "@/type/orders";
+import type { CreateOrderDto, OrderType } from "@/type/orders";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -54,5 +54,44 @@ export function useOrderItems() {
     return useQuery({
         queryKey: orderKeys.lists(),
         queryFn: () => orderServices.getOrder(),
+    })
+}
+
+export function useCancelOrder() {
+    const queryClient = useQueryClient()
+
+    return useMutation({
+        mutationFn: orderServices.cancelOrder,
+
+        onMutate: async (public_id: string) => {
+            queryClient.cancelQueries({ queryKey: orderKeys.all });
+
+            const previousOrders = queryClient.getQueriesData({ queryKey: orderKeys.lists() });
+
+            //Optimistically update order list
+            queryClient.setQueriesData<OrderType[]>(
+                { queryKey: orderKeys.lists() },
+                (old) => {
+                    if (!old) return old;
+
+                    return old.filter(order => order.public_id !== public_id);
+                }
+            );
+
+            return { previousOrders };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousOrders) {
+                context.previousOrders.map(([ queryKey, data ]) => {
+                    queryClient.setQueryData(queryKey, data);
+                })
+            }
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
+        }
     })
 }
