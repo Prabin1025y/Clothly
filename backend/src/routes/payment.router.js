@@ -75,7 +75,7 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
 
         await sql`
             UPDATE orders
-            SET paid_at = ${new Date}
+            SET paid_at = ${new Date},
                 status='paid'
             WHERE id = ${order[0]?.id}
         `

@@ -244,3 +244,61 @@ export const getOrderItemsByTransactionId = async (req, res) => {
         return res.status(500).json({ message: "Internal server error" });
     }
 }
+
+export const cancelOrder = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const userId = req.userId || 1 //TODO remove 1 in production
+        if (!userId)
+            return res.status(401).json({ message: "Unauthorized!!" });
+
+        const { id: public_id } = req.params
+        if (!public_id)
+            return res.status(404).json({ message: "No such order found!!" });
+
+        const orderItem = await sql`
+            SELECT 
+                oi.order_id,
+                o.user_id
+            FROM order_items oi
+            LEFT JOIN orders ON o.id = oi.order_id
+            WHERE 
+                oi.public_id = ${public_id} AND
+                oi.status = 'paid'
+        `
+        if (orderItem.length === 0)
+            return res.status(404).json({ message: "No such order found!!" });
+
+        if (orderItem.user_id != userId)
+            return res.status(401).json({ message: "Unauthorized!!" })
+
+        await client.query("BEGIN");
+        const cancelledOrder = await client.query(`
+                UPDATE order_items
+                SET 
+                    status='cancelled',
+                    cancelled_at=$1,
+                    updated_at=$1
+                WHERE
+                    public_id = $2
+                RETURNING 
+                    order_id,
+                    unit_price,
+                    quantity
+            `, [new Date(), public_id])
+
+        if (cancelledOrder.rowCount === 0)
+            throw new Error("Order item could not be cancelled!!");
+
+        console.log(cancelledOrder.rows)
+
+
+        res.status(200).json({ success: true });
+    } catch (error) {
+        client.query("ROLLBACK");
+        logger.error("Error while cancelling orders: ", error);
+        return res.status(500).json({ message: "Internal server error" });
+    } finally {
+        client.release();
+    }
+}
