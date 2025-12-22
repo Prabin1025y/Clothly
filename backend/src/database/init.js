@@ -306,6 +306,7 @@ async function init_orders(client) {
             tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
             discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
             total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+            status order_status NOT NULL DEFAULT 'pending',
             currency CHAR(3) DEFAULT 'NPR',
             shipping_address_id BIGINT REFERENCES shipping_addresses(id) ON DELETE SET NULL,
             billing_address_id BIGINT REFERENCES shipping_addresses(id) ON DELETE SET NULL,
@@ -322,6 +323,7 @@ async function init_orders(client) {
     `);
 
     await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_placed_at ON orders(placed_at);`);
     await client.query(`CREATE UNIQUE INDEX ON orders(transaction_id) WHERE transaction_id IS NOT NULL;`);
 }

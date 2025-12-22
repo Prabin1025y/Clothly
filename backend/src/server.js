@@ -61,8 +61,6 @@ app.post("/api/cloud-upload", bufferUpload.single("image"), uploadImageToCloudin
 
 app.post("/api/disk-upload", diskUpload.single("image"), uploadImageToDisk);
 
-
-
 initDB(true).then(() => {
     app.listen(PORT, () => {
         logger.info(`Server is running in port ${PORT}.`)

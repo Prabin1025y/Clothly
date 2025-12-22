@@ -175,7 +175,7 @@ export const getOrderItems = async (req, res) => {
                 LIMIT 1
             ) pi ON TRUE
 
-            WHERE o.user_id = ${userId} AND oi.status='paid' AND o.paid_at IS NOT NULL;
+            WHERE o.user_id = ${userId} AND oi.status='paid' AND o.paid_at IS NOT NULL AND o.status='paid';
         `
 
         console.log(orderItems)
@@ -205,6 +205,7 @@ export const getOrderItemsByTransactionId = async (req, res) => {
                 oi.unit_price,
                 oi.created_at,
                 oi.status,
+                oi.cancelled_at,
 
                 o.id AS order_id,
                 o.transaction_id,
@@ -228,8 +229,12 @@ export const getOrderItemsByTransactionId = async (req, res) => {
                 LIMIT 1
             ) pi ON TRUE
 
-            WHERE o.user_id = ${userId} AND oi.status='paid' AND o.transaction_id=${transaction_id} AND o.paid_at IS NOT NULL;
-
+            WHERE 
+                o.user_id = ${userId} AND 
+                oi.status='paid' AND 
+                o.transaction_id=${transaction_id} AND 
+                o.paid_at IS NOT NULL
+                AND o.status='paid';
         `
 
         console.log(orderItems)

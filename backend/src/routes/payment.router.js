@@ -19,7 +19,14 @@ paymentRouter.post("/generate-signature", isAuthenticated, async (req, res) => {
         const { total_amount, transaction_uuid, product_code } = parsed;
         const userId = req.userId || 2; //TODO: remove 1 during production
 
-        const order = await sql`SELECT total_amount FROM orders WHERE user_id = ${userId} AND paid_at IS NULL AND transaction_id=${transaction_uuid}`
+        const order = await sql`
+            SELECT total_amount 
+            FROM orders 
+            WHERE 
+                user_id = ${userId} AND 
+                paid_at IS NULL AND 
+                transaction_id=${transaction_uuid}
+                AND status='pending'`
         console.log(order, Number(total_amount).toFixed(2).toString())
         if (order.length == 0)
             return res.status(404).json({ success: false, message: "No such order found." })
@@ -48,7 +55,11 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
         const order = await sql`
             SELECT id, transaction_id
             FROM orders
-            WHERE user_id = ${userId} AND paid_at IS NULL AND transaction_id=${transaction_uuid}
+            WHERE 
+                user_id = ${userId} AND 
+                paid_at IS NULL AND 
+                transaction_id=${transaction_uuid}
+                AND status='pending'
         `
 
         console.log(order)
@@ -65,6 +76,7 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
         await sql`
             UPDATE orders
             SET paid_at = ${new Date}
+                status='paid'
             WHERE id = ${order[0]?.id}
         `
 
@@ -86,24 +98,25 @@ paymentRouter.get("/payment-success/:id", async (req, res) => {
     }
 })
 
-paymentRouter.get("/payment-failure", async (req, res) => {
-    try {
-        const userId = req.userId || 2;
-        if (!userId)
-            return res.status(401).json({ message: "Unauthorized!!" });
+// paymentRouter.get("/payment-failure", async (req, res) => {
+//     try {
+//         const userId = req.userId || 2;
+//         if (!userId)
+//             return res.status(401).json({ message: "Unauthorized!!" });
 
-        await sql`
-            UPDATE orders 
-            SET deleted_at = ${new Date()}
-            WHERE user_id=${userId} AND deleted_at IS NULL AND paid_at IS NULL
-        `
+//         await sql`
+//             UPDATE orders 
+//             SET deleted_at = ${new Date()}
+//                 status='expited'
+//             WHERE user_id=${userId} AND deleted_at IS NULL AND paid_at IS NULL
+//         `
 
-        res.status(200).json({ success: true });
+//         res.status(200).json({ success: true });
 
-    } catch (error) {
-        logger.error("Error while marking payment failed: ", error);
-        return res.status(500).json({ message: "Internal server error" })
-    }
-})
+//     } catch (error) {
+//         logger.error("Error while marking payment failed: ", error);
+//         return res.status(500).json({ message: "Internal server error" })
+//     }
+// })
 
 export default paymentRouter;
