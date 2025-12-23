@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MoreVertical, ArrowUpDown, AlertOctagon, Loader2, Package } from "lucide-react"
-import { orderKeys, useOrderItems } from "@/hooks/useOrders"
+import { orderKeys, useCancelOrder, useOrderItems } from "@/hooks/useOrders"
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 
@@ -16,11 +16,17 @@ export default function OrdersPage() {
 
     const { data, isLoading, isError, isFetching } = useOrderItems();
     const queryClient = useQueryClient();
+    const cancelOrder = useCancelOrder();
 
     const orders = data ?? []
 
-    const handleCancelOrder = (orderId: string) => {
+    const handleCancelOrder = async (orderPublicId: string) => {
         // setOrders(orders.filter((order) => order.id !== orderId))
+        try {
+            await cancelOrder.mutateAsync(orderPublicId);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     // Sort and filter orders
@@ -200,7 +206,7 @@ export default function OrdersPage() {
                                                     <DropdownMenuContent align="end">
                                                         <DropdownMenuItem
                                                             className="text-destructive focus:text-destructive"
-                                                            onClick={() => handleCancelOrder(order.variant_id)}
+                                                            onClick={() => handleCancelOrder(order.public_id)}
                                                         >
                                                             Cancel Order
                                                         </DropdownMenuItem>

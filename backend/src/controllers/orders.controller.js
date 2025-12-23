@@ -314,9 +314,11 @@ export const cancelOrder = async (req, res) => {
                 order_id = ${cancelledOrderItems.order_id} AND
                 status != 'cancelled'
         `
+        console.log(remainingOrderItemData)
 
         if (remainingOrderItemData.length === 0) {
             // All order items of this order is cancelled
+            console.log("Updating order with order id", cancelledOrderItems.order_id)
             await client.query(`
                     UPDATE orders 
                     SET status='cancelled'
