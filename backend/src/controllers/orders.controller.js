@@ -307,16 +307,16 @@ export const cancelOrder = async (req, res) => {
         if (cancelledOrderResult.rowCount === 0)
             throw new Error("Order item could not be cancelled!!");
 
-        const remainingOrderItemData = await sql`
+        const remainingOrderItemData = await client.query(`
             SELECT public_id
             FROM order_items
             WHERE
-                order_id = ${cancelledOrderItems.order_id} AND
+                order_id = $1 AND
                 status != 'cancelled'
-        `
+        `, [cancelledOrderItems.order_id]);
         console.log(remainingOrderItemData)
 
-        if (remainingOrderItemData.length === 0) {
+        if (remainingOrderItemData.rowCount === 0) {
             // All order items of this order is cancelled
             console.log("Updating order with order id", cancelledOrderItems.order_id)
             await client.query(`

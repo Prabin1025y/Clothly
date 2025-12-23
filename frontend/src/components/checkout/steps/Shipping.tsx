@@ -1,7 +1,5 @@
-"use client"
-
 import { useEffect, useState } from "react"
-import { AlertOctagon, Loader2, Plus } from "lucide-react"
+import { AlertOctagon, Loader2, MapPin, MoreVertical, Plus, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -11,6 +9,7 @@ import { ShippingAddressForm } from "../ShippingAdressForm"
 import { useShippingAddresses } from "@/hooks/useShippingAddresses"
 import { useQueryClient } from "@tanstack/react-query"
 import { useInfoStore } from "@/zustand/infoStore"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 
 export default function ShippingInfo() {
@@ -88,10 +87,7 @@ export default function ShippingInfo() {
             <div className="space-y-3">
                 <RadioGroup value={currentShippingAddress?.id?.toString()} onValueChange={handleSelectAddress}>
                     {shippingAddresses.map((address) => (
-                        <Card
-                            key={address.id}
-                            className="p-4 cursor-pointer transition-all hover:border-primary/50 border-2 border-transparent"
-                        >
+                        <Card className="p-4 cursor-pointer transition-all hover:border-primary/50 border-2 border-transparent">
                             <div className="flex items-start gap-4">
                                 <RadioGroupItem value={address.id} id={`address-${address.id}`} />
                                 <Label htmlFor={`address-${address.id}`} className="flex-1 cursor-pointer">
@@ -99,9 +95,7 @@ export default function ShippingInfo() {
                                         <div className="font-semibold text-foreground">
                                             {address.label}
                                             {address.is_default && (
-                                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded">
-                                                    Default
-                                                </span>
+                                                <span className="ml-2 text-xs bg-primary text-primary-foreground px-2 py-1 rounded">Default</span>
                                             )}
                                         </div>
                                         <div className="text-sm text-muted-foreground font-medium">{address.recipient_name}</div>
@@ -112,8 +106,35 @@ export default function ShippingInfo() {
                                             {address.city}, {address.province} {address.postal_code}
                                         </div>
                                         <div className="text-sm text-muted-foreground">{address.phone}</div>
+                                        {address.base_shipping_cost !== undefined && (
+                                            <div className="text-sm font-semibold text-foreground mt-3 flex items-center gap-2">
+                                                <MapPin className="w-4 h-4" />
+                                                Base Shipping: Rs. {address.base_shipping_cost}
+                                            </div>
+                                        )}
                                     </div>
                                 </Label>
+
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                                            <MoreVertical className="h-4 w-4" />
+                                            <span className="sr-only">Open menu</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        {!address.is_default && (
+                                            <>
+                                                <DropdownMenuItem >Set as Default</DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                            </>
+                                        )}
+                                        <DropdownMenuItem variant="destructive" >
+                                            <Trash2 className="h-4 w-4" />
+                                            Delete Address
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </Card>
                     ))}
