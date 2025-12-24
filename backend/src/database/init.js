@@ -175,6 +175,7 @@ async function init_shipping_addresses(client) {
     `);
 
     await client.query(`CREATE INDEX IF NOT EXISTS idx_shipping_addresses_user ON shipping_addresses(user_id);`);
+    await client.query(`CREATE UNIQUE INDEX one_default_address_per_user ON shipping_addresses(user_id) WHERE is_default = TRUE;`)
 }
 
 async function init_products(client) {
