@@ -1,8 +1,8 @@
 import { handleApiError } from "@/lib/axios";
 import { shippingAddressService } from "@/service/shippingAddressService";
-import type { CreateShippingAddressDto, GetShippingAddressResponseType, ShippingAddressType } from "@/type/shippingAddress";
+import type { CreateShippingAddressDto, ShippingAddressType } from "@/type/shippingAddress";
 import { useAuth } from "@clerk/clerk-react";
-import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
+import { QueryClient, useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const shippingAddressKeys = {
@@ -14,7 +14,7 @@ export const shippingAddressKeys = {
 };
 
 // Fetch shipping address list
-export function useShippingAddresses(options?: Omit<UseQueryOptions<GetShippingAddressResponseType>, 'queryKey' | 'queryFn'>) {
+export function useShippingAddresses(options?: Omit<UseQueryOptions<ShippingAddressType[]>, 'queryKey' | 'queryFn'>) {
     const { userId } = useAuth();
     return useQuery({
         queryKey: shippingAddressKeys.list(userId ?? ""),
@@ -41,22 +41,19 @@ export function useCreateShippingAddress() {
             });
 
             // Optimistically update - Add to all cached lists
-            queryClient.setQueriesData<GetShippingAddressResponseType>(
+            queryClient.setQueriesData<ShippingAddressType[]>(
                 { queryKey: shippingAddressKeys.lists() },
                 (old) => {
                     if (!old) return old;
 
-                    const optimisticShippingAddress: ShippingAddressType = { //TODO
+                    const optimisticShippingAddress: ShippingAddressType = {
                         ...newShippingAddress,
                         id: `temp-${Date.now()}`,
                         base_shipping_cost: "100.00",
                         is_default: false
                     }
 
-                    return {
-                        ...old,
-                        data: [ ...old.data, optimisticShippingAddress ],
-                    };
+                    return [ ...old, optimisticShippingAddress ];
                 }
             );
 
@@ -85,4 +82,54 @@ export function useCreateShippingAddress() {
             queryClient.invalidateQueries({ queryKey: shippingAddressKeys.lists() });
         },
     })
+}
+
+//Delete a shippin address with optimistic update
+export function useDeleteShippingAddress() {
+    const queryClient = useQueryClient();
+    const { userId } = useAuth();
+
+    return useMutation({
+        mutationFn: shippingAddressService.deleteShippingAddress,
+
+        onMutate: async (id: string) => {
+            if (!userId)
+                throw new Error("Sign in first!");
+
+            queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) });
+
+            const previousAddresses = queryClient.getQueriesData({ queryKey: shippingAddressKeys.list(userId) });
+
+            queryClient.setQueriesData<ShippingAddressType[]>(
+                { queryKey: shippingAddressKeys.list(userId) },
+                (old) => {
+                    if (!old) return old;
+
+                    return old.filter(address => address.id !== id)
+                }
+            )
+
+            return { previousAddresses, userId };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousAddresses) {
+                context.previousAddresses.forEach(([ queryKey, data ]) => {
+                    queryClient.setQueryData(queryKey, data);
+                })
+            }
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: shippingAddressKeys.list(userId ?? "") })
+        }
+    })
+}
+
+//Make a shipping address default
+export function useMakeAddressDefault() {
+    const queryClient = useQueryClient();
+
+
 }

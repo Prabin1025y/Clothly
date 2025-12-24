@@ -76,7 +76,7 @@ export const addShippingAddress = async (req, res) => {
         `
         console.log(inserted_dataa);
 
-        return res.status(201).json({ success: true, data: inserted_dataa[0] })
+        return res.status(201).json(inserted_dataa[0])
 
 
     } catch (error) {
@@ -109,7 +109,7 @@ export const getShippingAddresses = async (req, res) => {
             WHERE si.user_id = ${userId}
         `
 
-        return res.status(201).json({ success: true, data: shippingAddresses })
+        return res.status(201).json(shippingAddresses ?? [])
 
 
     } catch (error) {

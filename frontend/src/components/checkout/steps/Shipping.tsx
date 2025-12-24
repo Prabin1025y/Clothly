@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
-import { useShippingAddresses } from "@/hooks/useShippingAddresses"
+import { useDeleteShippingAddress, useShippingAddresses } from "@/hooks/useShippingAddresses"
 import { useQueryClient } from "@tanstack/react-query"
 import { useInfoStore } from "@/zustand/infoStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -22,6 +22,7 @@ export default function ShippingInfo() {
         setCurrentShippingAddress(shippingAddresses.find(address => address.id === id) ?? null)
     }
     const queryClient = useQueryClient();
+    const deleteShippingAddress = useDeleteShippingAddress();
 
     const {
         data,
@@ -31,8 +32,8 @@ export default function ShippingInfo() {
     } = useShippingAddresses();
 
     useEffect(() => {
-        if (data?.data && Array.isArray(data?.data) && data?.data.length !== 0)
-            setCurrentShippingAddress(data?.data?.find(address => address.is_default) ?? data?.data[ 0 ])
+        if (data && Array.isArray(data) && data?.length !== 0)
+            setCurrentShippingAddress(data?.find(address => address.is_default) ?? data[ 0 ])
         // setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
     }, [ data ])
 
@@ -66,23 +67,11 @@ export default function ShippingInfo() {
             </Empty>
         );
 
-    const shippingAddresses = data?.data || [];
+    const shippingAddresses = data || [];
+    console.log(shippingAddresses)
 
     return (
         <div className="w-full space-y-6">
-            {/* <div>
-                <h2 className="text-2xl font-semibold mb-4 flex items-center gap-2">
-                    <MapPin className="size-6" />
-                    Shipping Address
-                </h2>
-                {isFetching && !isLoading && (
-                    <span className="ml-2 text-sm text-blue-600">
-                        ↻ Updating...
-                    </span>
-                )}
-                <p className="text-muted-foreground mb-6">Select an existing address or add a new one for delivery</p>
-            </div> */}
-
             {/* Existing Addresses */}
             <div className="space-y-3">
                 <RadioGroup value={currentShippingAddress?.id?.toString()} onValueChange={handleSelectAddress}>
@@ -129,7 +118,7 @@ export default function ShippingInfo() {
                                                 <DropdownMenuSeparator />
                                             </>
                                         )}
-                                        <DropdownMenuItem variant="destructive" >
+                                        <DropdownMenuItem variant="destructive" onClick={() => deleteShippingAddress.mutateAsync(address.id)}  >
                                             <Trash2 className="h-4 w-4" />
                                             Delete Address
                                         </DropdownMenuItem>

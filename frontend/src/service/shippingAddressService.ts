@@ -1,11 +1,11 @@
 import { axiosClient } from "@/lib/axios";
 import type { GeneralPostResponseType } from "@/type";
-import type { CreateShippingAddressDto, GetShippingAddressResponseType, ShippingAddressType } from "@/type/shippingAddress";
+import type { CreateShippingAddressDto, ShippingAddressType } from "@/type/shippingAddress";
 
 // Get single product by ID
 export const shippingAddressService = {
-    getShippingAddresses: async (): Promise<GetShippingAddressResponseType> => {
-        const { data } = await axiosClient.get<GetShippingAddressResponseType>(`/api/shipping-addresses/get-shipping-addresses`);
+    getShippingAddresses: async (): Promise<ShippingAddressType[]> => {
+        const { data } = await axiosClient.get<ShippingAddressType[]>(`/api/shipping-addresses/get-shipping-addresses`);
         return data;
     },
 
@@ -16,6 +16,11 @@ export const shippingAddressService = {
 
     deleteShippingAddress: async (id: string): Promise<GeneralPostResponseType> => {
         const { data } = await axiosClient.delete<GeneralPostResponseType>(`/api/shipping-addresses/delete-shipping-address/${id}`);
+        return data;
+    },
+
+    makeAddressDefault: async (id: string): Promise<GeneralPostResponseType> => {
+        const { data } = await axiosClient.patch<GeneralPostResponseType>(`/api/shipping-addresses/make-default/${id}`);
         return data;
     }
 }

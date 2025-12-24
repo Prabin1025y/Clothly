@@ -9,7 +9,7 @@ shippingRouter.post("/add-shipping-address", addShippingAddress);
 
 shippingRouter.get("/get-shipping-addresses", getShippingAddresses);
 
-shippingRouter.delete("/delete-address/:id", deleteShippingAddress);
+shippingRouter.delete("/delete-shipping-address/:id", deleteShippingAddress);
 
 shippingRouter.patch("/make-default/:id", makeShippingAddressDefault);
 
