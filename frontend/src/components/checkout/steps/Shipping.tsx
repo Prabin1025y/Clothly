@@ -6,7 +6,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Label } from "@/components/ui/label"
 import { ShippingAddressForm } from "../ShippingAdressForm"
-import { useDeleteShippingAddress, useShippingAddresses } from "@/hooks/useShippingAddresses"
+import { useDeleteShippingAddress, useMakeAddressDefault, useShippingAddresses } from "@/hooks/useShippingAddresses"
 import { useQueryClient } from "@tanstack/react-query"
 import { useInfoStore } from "@/zustand/infoStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -23,6 +23,7 @@ export default function ShippingInfo() {
     }
     const queryClient = useQueryClient();
     const deleteShippingAddress = useDeleteShippingAddress();
+    const makeAddressDefault = useMakeAddressDefault();
 
     const {
         data,
@@ -114,7 +115,7 @@ export default function ShippingInfo() {
                                     <DropdownMenuContent align="end">
                                         {!address.is_default && (
                                             <>
-                                                <DropdownMenuItem >Set as Default</DropdownMenuItem>
+                                                <DropdownMenuItem onClick={() => makeAddressDefault.mutateAsync(address.id)}>Set as Default</DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                             </>
                                         )}

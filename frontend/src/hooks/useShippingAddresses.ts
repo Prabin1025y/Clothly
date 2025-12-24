@@ -2,7 +2,7 @@ import { handleApiError } from "@/lib/axios";
 import { shippingAddressService } from "@/service/shippingAddressService";
 import type { CreateShippingAddressDto, ShippingAddressType } from "@/type/shippingAddress";
 import { useAuth } from "@clerk/clerk-react";
-import { QueryClient, useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient, type UseQueryOptions } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const shippingAddressKeys = {
@@ -109,7 +109,7 @@ export function useDeleteShippingAddress() {
                 }
             )
 
-            return { previousAddresses, userId };
+            return { previousAddresses };
         },
 
         onError: (error, _variables, context) => {
@@ -130,6 +130,52 @@ export function useDeleteShippingAddress() {
 //Make a shipping address default
 export function useMakeAddressDefault() {
     const queryClient = useQueryClient();
+    const { userId } = useAuth();
 
+    return useMutation({
+        mutationFn: shippingAddressService.makeAddressDefault,
 
+        onMutate: async (id: string) => {
+            if (!userId)
+                throw Error("Please Sign in first!!");
+
+            queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) })
+
+            const previousData = queryClient.getQueriesData({ queryKey: shippingAddressKeys.list(userId) });
+
+            //Optimistic Update
+            queryClient.setQueriesData<ShippingAddressType[]>(
+                { queryKey: shippingAddressKeys.list(userId) },
+                (old) => {
+                    if (!old) return old;
+
+                    const optimisticData = old.map(address => {
+                        if (address.is_default && address.id !== id)
+                            return { ...address, is_default: false }
+                        else if (!address.is_default && address.id === id)
+                            return { ...address, is_default: true }
+                        else
+                            return address;
+                    })
+
+                    return optimisticData;
+                }
+            );
+
+            return { previousData };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousData) {
+                context.previousData.forEach(([ queryKey, data ]) => {
+                    queryClient.setQueryData(queryKey, data);
+                })
+            }
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: shippingAddressKeys.list(userId ?? "") })
+        }
+    })
 }

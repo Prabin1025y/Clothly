@@ -155,29 +155,6 @@ const ProductListing = () => {
         }
     }, [ searchQuery ]);
 
-    // Search functionality use effect. Used in coordination in above functions
-    // useEffect(() => {
-    //     const tempFunc = async () => {
-    //         const filteredData = await fetchDataWithFilters();
-    //         console.log(filteredData)
-    //         if (filteredData?.success) {
-    //             setProducts(filteredData?.data)
-    //             if (filteredData?.meta?.limit) setLimit(filteredData?.meta?.limit)
-    //             if (filteredData?.meta?.page) setPage(filteredData?.meta?.page)
-    //             setTotalProductsCount(filteredData?.meta?.totalProducts)
-    //         } else {
-    //             console.error("Error while fetching data!!")
-    //         }
-    //         setHeading(searchParams.get("search") ? `Search result for "${searchParams.get("search")}"` : "You Might Like These")
-    //         setIsSearching(false);
-    //     }
-    //     if (isSearching) {
-    //         tempFunc();
-    //         setSearchQuery(searchParams.get("search") || "")
-    //     }
-
-
-    // }, [ searchParams ])
 
 
     // Show this if data cannot be fetched in first load.
