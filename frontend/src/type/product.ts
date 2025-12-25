@@ -55,3 +55,31 @@ export interface recommendedProduct {
     alt_text: string,
     slug: string
 }
+
+export interface ProductFilters {
+    sort?: 'none' | 'price_desc' | 'price_asc' | 'time_desc' | 'time_asc' | 'popular';
+    sizes?: string[];
+    min?: number;
+    max?: number;
+    search?: string;
+}
+
+export interface GetProductResponsetype {
+    data: {
+        public_id: string;
+        name: string;
+        slug: string;
+        short_description: string;
+        current_price: string;
+        average_rating: string;
+        is_featured: boolean;
+        url: string;
+        alt_text: string;
+    }[];
+    meta: {
+        totalProducts: number;
+        totalPages: number;
+        page: number;
+        limit: number;
+    }
+}

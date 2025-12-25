@@ -6,6 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import PLPCardSkeleton from "@/Skeletons/PLPCardSkeleton"
 import FunctionalPagination from "@/components/Pagination"
 import { useSearchParams } from "react-router"
+import { useGetProducts } from "@/hooks/useProducts"
+import type { ProductFilters } from "@/type/product"
 
 export interface Product_ProductListingType {
     alt_text: string
@@ -28,137 +30,142 @@ const ProductListing = () => {
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null)
     const [ showFilters, setShowFilters ] = useState<Boolean>(true)
     const [ products, setProducts ] = useState<Product_ProductListingType[]>([])
+
     //metadata to show.
     const [ limit, setLimit ] = useState(12);
     const [ page, setPage ] = useState(1);
+    const [ filters, setFilters ] = useState<ProductFilters>({});
+
     const [ totalProductsCount, setTotalProductsCount ] = useState(0);
 
     const [ searchParams, setSearchParams ] = useSearchParams();
     const queryClient = useQueryClient()
 
     //Function to fetch data with all filters and search applied. Reused in apply filters, useQuery and search functionality
-    const fetchDataWithFilters = async () => {
-        const sort_filter = searchParams.get("sort") ?? "";
-        const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
-        const min_filter = searchParams.get("min") ?? "";
-        const max_filter = searchParams.get("max") ?? "";
-        const search_query = searchParams.get("search") ?? "";
+    // const fetchDataWithFilters = async () => {
+    //     const sort_filter = searchParams.get("sort") ?? "";
+    //     const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
+    //     const min_filter = searchParams.get("min") ?? "";
+    //     const max_filter = searchParams.get("max") ?? "";
+    //     const search_query = searchParams.get("search") ?? "";
 
-        const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
-        let sizeParam = ""
-        if (sizes_filter.length > 0)
-            sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
-        const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
-        const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
-        const srchParam = search_query !== "" ? `search=${search_query}` : "";
+    //     const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
+    //     let sizeParam = ""
+    //     if (sizes_filter.length > 0)
+    //         sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
+    //     const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
+    //     const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
+    //     const srchParam = search_query !== "" ? `search=${search_query}` : "";
 
-        const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?${srchParam}&limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
-        if (!response.ok) {
-            throw new Error('Network response was not ok')
-        }
-        const filteredData = await response.json();
-        return filteredData;
-    }
+    //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?${srchParam}&limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
+    //     if (!response.ok) {
+    //         throw new Error('Network response was not ok')
+    //     }
+    //     const filteredData = await response.json();
+    //     return filteredData;
+    // }
+
+    const { data, isError, error, isFetching, isLoading, isPlaceholderData } = useGetProducts(page, limit, filters);
 
 
     // Clear Search Query used in cross icon of search
-    const handleClearSearch = () => {
-        setSearchQuery('');
-    };
+    // const handleClearSearch = () => {
+    //     setSearchQuery('');
+    // };
 
-    // For handling apply filters button
-    const handleFilterUpdate = async () => {
-        setIsFiltering(true);
-        queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[ 0 ] === "products"
-        })
-        await refetch();
-        setIsFiltering(false);
-    }
+    // // For handling apply filters button
+    // const handleFilterUpdate = async () => {
+    //     setIsFiltering(true);
+    //     queryClient.invalidateQueries({
+    //         predicate: (query) => query.queryKey[ 0 ] === "products"
+    //     })
+    //     await refetch();
+    //     setIsFiltering(false);
+    // }
 
-    // For handling search
-    const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        if (searchQuery === "" || searchQuery === searchParams.get("search")) return;
+    // // For handling search
+    // const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
+    //     e.preventDefault();
+    //     if (searchQuery === "" || searchQuery === searchParams.get("search")) return;
 
-        setIsSearching(true);
-        setHeading(`Searching for "${searchQuery}"`)
-        setSearchParams(searchParams => {
-            searchParams.delete("page");
-            searchParams.delete("search");
-            if (searchQuery !== "")
-                searchParams.append("search", searchQuery);
-            return searchParams;
-        });
+    //     setIsSearching(true);
+    //     setHeading(`Searching for "${searchQuery}"`)
+    //     setSearchParams(searchParams => {
+    //         searchParams.delete("page");
+    //         searchParams.delete("search");
+    //         if (searchQuery !== "")
+    //             searchParams.append("search", searchQuery);
+    //         return searchParams;
+    //     });
 
-        queryClient.invalidateQueries({
-            predicate: (query) => query.queryKey[ 0 ] === "products"
-        })
-        refetch().finally(() => setIsSearching(false));
-    }
+    //     queryClient.invalidateQueries({
+    //         predicate: (query) => query.queryKey[ 0 ] === "products"
+    //     })
+    //     refetch().finally(() => setIsSearching(false));
+    // }
 
-    // Query to fetch item in first load of page
-    const { error, data, refetch, isFetching } = useQuery({
-        queryKey: [ 'products', Object.fromEntries(searchParams.entries()), page ],
-        staleTime: 5 * 60 * 1000, //5 mins cache time
-        queryFn: fetchDataWithFilters
-    })
+    // // Query to fetch item in first load of page
+    // const { error, data, refetch, isFetching } = useQuery({
+    //     queryKey: [ 'products', Object.fromEntries(searchParams.entries()), page ],
+    //     staleTime: 5 * 60 * 1000, //5 mins cache time
+    //     queryFn: fetchDataWithFilters
+    // })
 
-    //Set products value, pagination/metadata from tanstack query
-    useEffect(() => {
-        if (data?.success) {
-            setProducts(data.data)
-            setLimit(data.meta?.limit ?? 12)
-            setPage(data.meta?.page ?? 1)
-            setTotalProductsCount(data.meta?.totalProducts ?? 0)
+    // //Set products value, pagination/metadata from tanstack query
+    // useEffect(() => {
+    //     if (data?.success) {
+    //         setProducts(data.data)
+    //         setLimit(data.meta?.limit ?? 12)
+    //         setPage(data.meta?.page ?? 1)
+    //         setTotalProductsCount(data.meta?.totalProducts ?? 0)
 
-            if (searchParams.get("search")) {
-                setHeading(`Search result for "${searchParams.get("search")}"`)
-                setSearchQuery(searchParams.get("search") ?? "")
-            }
-        }
-        if (isFetching && searchParams.get("search"))
-            setHeading(`Searching for "${searchParams.get("search")}"`)
-    }, [ data ])
+    //         if (searchParams.get("search")) {
+    //             setHeading(`Search result for "${searchParams.get("search")}"`)
+    //             setSearchQuery(searchParams.get("search") ?? "")
+    //         }
+    //     }
+    //     if (isFetching && searchParams.get("search"))
+    //         setHeading(`Searching for "${searchParams.get("search")}"`)
+    // }, [ data ])
 
-    // Hide filters by default in mobile device
-    useEffect(() => {
-        const handleWindowResize = () => {
-            if (window.innerWidth > 1280)
-                setShowFilters(true)
-            else {
-                setShowFilters(false)
-            }
-        }
-        handleWindowResize();
-        window.addEventListener("resize", handleWindowResize);
-        return () => window.removeEventListener("resize", handleWindowResize);
-    }, [])
+    // // Hide filters by default in mobile device
+    // useEffect(() => {
+    //     const handleWindowResize = () => {
+    //         if (window.innerWidth > 1280)
+    //             setShowFilters(true)
+    //         else {
+    //             setShowFilters(false)
+    //         }
+    //     }
+    //     handleWindowResize();
+    //     window.addEventListener("resize", handleWindowResize);
+    //     return () => window.removeEventListener("resize", handleWindowResize);
+    // }, [])
 
 
 
-    // Fetch items when searchQuery is empty for user experiences
-    useEffect(() => {
-        if (searchQuery !== "" && searchQuery !== searchParams.get("search") && !searchQueryModified) setSearchQueryModified(true)
+    // // Fetch items when searchQuery is empty for user experiences
+    // useEffect(() => {
+    //     if (searchQuery !== "" && searchQuery !== searchParams.get("search") && !searchQueryModified) setSearchQueryModified(true)
 
-        if (searchQuery === "" && searchParams.get("search") && searchQueryModified) {
-            setSearchQuery('');
-            setSearchParams(prev => {
-                prev.delete("page");
-                prev.delete("search")
-                return prev;
-            })
-            queryClient.invalidateQueries({
-                predicate: (query) => query.queryKey[ 0 ] === "products"
-            })
-            refetch().finally(() => setIsSearching(false));
-        }
-    }, [ searchQuery ]);
+    //     if (searchQuery === "" && searchParams.get("search") && searchQueryModified) {
+    //         setSearchQuery('');
+    //         setSearchParams(prev => {
+    //             prev.delete("page");
+    //             prev.delete("search")
+    //             return prev;
+    //         })
+    //         queryClient.invalidateQueries({
+    //             predicate: (query) => query.queryKey[ 0 ] === "products"
+    //         })
+    //         refetch().finally(() => setIsSearching(false));
+    //     }
+    // }, [ searchQuery ]);
 
 
 
     // Show this if data cannot be fetched in first load.
-    if (error)
+    if (isError)
         return <div>OOPS!! something went wrong</div>
 
     return (

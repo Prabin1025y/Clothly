@@ -2,20 +2,26 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useSearchParams } from "react-router";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import type { Product, ProductFilters } from "@/type/product";
 
 const sizes = [ 'S', 'M', 'L', 'XL', 'XXL', 'XXXL' ];
 
-const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<void> }) => {
+interface FiltersPropType {
+    setFilters: React.Dispatch<React.SetStateAction<ProductFilters>>,
+    filters: ProductFilters
+}
+
+const Filters = ({ setFilters, filters }: FiltersPropType) => {
     const [ searchParams, setSearchParams ] = useSearchParams();
     const [ filterApplied, SetFilterApplied ] = useState(false);
 
-    const [ filters, setFilters ] = useState(() => ({
-        sort: searchParams.get("sort") ?? "",
-        sizes: searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []),
-        min: searchParams.get("min") ?? "",
-        max: searchParams.get("max") ?? ""
-    }));
+    // const [ filters, setFilters ] = useState(() => ({
+    //     sort: searchParams.get("sort") ?? "",
+    //     sizes: searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []),
+    //     min: searchParams.get("min") ?? "",
+    //     max: searchParams.get("max") ?? ""
+    // }));
 
     const toggleSize = (size: string) => {
         setFilters(prev => {
@@ -66,7 +72,7 @@ const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<voi
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-col gap-y-4 gap-x-5 xl:gap-10">
                 <div className="flex gap-1 items-center">
                     <p className="font-semibold text-base xl:text-lg">Sort By:</p>
-                    <Select onValueChange={value => setFilters(prev => ({ ...prev, sort: value }))} defaultValue="none">
+                    <Select onValueChange={value => setFilters(prev => ({ ...prev, sort: value as "none" | "price_desc" | "price_asc" | "time_desc" | "time_asc" | "popular" }))} defaultValue="none">
                         <SelectTrigger className="w-[180px] border-foreground/80 rounded-sm focus-visible:ring-accent focus-visible:ring-2">
                             <SelectValue placeholder="Select a fruit" />
                         </SelectTrigger>
@@ -101,11 +107,11 @@ const Filters = ({ handleFilterUpdate }: { handleFilterUpdate: () => Promise<voi
                     <div className="flex flex-wrap gap-2 items-center px-4 font-semibold text-sm">
                         <div className="flex gap-2 items-center">
                             <p>From: </p>
-                            <Input type="number" min={500} value={filters.min} onChange={e => setFilters(prev => ({ ...prev, min: e.target.value }))} placeholder="500" className="border-foreground w-20 focus-visible:ring-accent" />
+                            <Input type="number" min={500} value={filters.min} onChange={e => setFilters(prev => ({ ...prev, min: Number(e.target.value) }))} placeholder="500" className="border-foreground w-20 focus-visible:ring-accent" />
                         </div>
                         <div className="flex gap-2 items-center">
                             <p>To: </p>
-                            <Input type="number" max={15000} value={filters.max} onChange={e => setFilters(prev => ({ ...prev, max: e.target.value }))} placeholder="5000" className="border-foreground w-20 focus-visible:ring-accent" />
+                            <Input type="number" max={15000} value={filters.max} onChange={e => setFilters(prev => ({ ...prev, max: Number(e.target.value) }))} placeholder="5000" className="border-foreground w-20 focus-visible:ring-accent" />
                         </div>
                     </div>
                 </div>

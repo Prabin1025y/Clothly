@@ -31,7 +31,6 @@ export default function ProductPage() {
     const [ isAddingToCart, setIsAddingToCart ] = useState(false);
 
     const { productId } = useParams();
-    const queryClient = useQueryClient();
     const addItemToCart = useAddItemToCart();
 
     const groupProductVariants = (variants: ProductVariant[]): ModifiedProductVariant[] => {

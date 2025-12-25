@@ -409,9 +409,9 @@ export const getProductsWithFilters = async (req, res) => {
         console.log(search_query)
 
         if (!Number.isFinite(page) || page < 1)
-            return res.status(400).json({ success: false, message: "Invalid page parameter!!" });
+            return res.status(400).json({ message: "Invalid page parameter!!" });
         if (!Number.isFinite(limit) || limit < 1 || limit > MAX_LIMIT)
-            return res.status(400).json({ success: false, message: `Invalid limit parameter (1-${MAX_LIMIT})` });
+            return res.status(400).json({ message: `Invalid limit parameter (1-${MAX_LIMIT})` });
 
         const offset = (page - 1) * limit
 
@@ -440,6 +440,17 @@ export const getProductsWithFilters = async (req, res) => {
                 ${min_filter > 0 ? sql` AND p.current_price >= ${min_filter}` : sql``}
                 ${max_filter !== "" ? sql`AND p.current_price <= ${max_filter}` : sql``}
         `;
+
+        if (totalProducts.length === 0)
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalProducts: 0,
+                    totalPages: 1,
+                    page: 1,
+                    limit
+                }
+            })
 
         const total = totalProducts?.[0]?.total ?? 0;
         const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -492,7 +503,6 @@ export const getProductsWithFilters = async (req, res) => {
 
         //Return response
         return res.status(200).json({
-            success: true,
             data,
             meta: {
                 totalProducts: total,
@@ -503,6 +513,6 @@ export const getProductsWithFilters = async (req, res) => {
         })
     } catch (error) {
         logger.error("Error while getting product!!", error);
-        return res.status(500).json({ success: false, message: "failed to fetch products" });
+        return res.status(500).json({ message: "failed to fetch products" });
     }
 }
