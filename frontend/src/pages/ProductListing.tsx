@@ -1,13 +1,15 @@
 import Filters from "@/components/Filters"
 import PLPCard from "@/components/PLPCard"
-import { Filter, Search, X } from "lucide-react"
+import { AlertOctagon, Filter, Loader2, Search, X } from "lucide-react"
 import react, { useEffect, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import PLPCardSkeleton from "@/Skeletons/PLPCardSkeleton"
 import FunctionalPagination from "@/components/Pagination"
 import { useSearchParams } from "react-router"
-import { useGetProducts } from "@/hooks/useProducts"
+import { productKeys, useGetProducts } from "@/hooks/useProducts"
 import type { ProductFilters } from "@/type/product"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Button } from "@/components/ui/button"
 
 export interface Product_ProductListingType {
     alt_text: string
@@ -166,7 +168,29 @@ const ProductListing = () => {
 
     // Show this if data cannot be fetched in first load.
     if (isError)
-        return <div>OOPS!! something went wrong</div>
+        return <Empty >
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <AlertOctagon color="red" />
+                </EmptyMedia>
+                <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                <EmptyDescription className="text-red-400">
+                    An error occured while fetching products. Please try again!!
+                </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+                <div className="flex gap-2">
+                    {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                        <Loader2 className="animate-spin" /> Retrying...
+                    </Button> : <Button
+                        className="cursor-pointer bg-red-500"
+                        onClick={() => queryClient.invalidateQueries({ queryKey: productKeys.lists() })}
+                    >
+                        Retry
+                    </Button>}
+                </div>
+            </EmptyContent>
+        </Empty>
 
     return (
         <main className="gap-2 px-1 md:px-8 lg:px-12 xl:px-8 2xl:px-[calc(32*4px-2vw)] font-[Inter]">
