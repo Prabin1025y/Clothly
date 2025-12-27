@@ -24,23 +24,22 @@ export interface Product_ProductListingType {
 }
 
 const ProductListing = () => {
-    const [ searchQuery, setSearchQuery ] = useState("")
-    const [ heading, setHeading ] = useState("You Might Like These")
-    const [ isSearching, setIsSearching ] = useState(false)
-    const [ isFiltering, setIsFiltering ] = useState(false)
-    const [ searchQueryModified, setSearchQueryModified ] = useState(false)
+    const [ searchQuery, setSearchQuery ] = useState("") //this ok
+    // const [ heading, setHeading ] = useState("You Might Like These")
+    // const [ isSearching, setIsSearching ] = useState(false)
+    // const [ isFiltering, setIsFiltering ] = useState(false)
+    // const [ searchQueryModified, setSearchQueryModified ] = useState(false)
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null)
     const [ showFilters, setShowFilters ] = useState<Boolean>(true)
-    const [ products, setProducts ] = useState<Product_ProductListingType[]>([])
+    // const [ products, setProducts ] = useState<Product_ProductListingType[]>([])
 
     //metadata to show.
     const [ limit, setLimit ] = useState(12);
     const [ page, setPage ] = useState(1);
-    const [ filters, setFilters ] = useState<ProductFilters>({});
+    const [ filters, setFilters ] = useState<ProductFilters>({}); //this ok
 
-    const [ totalProductsCount, setTotalProductsCount ] = useState(0);
+    // const [ totalProductsCount, setTotalProductsCount ] = useState(0);
 
-    const [ searchParams, setSearchParams ] = useSearchParams();
     const queryClient = useQueryClient()
 
     //Function to fetch data with all filters and search applied. Reused in apply filters, useQuery and search functionality
@@ -71,9 +70,16 @@ const ProductListing = () => {
 
 
     // Clear Search Query used in cross icon of search
-    // const handleClearSearch = () => {
-    //     setSearchQuery('');
-    // };
+    const handleClearSearch = () => {
+        setSearchQuery('');
+        if (!filters.search || filters.search === "")
+            return;
+
+        setFilters(prev => {
+            const { search, ...next } = prev;
+            return next;
+        });
+    };
 
     // // For handling apply filters button
     // const handleFilterUpdate = async () => {
@@ -85,26 +91,15 @@ const ProductListing = () => {
     //     setIsFiltering(false);
     // }
 
-    // // For handling search
-    // const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
-    //     e.preventDefault();
-    //     if (searchQuery === "" || searchQuery === searchParams.get("search")) return;
+    // For handling search
+    const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (searchQuery === "" || searchQuery.trim() === "" || searchQuery.trim() === filters.search) return;
 
-    //     setIsSearching(true);
-    //     setHeading(`Searching for "${searchQuery}"`)
-    //     setSearchParams(searchParams => {
-    //         searchParams.delete("page");
-    //         searchParams.delete("search");
-    //         if (searchQuery !== "")
-    //             searchParams.append("search", searchQuery);
-    //         return searchParams;
-    //     });
-
-    //     queryClient.invalidateQueries({
-    //         predicate: (query) => query.queryKey[ 0 ] === "products"
-    //     })
-    //     refetch().finally(() => setIsSearching(false));
-    // }
+        // setIsSearching(true);
+        // setHeading(`Searching for "${searchQuery}"`)
+        setFilters(prev => ({ ...prev, search: searchQuery.trim() }));
+    }
 
     // // Query to fetch item in first load of page
     // const { error, data, refetch, isFetching } = useQuery({
@@ -192,10 +187,12 @@ const ProductListing = () => {
             </EmptyContent>
         </Empty>
 
+    const products = data?.data ?? []
+
     return (
         <main className="gap-2 px-1 md:px-8 lg:px-12 xl:px-8 2xl:px-[calc(32*4px-2vw)] font-[Inter]">
             <div className=" xl:px-0 2xl:px-24 grid grid-cols-1 lg:grid-cols-4">
-                {showFilters && <Filters handleFilterUpdate={handleFilterUpdate} />}
+                {showFilters && <Filters setFilters={setFilters} filters={filters} />}
 
 
                 {/* Product Listings  */}
@@ -225,8 +222,8 @@ const ProductListing = () => {
 
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">{heading ?? "You Might Like These"}</h2>
-                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{(isFetching || isSearching || isFiltering) ? "Please wait a moment..." : `Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p>
+                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">{"You Might Like These"}</h2>
+                            {/* <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{(isFetching || isSearching || isFiltering) ? "Please wait a moment..." : `Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p> */}
                         </div>
                         <div onClick={() => setShowFilters(!showFilters)} className="flex pr-4 w-fit xl:hidden gap-2 text-foreground/80 items-center">
                             <Filter size={20} />
@@ -237,12 +234,48 @@ const ProductListing = () => {
                     </div>
 
                     {/* Tees Grid */}
+                    {
+                        (
+                            () => {
+                                if (isLoading || isFetching)
+                                    return <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
+                                        {
+                                            Array.from({ length: 6 }).map((_, idx) => (
+                                                <PLPCardSkeleton key={idx} />
+                                            ))
+                                        }
+                                    </div>
+
+                                if (isError)
+                                    return <Empty >
+                                        <EmptyHeader>
+                                            <EmptyMedia variant="icon">
+                                                <AlertOctagon color="red" />
+                                            </EmptyMedia>
+                                            <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                                            <EmptyDescription className="text-red-400">
+                                                An error occured while fetching products. Please try again!!
+                                            </EmptyDescription>
+                                        </EmptyHeader>
+                                        <EmptyContent>
+                                            <div className="flex gap-2">
+                                                {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                                                    <Loader2 className="animate-spin" /> Retrying...
+                                                </Button> : <Button
+                                                    className="cursor-pointer bg-red-500"
+                                                    onClick={() => queryClient.invalidateQueries({ queryKey: productKeys.lists() })}
+                                                >
+                                                    Retry
+                                                </Button>}
+                                            </div>
+                                        </EmptyContent>
+                                    </Empty>
+
+                            }
+                        )()
+                    }
                     <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
-                        {isFetching || isSearching || isFiltering ?
-                            Array.from({ length: 6 }).map((_, idx) => (
-                                <PLPCardSkeleton key={idx} />
-                            ))
-                            :
+                        {
                             products.map((product, idx) => (
                                 <PLPCard
                                     key={product.public_id}
@@ -256,7 +289,7 @@ const ProductListing = () => {
                     </div>
 
                     {/* Pagination */}
-                    <FunctionalPagination limit={limit} totalProducts={totalProductsCount} currentPage={page} />
+                    <FunctionalPagination limit={limit} totalProducts={products.length} currentPage={page} />
 
                 </section>
 

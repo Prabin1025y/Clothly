@@ -4,6 +4,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { useSearchParams } from "react-router";
 import React, { useEffect, useRef, useState } from "react";
 import type { Product, ProductFilters } from "@/type/product";
+import { shallowEqual } from "@/service/utilsService";
 
 const sizes = [ 'S', 'M', 'L', 'XL', 'XXL', 'XXXL' ];
 
@@ -16,54 +17,62 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
     const [ searchParams, setSearchParams ] = useSearchParams();
     const [ filterApplied, SetFilterApplied ] = useState(false);
 
-    // const [ filters, setFilters ] = useState(() => ({
-    //     sort: searchParams.get("sort") ?? "",
-    //     sizes: searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []),
-    //     min: searchParams.get("min") ?? "",
-    //     max: searchParams.get("max") ?? ""
-    // }));
+    const [ selectedFilters, setSelectedFilters ] = useState<ProductFilters>({});
 
     const toggleSize = (size: string) => {
-        setFilters(prev => {
-            const has = prev.sizes.includes(size);
-            const nextSizes = has ? prev.sizes.filter(s => s !== size) : [ ...prev.sizes, size ];
-            return { ...prev, sizes: nextSizes };
+        setSelectedFilters(prev => {
+            if (prev.sizes) {
+                //If sizes property already exist in filters
+                const has = prev.sizes.includes(size);
+                const nextSizes = has ? prev.sizes.filter(s => s !== size) : [ ...prev.sizes, size ];
+
+                if (nextSizes.length === 0) {
+                    //If sizes array is empty, remove it from filters
+                    const { sizes, ...next } = prev
+                    return next;
+                } else {
+                    return { ...prev, sizes: nextSizes };
+                }
+
+            } else {
+                //if sizes property is not in filters
+                return { ...prev, sizes: [ size ] }
+            }
         })
     }
 
     const applyFilters = () => {
-        SetFilterApplied(true);
-        const srchParam = searchParams.get("search") ?? "";
-        const params = new URLSearchParams();
-        if (filters.sort && filters.sort !== "none") params.set("sort", filters.sort);
-        filters.sizes.forEach(s => s && params.append("size", s));
-        if (filters.min) params.set("min", String(filters.min));
-        if (filters.max) params.set("max", String(filters.max));
-        if (srchParam !== "") params.set("search", String(srchParam));
-        setSearchParams(params);
+        setFilters(prev => {
+            const { search, ...other } = prev;
+            if (!search) {
+                return shallowEqual(prev, selectedFilters) ? prev : selectedFilters
+            } else {
+                return shallowEqual(prev, { ...selectedFilters, search }) ? prev : selectedFilters
+            }
+        });
     }
 
 
-    //This pattern avoids handleFilterUpdate to run during first initial render done by useEffect.
-    const prev = useRef<string | null>(null);
+    // //This pattern avoids handleFilterUpdate to run during first initial render done by useEffect.
+    // const prev = useRef<string | null>(null);
 
-    useEffect(() => {
-        const current = searchParams.toString();
+    // useEffect(() => {
+    //     const current = searchParams.toString();
 
-        // Skip if first render AND params didn’t truly change
-        if (prev.current === null) {
-            prev.current = current;
-            return;
-        }
+    //     // Skip if first render AND params didn’t truly change
+    //     if (prev.current === null) {
+    //         prev.current = current;
+    //         return;
+    //     }
 
-        // Only run when the actual params string changes
-        if (prev.current !== current && filterApplied) {
-            handleFilterUpdate();
-            SetFilterApplied(false);
-        }
+    //     // Only run when the actual params string changes
+    //     if (prev.current !== current && filterApplied) {
+    //         handleFilterUpdate();
+    //         SetFilterApplied(false);
+    //     }
 
-        prev.current = current;
-    }, [ searchParams ]);
+    //     prev.current = current;
+    // }, [ searchParams ]);
 
 
 
@@ -72,7 +81,7 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-col gap-y-4 gap-x-5 xl:gap-10">
                 <div className="flex gap-1 items-center">
                     <p className="font-semibold text-base xl:text-lg">Sort By:</p>
-                    <Select onValueChange={value => setFilters(prev => ({ ...prev, sort: value as "none" | "price_desc" | "price_asc" | "time_desc" | "time_asc" | "popular" }))} defaultValue="none">
+                    <Select onValueChange={value => setSelectedFilters(prev => ({ ...prev, sort: value as "none" | "price_desc" | "price_asc" | "time_desc" | "time_asc" | "popular" }))} defaultValue="none">
                         <SelectTrigger className="w-[180px] border-foreground/80 rounded-sm focus-visible:ring-accent focus-visible:ring-2">
                             <SelectValue placeholder="Select a fruit" />
                         </SelectTrigger>
@@ -94,7 +103,7 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
                     <p className="font-semibold xl:text-lg">Size:</p>
                     <div className="px-4 flex flex-wrap gap-2 ">
                         {sizes.map((size, index) => (
-                            <div onClick={() => toggleSize(size)} key={index} className={`cursor-pointer border border-foreground rounded-sm flex items-center justify-center w-12 xl:w-16 h-5 xl:h-7 ${filters.sizes.includes(size) ? "bg-foreground text-secondary" : "bg-transparent text-foreground"}`}>
+                            <div onClick={() => toggleSize(size)} key={index} className={`cursor-pointer border border-foreground rounded-sm flex items-center justify-center w-12 xl:w-16 h-5 xl:h-7 ${selectedFilters?.sizes?.includes(size) ? "bg-foreground text-secondary" : "bg-transparent text-foreground"}`}>
                                 {size}
                             </div>
                         ))}
@@ -107,11 +116,11 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
                     <div className="flex flex-wrap gap-2 items-center px-4 font-semibold text-sm">
                         <div className="flex gap-2 items-center">
                             <p>From: </p>
-                            <Input type="number" min={500} value={filters.min} onChange={e => setFilters(prev => ({ ...prev, min: Number(e.target.value) }))} placeholder="500" className="border-foreground w-20 focus-visible:ring-accent" />
+                            <Input type="number" min={500} value={selectedFilters.min} onChange={e => setSelectedFilters(prev => ({ ...prev, min: Number(e.target.value) }))} placeholder="500" className="border-foreground w-20 focus-visible:ring-accent" />
                         </div>
                         <div className="flex gap-2 items-center">
                             <p>To: </p>
-                            <Input type="number" max={15000} value={filters.max} onChange={e => setFilters(prev => ({ ...prev, max: Number(e.target.value) }))} placeholder="5000" className="border-foreground w-20 focus-visible:ring-accent" />
+                            <Input type="number" max={15000} value={selectedFilters.max} onChange={e => setSelectedFilters(prev => ({ ...prev, max: Number(e.target.value) }))} placeholder="5000" className="border-foreground w-20 focus-visible:ring-accent" />
                         </div>
                     </div>
                 </div>
