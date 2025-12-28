@@ -5,9 +5,9 @@ import isAdmin from "../middlewares/isAdmin.js";
 
 const productsRouter = Router()
 
-// productsRouter.post("/add-product", isAuthenticated, isAdmin, addProduct);
+productsRouter.post("/add-product", isAuthenticated, isAdmin, addProduct);
 
-productsRouter.get("/get-products", getProducts);
+// productsRouter.get("/get-products", getProducts);
 
 productsRouter.get("/get-products-with-filters", getProductsWithFilters);
 
@@ -15,7 +15,7 @@ productsRouter.get("/get-recent-products", getRecentProducts);
 
 productsRouter.get("/get-product/:slug", getProductBySlug);
 
-productsRouter.post("/add-product", addProduct);
+// productsRouter.post("/add-product", addProduct);
 
 productsRouter.get("/get-search-products/:query", getSearchProducts);
 

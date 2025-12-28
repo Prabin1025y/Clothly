@@ -290,6 +290,7 @@ export const getProductBySlug = async (req, res) => {
                 SELECT json_agg(json_build_object(
                     'sku', sku,
                     'color', color,
+                    'hex_color', hex_color,
                     'size', size,
                     'variant_id', id,
                     'available', available
@@ -306,16 +307,17 @@ export const getProductBySlug = async (req, res) => {
         `
 
         if (result.length === 0)
-            return res.status(404).json({ success: false, message: "No such product found." });
+            return res.status(404).json({ message: "No such product found." });
 
         const data = result?.[0]
 
         data['primary_image'] = data.images?.find(image => image.is_primary)
+        console.log(data);
 
-        res.status(200).json({ success: true, data });
+        res.status(200).json(data);
     } catch (error) {
         logger.error("Error while getting specific product!!", error);
-        return res.status(500).json({ success: false, message: "Error getting product" });
+        return res.status(500).json({ message: "Error getting product" });
     }
 }
 

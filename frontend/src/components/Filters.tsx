@@ -2,7 +2,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import React, { useState } from "react";
-import type { Product, ProductFilters } from "@/type/product";
+import type { ProductFilters } from "@/type/product";
 import { shallowEqual } from "@/service/utilsService";
 
 const sizes = [ 'S', 'M', 'L', 'XL', 'XXL', 'XXXL' ];
@@ -12,8 +12,6 @@ interface FiltersPropType {
 }
 
 const Filters = ({ setFilters }: FiltersPropType) => {
-    // const [ searchParams, setSearchParams ] = useSearchParams();
-    // const [ filterApplied, SetFilterApplied ] = useState(false);
 
     const [ selectedFilters, setSelectedFilters ] = useState<Omit<ProductFilters, 'search'>>({});
 
@@ -55,30 +53,6 @@ const Filters = ({ setFilters }: FiltersPropType) => {
             return prev.sort === nextSort ? prev : { ...prev, sort: nextSort };
         });
     }
-
-
-    // //This pattern avoids handleFilterUpdate to run during first initial render done by useEffect.
-    // const prev = useRef<string | null>(null);
-
-    // useEffect(() => {
-    //     const current = searchParams.toString();
-
-    //     // Skip if first render AND params didn’t truly change
-    //     if (prev.current === null) {
-    //         prev.current = current;
-    //         return;
-    //     }
-
-    //     // Only run when the actual params string changes
-    //     if (prev.current !== current && filterApplied) {
-    //         handleFilterUpdate();
-    //         SetFilterApplied(false);
-    //     }
-
-    //     prev.current = current;
-    // }, [ searchParams ]);
-
-
 
     return (
         <section className="xl:sticky top-[112px] max-h-[calc(100vh-124px)] col-span-full xl:col-span-1 xl:row-span-full py-5 px-4 border-b-2 xl:border-b-0 xl:border-r-2 border-accent my-4">

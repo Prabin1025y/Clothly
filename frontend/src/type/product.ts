@@ -1,4 +1,4 @@
-export interface Product {
+export interface ProductType {
     product_sku: string;
     public_id: string;
     name: string;
@@ -27,11 +27,17 @@ export interface ProductImage {
 export interface ProductVariant {
     sku: string;
     color: string;
+    hex_color: string;
     size: string;
-    variant_id: string;
+    variant_id: number;
     available: number;
 }
 
+export interface ProductDetail {
+    text: string;
+}
+
+//to be reviewed
 export interface ModifiedProductVariant {
     color: string;
     sizes: {
@@ -42,10 +48,7 @@ export interface ModifiedProductVariant {
     }[];
 }
 
-export interface ProductDetail {
-    text: string;
-}
-
+//to be reviewed
 export interface recommendedProduct {
     public_id: number,
     url: string,

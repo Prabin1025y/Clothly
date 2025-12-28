@@ -60,6 +60,19 @@ const ProductListing = () => {
         });
     }, [ searchQuery ]);
 
+    useEffect(() => {
+        if (!data?.meta)
+            return;
+
+        if (limit !== data?.meta.limit)
+            setLimit(data.meta.limit)
+
+        if (page !== data?.meta.page)
+            setPage(data.meta.page)
+
+    }, [ data ])
+
+
 
     const products = data?.data ?? []
     const totalProductsCount = data?.meta.totalProducts ?? 0
@@ -121,7 +134,8 @@ const ProductListing = () => {
                                         }
                                     </div>
 
-                                if (isError)
+                                if (isError) {
+                                    console.error(error);
                                     return <Empty >
                                         <EmptyHeader>
                                             <EmptyMedia variant="icon">
@@ -145,6 +159,7 @@ const ProductListing = () => {
                                             </div>
                                         </EmptyContent>
                                     </Empty>
+                                }
 
                                 return <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
                                     {
