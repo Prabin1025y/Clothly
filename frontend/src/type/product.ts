@@ -40,6 +40,7 @@ export interface ProductDetail {
 //to be reviewed
 export interface ModifiedProductVariant {
     color: string;
+    hex_color: string;
     sizes: {
         sku: string;
         size: string;
@@ -48,8 +49,7 @@ export interface ModifiedProductVariant {
     }[];
 }
 
-//to be reviewed
-export interface recommendedProduct {
+export interface RecommendedProduct {
     public_id: number,
     url: string,
     current_price: number,

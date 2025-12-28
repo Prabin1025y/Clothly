@@ -1,8 +1,7 @@
 import { handleApiError } from "@/lib/axios";
 import { paymentServices } from "@/service/paymentService";
-import type { GeneralPostResponseType } from "@/type";
 import type { GenerateSignatureDto } from "@/type/payment";
-import { useMutation, useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { orderKeys } from "./useOrders";
 import { orderServices } from "@/service/orderService";

@@ -1,4 +1,4 @@
-import type { recommendedProduct } from "@/type/product"
+import type { RecommendedProduct } from "@/type/product"
 import { Star } from "lucide-react"
 import { Link } from "react-router"
 
@@ -6,7 +6,7 @@ type RecommendedCardProps = {
     isHovered: Boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
-    product: recommendedProduct
+    product: RecommendedProduct
 }
 
 const RecommendedCard = ({ id, isHovered = false, setHoveredCardId, product }: RecommendedCardProps) => {

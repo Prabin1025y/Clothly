@@ -340,13 +340,10 @@ export const getRecentProducts = async (req, res) => {
             ORDER BY p.created_at DESC, p.id DESC
             LIMIT ${limit}
         `
-        return res.status(200).json({
-            success: true,
-            data,
-        })
+        return res.status(200).json(data)
     } catch (error) {
         logger.error("Error while fetching recent products!!", error);
-        return res.status(500).json({ success: false, message: "failed to fetch recent products" });
+        return res.status(500).json({ message: "failed to fetch recent products" });
     }
 }
 

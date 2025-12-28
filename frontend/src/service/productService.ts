@@ -1,5 +1,5 @@
 import { axiosClient } from "@/lib/axios";
-import type { GetProductResponsetype, ProductFilters } from "@/type/product";
+import type { GetProductResponsetype, ProductFilters, ProductType, RecommendedProduct } from "@/type/product";
 
 export const productServices = {
     getProductWithFilters: async (
@@ -24,4 +24,14 @@ export const productServices = {
         const { data } = await axiosClient.get<GetProductResponsetype>(`/api/products/get-products-with-filters?${params.toString()}`)
         return data;
     },
+
+    getProductDetail: async (slug: string): Promise<ProductType> => {
+        const { data } = await axiosClient.get<ProductType>(`/api/products/get-product/${slug}`);
+        return data;
+    },
+
+    getRecommendedProducts: async (): Promise<RecommendedProduct[]> => {
+        const { data } = await axiosClient.get<RecommendedProduct[]>("/api/products/get-recent-products");
+        return data;
+    }
 }
