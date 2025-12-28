@@ -2,76 +2,36 @@ import Filters from "@/components/Filters"
 import PLPCard from "@/components/PLPCard"
 import { AlertOctagon, Filter, Loader2, Search, X } from "lucide-react"
 import react, { useEffect, useState } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQueryClient } from "@tanstack/react-query"
 import PLPCardSkeleton from "@/Skeletons/PLPCardSkeleton"
 import FunctionalPagination from "@/components/Pagination"
-import { useSearchParams } from "react-router"
 import { productKeys, useGetProducts } from "@/hooks/useProducts"
 import type { ProductFilters } from "@/type/product"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button"
 
-export interface Product_ProductListingType {
-    alt_text: string
-    average_rating: string
-    current_price: string
-    is_featured: boolean
-    name: string
-    public_id: string
-    short_description: string
-    slug: string
-    url: string
-}
-
 const ProductListing = () => {
-    const [ searchQuery, setSearchQuery ] = useState("") //this ok
-    // const [ heading, setHeading ] = useState("You Might Like These")
-    // const [ isSearching, setIsSearching ] = useState(false)
-    // const [ isFiltering, setIsFiltering ] = useState(false)
-    // const [ searchQueryModified, setSearchQueryModified ] = useState(false)
+    const [ searchQuery, setSearchQuery ] = useState("")
+    const [ heading, setHeading ] = useState("You Might Like These")
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null)
     const [ showFilters, setShowFilters ] = useState<Boolean>(true)
-    // const [ products, setProducts ] = useState<Product_ProductListingType[]>([])
 
     //metadata to show.
     const [ limit, setLimit ] = useState(12);
     const [ page, setPage ] = useState(1);
-    const [ filters, setFilters ] = useState<ProductFilters>({}); //this ok
+    const [ filters, setFilters ] = useState<ProductFilters>({});
 
-    // const [ totalProductsCount, setTotalProductsCount ] = useState(0);
 
     const queryClient = useQueryClient()
 
-    //Function to fetch data with all filters and search applied. Reused in apply filters, useQuery and search functionality
-    // const fetchDataWithFilters = async () => {
-    //     const sort_filter = searchParams.get("sort") ?? "";
-    //     const sizes_filter = searchParams.getAll ? searchParams.getAll("size") : (searchParams.get("size") ? [ searchParams.get("size") ] : []);
-    //     const min_filter = searchParams.get("min") ?? "";
-    //     const max_filter = searchParams.get("max") ?? "";
-    //     const search_query = searchParams.get("search") ?? "";
 
-    //     const sortParam = sort_filter !== "" ? `&sort=${sort_filter}` : "";
-    //     let sizeParam = ""
-    //     if (sizes_filter.length > 0)
-    //         sizes_filter.forEach(filter => sizeParam.concat(`&size=${filter}`))
-    //     const minParam = min_filter !== "" ? `&min=${min_filter}` : "";
-    //     const maxParam = max_filter !== "" ? `&max=${max_filter}` : "";
-    //     const srchParam = search_query !== "" ? `search=${search_query}` : "";
-
-    //     const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-products-with-filters?${srchParam}&limit=12&page=${searchParams.get("page") || 1}${sortParam}${sizeParam}${minParam}${maxParam}`);
-    //     if (!response.ok) {
-    //         throw new Error('Network response was not ok')
-    //     }
-    //     const filteredData = await response.json();
-    //     return filteredData;
-    // }
-
-    const { data, isError, error, isFetching, isLoading, isPlaceholderData } = useGetProducts(page, limit, filters);
+    const { data, isError, error, isFetching, isLoading } = useGetProducts(page, limit, filters);
 
 
     // Clear Search Query used in cross icon of search
     const handleClearSearch = () => {
         setSearchQuery('');
+        setHeading("You might like these")
         if (!filters.search || filters.search === "")
             return;
 
@@ -81,118 +41,33 @@ const ProductListing = () => {
         });
     };
 
-    // // For handling apply filters button
-    // const handleFilterUpdate = async () => {
-    //     setIsFiltering(true);
-    //     queryClient.invalidateQueries({
-    //         predicate: (query) => query.queryKey[ 0 ] === "products"
-    //     })
-    //     await refetch();
-    //     setIsFiltering(false);
-    // }
-
     // For handling search
     const handleSearch = async (e: react.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (searchQuery === "" || searchQuery.trim() === "" || searchQuery.trim() === filters.search) return;
 
-        // setIsSearching(true);
-        // setHeading(`Searching for "${searchQuery}"`)
+        setHeading(`Search result for "${searchQuery}"`)
         setFilters(prev => ({ ...prev, search: searchQuery.trim() }));
     }
 
-    // // Query to fetch item in first load of page
-    // const { error, data, refetch, isFetching } = useQuery({
-    //     queryKey: [ 'products', Object.fromEntries(searchParams.entries()), page ],
-    //     staleTime: 5 * 60 * 1000, //5 mins cache time
-    //     queryFn: fetchDataWithFilters
-    // })
+    // Fetch items when searchQuery is empty for user experiences
+    useEffect(() => {
+        if (searchQuery !== "" || !filters.search) return;
+        setHeading("You might like these")
+        setFilters(prev => {
+            const { search, ...next } = prev;
+            return next;
+        });
+    }, [ searchQuery ]);
 
-    // //Set products value, pagination/metadata from tanstack query
-    // useEffect(() => {
-    //     if (data?.success) {
-    //         setProducts(data.data)
-    //         setLimit(data.meta?.limit ?? 12)
-    //         setPage(data.meta?.page ?? 1)
-    //         setTotalProductsCount(data.meta?.totalProducts ?? 0)
-
-    //         if (searchParams.get("search")) {
-    //             setHeading(`Search result for "${searchParams.get("search")}"`)
-    //             setSearchQuery(searchParams.get("search") ?? "")
-    //         }
-    //     }
-    //     if (isFetching && searchParams.get("search"))
-    //         setHeading(`Searching for "${searchParams.get("search")}"`)
-    // }, [ data ])
-
-    // // Hide filters by default in mobile device
-    // useEffect(() => {
-    //     const handleWindowResize = () => {
-    //         if (window.innerWidth > 1280)
-    //             setShowFilters(true)
-    //         else {
-    //             setShowFilters(false)
-    //         }
-    //     }
-    //     handleWindowResize();
-    //     window.addEventListener("resize", handleWindowResize);
-    //     return () => window.removeEventListener("resize", handleWindowResize);
-    // }, [])
-
-
-
-    // // Fetch items when searchQuery is empty for user experiences
-    // useEffect(() => {
-    //     if (searchQuery !== "" && searchQuery !== searchParams.get("search") && !searchQueryModified) setSearchQueryModified(true)
-
-    //     if (searchQuery === "" && searchParams.get("search") && searchQueryModified) {
-    //         setSearchQuery('');
-    //         setSearchParams(prev => {
-    //             prev.delete("page");
-    //             prev.delete("search")
-    //             return prev;
-    //         })
-    //         queryClient.invalidateQueries({
-    //             predicate: (query) => query.queryKey[ 0 ] === "products"
-    //         })
-    //         refetch().finally(() => setIsSearching(false));
-    //     }
-    // }, [ searchQuery ]);
-
-
-
-    // Show this if data cannot be fetched in first load.
-    if (isError)
-        return <Empty >
-            <EmptyHeader>
-                <EmptyMedia variant="icon">
-                    <AlertOctagon color="red" />
-                </EmptyMedia>
-                <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
-                <EmptyDescription className="text-red-400">
-                    An error occured while fetching products. Please try again!!
-                </EmptyDescription>
-            </EmptyHeader>
-            <EmptyContent>
-                <div className="flex gap-2">
-                    {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
-                        <Loader2 className="animate-spin" /> Retrying...
-                    </Button> : <Button
-                        className="cursor-pointer bg-red-500"
-                        onClick={() => queryClient.invalidateQueries({ queryKey: productKeys.lists() })}
-                    >
-                        Retry
-                    </Button>}
-                </div>
-            </EmptyContent>
-        </Empty>
 
     const products = data?.data ?? []
+    const totalProductsCount = data?.meta.totalProducts ?? 0
 
     return (
         <main className="gap-2 px-1 md:px-8 lg:px-12 xl:px-8 2xl:px-[calc(32*4px-2vw)] font-[Inter]">
             <div className=" xl:px-0 2xl:px-24 grid grid-cols-1 lg:grid-cols-4">
-                {showFilters && <Filters setFilters={setFilters} filters={filters} />}
+                {showFilters && <Filters setFilters={setFilters} />}
 
 
                 {/* Product Listings  */}
@@ -222,8 +97,8 @@ const ProductListing = () => {
 
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">{"You Might Like These"}</h2>
-                            {/* <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{(isFetching || isSearching || isFiltering) ? "Please wait a moment..." : `Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`}</p> */}
+                            <h2 className="pl-2 md:pl-0 text-xl md:text-2xl font-semibold text-foreground mt-4 sm:mt-5 mb-2">{heading ?? "You Might Like These"}</h2>
+                            <p className="pl-2 md:pl-0 text-xs md:text-sm text-foreground/80 my-2">{(isFetching || isLoading) ? "Please wait a moment..." : (isError ? "Something went wrong!" : `Showing ${totalProductsCount > limit ? limit : totalProductsCount} out of ${totalProductsCount} items`)}</p>
                         </div>
                         <div onClick={() => setShowFilters(!showFilters)} className="flex pr-4 w-fit xl:hidden gap-2 text-foreground/80 items-center">
                             <Filter size={20} />
@@ -271,22 +146,24 @@ const ProductListing = () => {
                                         </EmptyContent>
                                     </Empty>
 
+                                return <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
+                                    {
+                                        products.map((product, idx) => (
+                                            <PLPCard
+                                                key={product.public_id}
+                                                id={idx}
+                                                isHovered={hoveredCardId == idx}
+                                                setHoveredCardId={setHoveredCardId}
+                                                data={product}
+                                            />
+                                        ))
+                                    }
+                                </div>
+
                             }
                         )()
                     }
-                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
-                        {
-                            products.map((product, idx) => (
-                                <PLPCard
-                                    key={product.public_id}
-                                    id={idx}
-                                    isHovered={hoveredCardId == idx}
-                                    setHoveredCardId={setHoveredCardId}
-                                    data={product}
-                                />
-                            ))
-                        }
-                    </div>
+
 
                     {/* Pagination */}
                     <FunctionalPagination limit={limit} totalProducts={products.length} currentPage={page} />

@@ -1,8 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { useSearchParams } from "react-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import type { Product, ProductFilters } from "@/type/product";
 import { shallowEqual } from "@/service/utilsService";
 
@@ -10,14 +9,13 @@ const sizes = [ 'S', 'M', 'L', 'XL', 'XXL', 'XXXL' ];
 
 interface FiltersPropType {
     setFilters: React.Dispatch<React.SetStateAction<ProductFilters>>,
-    filters: ProductFilters
 }
 
-const Filters = ({ setFilters, filters }: FiltersPropType) => {
-    const [ searchParams, setSearchParams ] = useSearchParams();
-    const [ filterApplied, SetFilterApplied ] = useState(false);
+const Filters = ({ setFilters }: FiltersPropType) => {
+    // const [ searchParams, setSearchParams ] = useSearchParams();
+    // const [ filterApplied, SetFilterApplied ] = useState(false);
 
-    const [ selectedFilters, setSelectedFilters ] = useState<ProductFilters>({});
+    const [ selectedFilters, setSelectedFilters ] = useState<Omit<ProductFilters, 'search'>>({});
 
     const toggleSize = (size: string) => {
         setSelectedFilters(prev => {
@@ -43,12 +41,18 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
 
     const applyFilters = () => {
         setFilters(prev => {
-            const { search, ...other } = prev;
-            if (!search) {
-                return shallowEqual(prev, selectedFilters) ? prev : selectedFilters
-            } else {
-                return shallowEqual(prev, { ...selectedFilters, search }) ? prev : selectedFilters
+            const nextFilters = {
+                ...selectedFilters,
+                ...(prev.search ? { search: prev.search } : {})
             }
+            return shallowEqual(prev, nextFilters) ? prev : nextFilters;
+        });
+    }
+
+    const handleSortOrderChange = (value: string) => {
+        setFilters(prev => {
+            const nextSort = value as ProductFilters[ 'sort' ]
+            return prev.sort === nextSort ? prev : { ...prev, sort: nextSort };
         });
     }
 
@@ -81,7 +85,7 @@ const Filters = ({ setFilters, filters }: FiltersPropType) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:flex xl:flex-col gap-y-4 gap-x-5 xl:gap-10">
                 <div className="flex gap-1 items-center">
                     <p className="font-semibold text-base xl:text-lg">Sort By:</p>
-                    <Select onValueChange={value => setSelectedFilters(prev => ({ ...prev, sort: value as "none" | "price_desc" | "price_asc" | "time_desc" | "time_asc" | "popular" }))} defaultValue="none">
+                    <Select onValueChange={handleSortOrderChange} defaultValue="none">
                         <SelectTrigger className="w-[180px] border-foreground/80 rounded-sm focus-visible:ring-accent focus-visible:ring-2">
                             <SelectValue placeholder="Select a fruit" />
                         </SelectTrigger>
