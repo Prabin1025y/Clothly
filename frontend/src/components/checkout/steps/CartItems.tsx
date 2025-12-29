@@ -7,7 +7,6 @@ import { AlertOctagon, Loader2, ShoppingCart } from "lucide-react";
 import { Link } from "react-router";
 import { ProductEditOverlay } from "../EditOverlay";
 import { useState } from "react";
-import { useCartItemStore } from "@/zustand/cartStore";
 import { useDeleteCartItems } from "@/hooks/useCartItems";
 
 
@@ -33,7 +32,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
     // const { setCartItemsState, cartItemsState } = useCartItemStore();
 
     const handleDeleteItem = async (variantId: number) => {
-        await deleteCartItem.mutateAsync(variantId.toString())
+        await deleteCartItem.mutateAsync(variantId)
     }
 
     const handleEditButtonClicked = async (cartItemId: number, variantId: number) => {

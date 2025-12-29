@@ -34,7 +34,7 @@ export const groupProductVariants = (variants: ProductVariant[]): ModifiedProduc
 
     const map = new Map<
         string,
-        { color: string; hex_color: string; sizes: { sku: string; size: string; available: number; variant_id: string }[] }
+        { color: string; hex_color: string; sizes: { sku: string; size: string; available: number; variant_id: number }[] }
     >();
 
     for (const v of variants) {
@@ -50,7 +50,7 @@ export const groupProductVariants = (variants: ProductVariant[]): ModifiedProduc
             sku: v.sku,
             size: v.size,
             available: v.available,
-            variant_id: v.variant_id.toString()
+            variant_id: v.variant_id
         });
     }
 

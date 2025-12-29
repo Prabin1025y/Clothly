@@ -101,7 +101,7 @@ export function useDeleteCartItems() {
     return useMutation({
         mutationFn: cartItemsServices.deleteCartItem,
 
-        onMutate: async (variantId: string) => {
+        onMutate: async (variantId: number) => {
             await queryClient.cancelQueries({ queryKey: cartItemKeys.lists() });
 
             const previousItemInCart = queryClient.getQueriesData({ queryKey: cartItemKeys.lists() });
@@ -178,7 +178,7 @@ export function useEditCartItem() {
                     return {
                         ...old,
                         cart_quantity: updatedInfo.quantity,
-                        variant_id: updatedInfo.variant_id.toString(),
+                        variant_id: updatedInfo.variant_id,
                         color: updatedInfo.color,
                         size: updatedInfo.size,
                     };

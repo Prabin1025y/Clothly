@@ -56,5 +56,7 @@ export const handleApiError = (error: unknown): string => {
     if (axios.isAxiosError(error)) {
         return error.response?.data?.message || error.message || 'An error occurred';
     }
+    if (error instanceof Error)
+        return error.message || 'An unexpected error occurred';
     return 'An unexpected error occurred';
 };

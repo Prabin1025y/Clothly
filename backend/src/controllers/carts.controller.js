@@ -481,6 +481,7 @@ export const getCartItemDetail = async (req, res) => {
                     pv.original_price,
                     pv.size,
                     pv.color,
+                    pv.hex_color,
                     pv.available
                 FROM product_variants pv
                 JOIN target_cart_item tci ON tci.variant_id = pv.id
@@ -510,6 +511,7 @@ export const getCartItemDetail = async (req, res) => {
                 SELECT 
                     pv.product_id,
                     pv.color,
+                    pv.hex_color,
                     jsonb_agg(
                         jsonb_build_object(
                             'variant_id', pv.id,
@@ -521,7 +523,7 @@ export const getCartItemDetail = async (req, res) => {
                     ) AS sizes
                 FROM product_variants pv
                 JOIN target_variant tv ON tv.product_id = pv.product_id
-                GROUP BY pv.product_id, pv.color
+                GROUP BY pv.product_id, pv.color, pv.hex_color
             )
 
             SELECT
@@ -535,6 +537,7 @@ export const getCartItemDetail = async (req, res) => {
                 tv.original_price,
                 tv.size,
                 tv.color,
+                tv.hex_color,
                 tv.available,
 
                 -- user cart info
@@ -549,6 +552,7 @@ export const getCartItemDetail = async (req, res) => {
                 jsonb_agg(
                     jsonb_build_object(
                         'color', ov.color,
+                        'hex_color', ov.hex_color,
                         'sizes', ov.sizes
                     )
                     ORDER BY ov.color
@@ -568,6 +572,7 @@ export const getCartItemDetail = async (req, res) => {
                 tv.original_price,
                 tv.size,
                 tv.color,
+                tv.hex_color,
                 tv.available,
                 img.url,
                 img.alt_text,

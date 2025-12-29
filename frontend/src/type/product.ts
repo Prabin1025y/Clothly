@@ -45,14 +45,14 @@ export interface ModifiedProductVariant {
         sku: string;
         size: string;
         available: number;
-        variant_id: string;
+        variant_id: number;
     }[];
 }
 
 export interface RecommendedProduct {
     public_id: number,
     url: string,
-    current_price: number,
+    current_price: string,
     name: string,
     average_rating: string,
     alt_text: string,

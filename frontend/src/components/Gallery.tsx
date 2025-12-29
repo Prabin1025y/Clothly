@@ -1,16 +1,18 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { useQuery } from '@tanstack/react-query'
 import { GallerySkeleton } from "@/Skeletons/RecentProductsSkeleton"
+import { useGetRecommendedProducts } from "@/hooks/useProducts"
+import type { RecommendedProduct } from "@/type/product"
 
-interface GridItem {
-    id: number
-    image: string
-    price: string
-    title: string
-    height: string,
-    slug: string,
-    alt_text: string
+interface GridItemType {
+    public_id: number;
+    url: string;
+    current_price: string;
+    name: string;
+    average_rating: string;
+    height: string;
+    slug: string;
+    alt_text: string;
 }
 
 const HeightArray: string[] = [
@@ -18,51 +20,25 @@ const HeightArray: string[] = [
     "370px", "410px", "240px", "330px", "310px", "340px"
 ]
 
-interface gridItemType {
-    public_id: number,
-    url: string,
-    current_price: number,
-    name: string,
-    average_rating: string,
-    alt_text: string,
-    slug: string
-}
-
 export function Gallery() {
     const [ hoveredItem, setHoveredItem ] = useState<number | null>(null)
 
-    const { isPending, error, data } = useQuery({
-        queryKey: [ 'recentProducts' ],
-        queryFn: async () => {
-            const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/products/get-recent-products`);
-            if (!response.ok) {
-                throw new Error('Network response was not ok')
-            }
-            const data = await response.json();
-            return data;
-        }
-    })
+    const { isFetching, error, isError, data } = useGetRecommendedProducts();
 
-    const gridItems: GridItem[] = data?.data?.map((item: gridItemType, index: number) => ({
-        id: item.public_id,
-        image: item.url,
-        price: item.current_price,
-        title: item.name,
-        alt_text: item.alt_text,
-        slug: item.slug,
+    if (isFetching || !data)
+        return <GallerySkeleton />
+
+    if (isError) {
+        console.error(error);
+        return <div>OOPS!! SOMETHING WENT WRONG!!</div>
+    }
+
+    const gridItems: GridItemType[] = data?.map((item: RecommendedProduct, index: number) => ({
+        ...item,
         height: HeightArray[ index ]
     }))
 
     const mobileItems = gridItems?.slice(0, 8)
-
-    if (isPending)
-        return <GallerySkeleton />
-
-    if (error)
-        return <div>OOPS!! SOMETHING WENT WRONG!!</div>
-
-    // console.log(data);
-
     return (
         <div className="w-full mx-auto p-6">
             <div className="mb-4">
@@ -74,23 +50,23 @@ export function Gallery() {
             <div className="hidden md:block columns-3 lg:columns-4 gap-4 space-y-4">
                 {gridItems?.map((item) => (
                     <div
-                        key={item.id}
+                        key={item.public_id}
                         className="relative overflow-hidden rounded-lg cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl break-inside-avoid mb-4"
                         style={{ height: item.height }}
-                        onMouseEnter={() => setHoveredItem(item.id)}
+                        onMouseEnter={() => setHoveredItem(item.public_id)}
                         onMouseLeave={() => setHoveredItem(null)}
                     >
-                        <img src={item.image || "/placeholder.svg"} alt={item.title} className="w-full h-full object-cover" />
+                        <img src={item.url || "/placeholder.svg"} alt={item.alt_text} className="w-full h-full object-cover" />
 
                         <div
                             className={`
               absolute inset-0 bg-black/60 flex flex-col justify-end p-4 transition-opacity duration-300
-              ${hoveredItem === item.id ? "opacity-100" : "opacity-0"}
+              ${hoveredItem === item.public_id ? "opacity-100" : "opacity-0"}
             `}
                         >
                             <div className="text-white">
-                                <h3 className="font-semibold text-lg mb-1">{item.title}</h3>
-                                <p className="text-accent font-bold text-xl mb-3">NPR.{item.price}</p>
+                                <h3 className="font-semibold text-lg mb-1">{item.name}</h3>
+                                <p className="text-accent font-bold text-xl mb-3">NPR.{item.current_price}</p>
                                 <Button size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground font-medium">
                                     See More
                                 </Button>
@@ -104,15 +80,15 @@ export function Gallery() {
             <div className="md:hidden grid grid-cols-2 gap-4">
                 {mobileItems.map((item) => (
                     <div
-                        key={item.id}
+                        key={item.public_id}
                         className="relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] shadow-sm hover:shadow-xl aspect-[3/4]"
-                        onMouseEnter={() => setHoveredItem(item.id)}
+                        onMouseEnter={() => setHoveredItem(item.public_id)}
                         onMouseLeave={() => setHoveredItem(null)}
                     >
                         {/* Image - clean and plain */}
                         <img
-                            src={item.image || "/placeholder.svg"}
-                            alt={item.title}
+                            src={item.url || "/placeholder.svg"}
+                            alt={item.alt_text}
                             className="w-full h-full object-cover"
                         />
 
@@ -121,7 +97,7 @@ export function Gallery() {
                             className={`
                     absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
                     transition-opacity duration-300
-                    ${hoveredItem === item.id ? 'opacity-100' : 'opacity-0'}
+                    ${hoveredItem === item.public_id ? 'opacity-100' : 'opacity-0'}
                 `}
                         />
 
@@ -130,15 +106,15 @@ export function Gallery() {
                             className={`
                     absolute inset-0 flex flex-col justify-end p-4
                     transition-opacity duration-300
-                    ${hoveredItem === item.id ? 'opacity-100' : 'opacity-0'}
+                    ${hoveredItem === item.public_id ? 'opacity-100' : 'opacity-0'}
                 `}
                         >
                             <div className="text-white">
                                 <h3 className="font-semibold text-sm mb-1.5 line-clamp-2 leading-tight">
-                                    {item.title}
+                                    {item.name}
                                 </h3>
                                 <p className="text-accent font-bold text-lg mb-3">
-                                    NPR.{item.price}
+                                    NPR.{item.current_price}
                                 </p>
 
                                 <Button

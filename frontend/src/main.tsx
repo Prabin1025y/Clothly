@@ -18,6 +18,7 @@ import { QueryProvider } from './provider/QueryProvider.tsx'
 import OrderSuccessPage from './pages/OrderSuccess.tsx'
 import OrderFailedPage from './pages/OrderFailed.tsx'
 import OrdersPage from './pages/Orders.tsx'
+import ScrollToTop from './components/ScrollToTop.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -28,6 +29,7 @@ if (!PUBLISHABLE_KEY) {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
+      <ScrollToTop />
       <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
         <QueryProvider>
           <NavBar />

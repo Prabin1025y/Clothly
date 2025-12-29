@@ -72,6 +72,10 @@ const ProductListing = () => {
 
     }, [ data ])
 
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }, [ page ]);
+
 
 
     const products = data?.data ?? []

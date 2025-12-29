@@ -61,13 +61,19 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
     }
 
     useEffect(() => {
+        if (!data) return;
+
         setQuantity(Number(data?.cart_quantity))
-        setSelectedColor(data?.all_variants?.find(item => item.color == data?.color) ?? null)
+        const nextSelectedColor = data?.all_variants?.find(item => item.color == data?.color) ?? null
+        setSelectedColor(nextSelectedColor)
+
+        if (!nextSelectedColor) return;
+        setSelectedSize(nextSelectedColor?.sizes?.find(item => item.size == data?.size) ?? null)
     }, [ data ])
 
-    useEffect(() => {
-        setSelectedSize(selectedColor?.sizes?.find(item => item.size == data?.size) ?? null)
-    }, [ selectedColor ])
+    // useEffect(() => {
+    //     setSelectedSize(selectedColor?.sizes?.find(item => item.size == data?.size) ?? null)
+    // }, [ selectedColor ])
 
     if (!isOpen) return null;
 
@@ -83,7 +89,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
                 {
                     (() => {
 
-                        if (cartItemId === -1 || isLoading)
+                        if (cartItemId === -1 || isLoading || !data)
                             return <ProductDetailsSkeleton onClose={onClose} />
 
                         if (isError)
@@ -112,6 +118,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
                                     </EmptyContent>
                                 </Empty>
                             );
+
 
                         return <div className="relative w-full max-w-2xl bg-card rounded-2xl shadow-2xl overflow-hidden">
                             {/* Close button */}
@@ -167,11 +174,11 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
                                                 <button
                                                     key={color.color}
                                                     onClick={() => setSelectedColor(color)}
-                                                    className={`w-10 h-10 rounded-full transition-all duration-200 ${selectedColor?.color === color.color
+                                                    className={`w-10 h-10 border border-black rounded-full transition-all duration-200 ${selectedColor?.color === color.color
                                                         ? "ring-2 ring-offset-2 ring-primary ring-offset-background scale-110"
                                                         : "hover:scale-105"
                                                         }`}
-                                                    style={{ backgroundColor: "yellow" }}
+                                                    style={{ backgroundColor: color.hex_color }}
                                                     // todo
                                                     title={color.color}
                                                     aria-label={`Select ${color.color} color`}

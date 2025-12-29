@@ -8,7 +8,7 @@ export interface CreateOrderDto {
 export interface OrderType {
     product_id: string;
     public_id: string;
-    variant_id: string;
+    variant_id: number;
     product_name: string;
     quantity: number;
     unit_price: string;

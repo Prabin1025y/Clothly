@@ -26,7 +26,7 @@ export interface GetCartItemsResponseType {
 }
 
 export interface addItemToCartDto {
-    variantId: string,
+    variantId: number,
     quantity: number,
     url: string,
     alt_text: string,
@@ -44,17 +44,19 @@ export interface GetCartItemDetailResponseType_SizeVariant {
 
 export interface GetCartItemDetailResponseType_ProductVariant {
     color: string;
+    hex_color: string;
     sizes: GetCartItemDetailResponseType_SizeVariant[];
 };
 
 export interface GetCartItemDetailResponseType {
     name: string;
     short_description: string;
-    variant_id: string; // The data sample uses a string "9" here
+    variant_id: number; // The data sample uses a string "9" here
     current_price: string; // The data sample uses a string "42999.00" here
     original_price: string; // The data sample uses a string "45000.00" here
     size: string;
     color: string;
+    hex_color: string;
     available: number;
     cart_quantity: number;
     cart_item_id: string;

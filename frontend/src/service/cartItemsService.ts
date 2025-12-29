@@ -12,7 +12,7 @@ export const cartItemsServices = {
         return data;
     },
 
-    deleteCartItem: async (variantId: string): Promise<void> => {
+    deleteCartItem: async (variantId: number): Promise<void> => {
         await axiosClient.delete(`/api/carts/delete-cart-item/${variantId}`);
     },
 
