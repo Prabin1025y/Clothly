@@ -16,9 +16,9 @@ export const addReview = async (req, res) => {
         } = parsed;
 
         //testing purpose only
-        const userId = req.userId
-
-        await client.query("BEGIN");
+        const userId = req.userId || 1 //TODO remove this in production
+        if (!userId)
+            return res.status(401).json({ message: "Please log in first!!" });
 
         const data = await client.query(`
                 SELECT o.id as order_id, o.status
@@ -37,6 +37,7 @@ export const addReview = async (req, res) => {
 
         const is_verified_purchase = ['delivered', 'refunded', 'returned'].includes(order.status);
 
+        await client.query("BEGIN");
         const review = await client.query(`
                 INSERT INTO reviews (
                     product_id,
@@ -69,5 +70,19 @@ export const addReview = async (req, res) => {
         logger.error("Error in adding review: ", error)
     } finally {
         client.release()
+    }
+}
+
+export const getReview = async (req, res) => {
+    try {
+
+        const productId = req.params.id
+        if (!productId)
+            return res.status(404).json({ message: "No such product found!!" });
+
+
+
+    } catch (error) {
+
     }
 }
