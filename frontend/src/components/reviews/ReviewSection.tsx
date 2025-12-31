@@ -5,6 +5,8 @@ import { Heart, MoreVertical } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import ReviewForm from "./ReviewForm"
 import { formatDistanceToNow } from "date-fns"
+import { useGetReviews } from "@/hooks/useReviews"
+import type { ReviewType } from "@/type/review"
 
 export interface Comment {
     id: string
@@ -20,68 +22,81 @@ export interface Comment {
     isOwn: boolean
 }
 
-interface CommentSectionProps {
-    comments: Comment[]
-    onAddComment: (comment: Omit<Comment, "id" | "timestamp" | "likes" | "liked">) => void
-    onLike: (commentId: string) => void
-    onDelete?: (commentId: string) => void
-    onEdit?: (commentId: string, content: string) => void
+interface ReviewSectionProps {
+    productId: string
 }
 
-export default function ReviewSection({ comments, onAddComment, onLike, onDelete, onEdit }: CommentSectionProps) {
-    const [ hoveredCommentId, setHoveredCommentId ] = useState<string | null>(null)
+export default function ReviewSection({ productId }: ReviewSectionProps) {
+    // const [ hoveredCommentId, setHoveredCommentId ] = useState<string | null>(null)
+
+    const { data, isFetching, isLoading, isError, error } = useGetReviews(productId);
+
 
     return (
         <div className="flex flex-col gap-6">
             {/* Comments List */}
             <div className="flex flex-col gap-4 max-h-96 overflow-y-auto pr-2">
-                {comments.map((comment) => (
-                    <ReviewCard
-                        key={comment.id}
-                        comment={comment}
-                        isHovered={hoveredCommentId === comment.id}
-                        onHover={setHoveredCommentId}
-                        onLike={onLike}
-                        onDelete={onDelete}
-                        onEdit={onEdit}
-                    />
-                ))}
+                {(
+                    () => {
+                        if (isError)
+                            return <div>Error...</div>
+
+                        if (isLoading || !data)
+                            return <div>Loading...</div>
+
+                        const reviews = data;
+
+                        return reviews.map((review) => (
+                            <ReviewCard
+                                key={review.id}
+                                review={review}
+                            // isHovered={hoveredCommentId === review.id}
+                            // onHover={setHoveredCommentId}
+                            // onLike={onLike}
+                            // onDelete={onDelete}
+                            // onEdit={onEdit}
+                            />
+                        ))
+                    }
+                )()
+                }
             </div>
 
             {/* Add Comment Form */}
             <div className="border-t border-border pt-4">
-                <ReviewForm onSubmit={onAddComment} />
+                <ReviewForm />
             </div>
         </div>
     )
 }
 
-interface CommentCardProps {
-    comment: Comment
-    isHovered: boolean
-    onHover: (id: string | null) => void
-    onLike: (commentId: string) => void
-    onDelete?: (commentId: string) => void
-    onEdit?: (commentId: string, content: string) => void
+interface ReviewCardProps {
+    review: ReviewType
+    // isHovered: boolean
+    // onHover: (id: string | null) => void
+    // onLike: (commentId: string) => void
+    // onDelete?: (commentId: string) => void
+    // onEdit?: (commentId: string, content: string) => void
 }
 
-function ReviewCard({ comment, isHovered, onHover, onLike, onDelete, onEdit }: CommentCardProps) {
+function ReviewCard({ review }: ReviewCardProps) {
     const [ showMenu, setShowMenu ] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+    console.log(review.is_owner)
 
     return (
         <div
             className="group flex gap-3 pb-4 border-b border-border/50 last:border-b-0"
-            onMouseEnter={() => onHover(comment.id)}
+            // onMouseEnter={() => onHover(comment.id)}
             onMouseLeave={() => {
-                onHover(null)
+                // onHover(null)
                 setShowMenu(false)
             }}
         >
             {/* Avatar */}
             <Avatar className="h-10 w-10 flex-shrink-0">
-                <AvatarImage src={comment.author.avatar || "/placeholder.svg"} alt={comment.author.name} />
-                <AvatarFallback>{comment.author.name[ 0 ]}</AvatarFallback>
+                <AvatarImage src={review.image_url} alt={review.full_name} />
+                <AvatarFallback>{review.full_name}</AvatarFallback>
             </Avatar>
 
             {/* Comment Content */}
@@ -89,9 +104,9 @@ function ReviewCard({ comment, isHovered, onHover, onLike, onDelete, onEdit }: C
                 <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                         <div className="flex items-center gap-2">
-                            <p className="font-semibold text-sm text-foreground">{comment.author.name}</p>
+                            <p className="font-semibold text-sm text-foreground">{review.full_name}</p>
                             <p className="text-xs text-muted-foreground">
-                                {formatDistanceToNow(comment.timestamp, { addSuffix: true })}
+                                {formatDistanceToNow(review.created_at, { addSuffix: true })}
                             </p>
                         </div>
                     </div>
@@ -99,18 +114,18 @@ function ReviewCard({ comment, isHovered, onHover, onLike, onDelete, onEdit }: C
                     {/* Like Button & Menu */}
                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
-                            onClick={() => onLike(comment.id)}
+                            // onClick={() => onLike(comment.id)}
                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors"
                         >
                             <Heart
                                 size={16}
-                                className={`transition-colors ${comment.liked ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                                className={`transition-colors ${true ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
                             />
-                            <span className="text-xs font-medium text-foreground">{comment.likes}</span>
+                            <span className="text-xs font-medium text-foreground">{review.helpful_count}</span>
                         </button>
 
                         {/* Menu Button */}
-                        {comment.isOwn && (
+                        {review.is_owner && (
                             <div className="relative">
                                 <button
                                     onClick={() => setShowMenu(!showMenu)}
@@ -135,7 +150,7 @@ function ReviewCard({ comment, isHovered, onHover, onLike, onDelete, onEdit }: C
                                         <button
                                             onClick={() => {
                                                 setShowMenu(false)
-                                                onDelete?.(comment.id)
+                                                // onDelete?.(comment.id)
                                             }}
                                             className="w-full text-left px-4 py-2 text-sm hover:bg-destructive/10 text-destructive transition-colors"
                                         >
@@ -149,14 +164,14 @@ function ReviewCard({ comment, isHovered, onHover, onLike, onDelete, onEdit }: C
                 </div>
 
                 {/* Comment Text */}
-                <p className="text-sm text-foreground mt-2 leading-relaxed">{comment.content}</p>
+                <p className="text-sm text-foreground mt-2 leading-relaxed">{review.body}</p>
 
                 {/* Comment Image */}
-                {comment.image && (
+                {review.images.length > 0 && (
                     <div className="mt-3 rounded-lg overflow-hidden border border-border">
                         <img
-                            src={comment.image || "/placeholder.svg"}
-                            alt="Comment attachment"
+                            src={review.images[ 0 ].url || "/placeholder.svg"}
+                            alt={review.images[ 0 ].alt_text}
                             className="w-full max-h-48 object-cover"
                         />
                     </div>

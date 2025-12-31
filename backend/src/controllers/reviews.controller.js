@@ -91,6 +91,8 @@ export const getReview = async (req, res) => {
                 rv.id,
                 rv.user_id,
                 ur.clerk_id,
+                ur.full_name,
+                ur.image_url,
                 rv.order_id,
                 rv.product_id,
                 rv.rating,
@@ -111,7 +113,7 @@ export const getReview = async (req, res) => {
 
         const responseReviews = reviews.map(review => ({
             ...review,
-            isOwner: userId ? review.clerk_id === userId : false
+            is_owner: userId ? review.clerk_id === userId : false
         }))
 
         console.log(responseReviews);

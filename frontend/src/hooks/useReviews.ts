@@ -17,13 +17,13 @@ export const reviewKeys = {
 
 export function useAddReview() {
     const queryClient = useQueryClient();
-    const { isSignedIn } = useUser();
+    const { isSignedIn, user } = useUser();
 
     return useMutation({
         mutationFn: reviewServices.addReview,
 
         onMutate: async (reviewInfo: AddReviewDto) => {
-            if (!isSignedIn)
+            if (!isSignedIn || !user)
                 throw new Error("Please sign in to add review!!");
 
             await queryClient.cancelQueries({ queryKey: reviewKeys.list(reviewInfo.product_id) });
@@ -43,7 +43,10 @@ export function useAddReview() {
                         is_verified_purchase: false,
                         order_id: `tempId--${Date.now()}-${Math.round(Math.random() * 1E9)}`,
                         user_id: `tempId--${Date.now()}-${Math.round(Math.random() * 1E9)}`,
-                        is_owner: false
+                        is_owner: false,
+                        clerk_id: user.id || `tempId--${Date.now()}-${Math.round(Math.random() * 1E9)}`,
+                        full_name: user.fullName ?? "Unknown User",
+                        image_url: user.imageUrl
                     }
 
                     return [ newReview, ...old ];

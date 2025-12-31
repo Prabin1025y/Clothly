@@ -14,6 +14,9 @@ export interface ReviewImage {
 export interface ReviewType {
     id: string;
     user_id: string;
+    clerk_id: string;
+    full_name: string;
+    image_url: string;
     product_id: string;
     order_id: string;
     rating: number;

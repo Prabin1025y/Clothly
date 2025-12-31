@@ -8,11 +8,11 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Upload, X } from "lucide-react"
 import type { Comment } from "./ReviewSection"
 
-interface CommentFormProps {
-    onSubmit: (comment: Omit<Comment, "id" | "timestamp" | "likes" | "liked">) => void
-}
+// interface CommentFormProps {
+//     onSubmit: (comment: Omit<Comment, "id" | "timestamp" | "likes" | "liked">) => void
+// }
 
-export default function ReviewForm({ onSubmit }: CommentFormProps) {
+export default function ReviewForm() {
     const [ content, setContent ] = useState("")
     const [ image, setImage ] = useState<string | null>(null)
     const [ uploadProgress, setUploadProgress ] = useState(0)
@@ -52,15 +52,15 @@ export default function ReviewForm({ onSubmit }: CommentFormProps) {
         e.preventDefault()
         if (!content.trim()) return
 
-        onSubmit({
-            author: {
-                name: "@currentuser",
-                avatar: "/user-avatar.jpg",
-            },
-            content: content.trim(),
-            image: image || undefined,
-            isOwn: true,
-        })
+        // onSubmit({
+        //     author: {
+        //         name: "@currentuser",
+        //         avatar: "/user-avatar.jpg",
+        //     },
+        //     content: content.trim(),
+        //     image: image || undefined,
+        //     isOwn: true,
+        // })
 
         setContent("")
         setImage(null)

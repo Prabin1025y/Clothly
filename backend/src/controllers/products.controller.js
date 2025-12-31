@@ -266,6 +266,7 @@ export const getProductBySlug = async (req, res) => {
             SELECT
                 p.sku AS product_sku,
                 p.public_id,
+                p.id,
                 p.name,
                 p.slug,
                 p.description,

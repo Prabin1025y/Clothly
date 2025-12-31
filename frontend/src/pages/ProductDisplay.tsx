@@ -18,6 +18,7 @@ import { useAddItemToCart } from '@/hooks/useCartItems';
 import { productKeys, useGetProductInfo, useGetRecommendedProducts } from '@/hooks/useProducts';
 import { groupProductVariants } from '@/service/utilsService';
 import { useQueryClient } from '@tanstack/react-query';
+import ReviewSection from '@/components/reviews/ReviewSection';
 
 export default function ProductPage() {
     const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
@@ -324,7 +325,7 @@ export default function ProductPage() {
                             </ul>
                         </TabsContent>
                         <TabsContent value="reviews" className="bg-card border border-border rounded-xl p-6 pt-10">
-
+                            <ReviewSection productId={productInfo.id} />
                         </TabsContent>
                     </Tabs>
                 </section>
