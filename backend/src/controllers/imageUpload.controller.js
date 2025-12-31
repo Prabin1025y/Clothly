@@ -35,18 +35,41 @@ export const uploadImageToCloudinary = async (req, res) => {
 export const uploadImageToDisk = async (req, res) => {
     try {
         if (!req.file) {
-            return res.status(400).json({ error: 'No image file provided.' });
+            return res.status(400).json({ message: 'No image file provided.' });
         }
 
-        console.log(req.file)
+        // Construct image URL
+        const imageUrl = `${process.env.BACKEND_URL}/uploads/${req.file.filename}`;
 
-        // // Return the Cloudinary result (key fields)
-        return res.json({
-            message: 'Upload successful',
-            url: `${process.env.BACKEND_URL}/${req.file?.filename}`
+        // Image metadata
+        const imageData = {
+            url: imageUrl,
+            filename: req.file.filename,
+            originalName: req.file.originalname,
+            path: req.file.path,
+            size: req.file.size,
+            mimeType: req.file.mimetype,
+            uploadedAt: new Date().toISOString()
+        };
+
+        console.log('Image uploaded successfully:', {
+            filename: req.file.filename,
+            size: `${(req.file.size / 1024).toFixed(2)} KB`,
+            mimetype: req.file.mimetype
         });
+
+        return res.status(200).json(imageData);
     } catch (err) {
         console.error('Upload error:', err);
-        return res.status(500).json({ error: 'Upload failed', details: err.message });
+
+        // Clean up file if it was uploaded but processing failed
+        if (req.file?.path && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+
+        return res.status(500).json({
+            message: process.env.NODE_ENV === 'development' ? err.message : "Internal Server Error!"
+        });
+
     }
 }

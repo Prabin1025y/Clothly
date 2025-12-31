@@ -1,11 +1,10 @@
 import { reviewSchema } from "../validation/review.schema.js";
-import { pool } from "../config/db.js";
+import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 
 export const addReview = async (req, res) => {
     const client = await pool.connect();
     try {
-        logger.debug("starting");
         const parsed = reviewSchema.parse(req.body);
         const {
             product_id,
@@ -30,7 +29,7 @@ export const addReview = async (req, res) => {
         console.log(data)
 
         if (data.rowCount === 0) {
-            return res.status(401).json({ success: false, message: "You have not tried this product yet!!" });
+            return res.status(401).json({ message: "You have not tried this product yet!!" });
         }
 
         const order = data.rows[0];
@@ -57,13 +56,18 @@ export const addReview = async (req, res) => {
             rating,
             title,
             body,
-            images,
+            JSON.stringify(images ?? []),
             is_verified_purchase
         ])
 
+        if (review.rowCount === 0)
+            throw new Error("No review is added!!");
+
+        console.log(review.rows)
+
         await client.query("COMMIT");
 
-        return res.status(201).json({ success: true, data: review })
+        return res.status(201).json(review.rows)
 
     } catch (error) {
         await client.query("ROLLBACK");
@@ -80,9 +84,34 @@ export const getReview = async (req, res) => {
         if (!productId)
             return res.status(404).json({ message: "No such product found!!" });
 
+        const reviews = await sql`
+            SELECT 
+                id,
+                user_id,
+                order_id,
+                rating,
+                title,
+                body,
+                images,
+                is_verified_purchase,
+                helpful_count,
+                created_at
+            FROM reviews
+            WHERE product_id=${productId}
+                AND deleted_at IS NULL
+        `
 
+        if (reviews.length === 0)
+            return res.status(200).json([])
+
+        // console.log(reviews);
+
+        res.status(200).json(reviews);
 
     } catch (error) {
-
+        logger.error("Error in adding review: ", error)
+        res.status(500).json({
+            message: process.env.NODE_ENV === 'development' ? err.message : "Internal Server Error!"
+        })
     }
 }

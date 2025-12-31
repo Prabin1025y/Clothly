@@ -17,6 +17,7 @@ import orderRouter from "./routes/orders.router.js"
 import { bufferUpload, diskUpload } from "./config/multer.js"
 import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageUpload.controller.js"
 import paymentRouter from "./routes/payment.router.js"
+import imagesRouter from "./routes/images.router.js"
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err)
@@ -48,6 +49,7 @@ app.use("/api/carts", cartRouter);
 app.use("/api/shipping-addresses", shippingRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/payment", paymentRouter);
+app.use("/api/images", imagesRouter);
 
 app.get("/", (req, res) => {
     res.json("Api working fine");

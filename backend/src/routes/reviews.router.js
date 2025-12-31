@@ -1,10 +1,12 @@
 import { Router } from "express";
-import { addReview } from "../controllers/reviews.controller.js";
+import { addReview, getReview } from "../controllers/reviews.controller.js";
 import isAuthenticated from "../middlewares/isAuthenticated.js";
 
 
 const reviewsRouter = Router()
 
-reviewsRouter.post("/add-review", isAuthenticated, addReview);
+reviewsRouter.post("/add-review", addReview); //TODO add isauthenticatd
+
+reviewsRouter.get("/:id", getReview);
 
 export default reviewsRouter
