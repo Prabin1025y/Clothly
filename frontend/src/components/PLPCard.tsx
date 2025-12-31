@@ -1,4 +1,4 @@
-import type { Product_ProductListingType } from '@/pages/ProductListing'
+import type { GetProductResponsetype } from '@/type/product'
 import { Star } from 'lucide-react'
 import React from 'react'
 import { Link } from 'react-router'
@@ -7,7 +7,7 @@ type PLPCardProps = {
     isHovered: Boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
-    data: Product_ProductListingType
+    data: GetProductResponsetype[ 'data' ][ number ]
 }
 
 const PLPCard = ({ isHovered = false, setHoveredCardId, id, data }: PLPCardProps) => {

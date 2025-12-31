@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import PLPCardSkeleton from "@/Skeletons/PLPCardSkeleton"
 import FunctionalPagination from "@/components/Pagination"
 import { productKeys, useGetProducts } from "@/hooks/useProducts"
-import type { ProductFilters } from "@/type/product"
+import type { GetProductResponsetype, ProductFilters } from "@/type/product"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Button } from "@/components/ui/button"
 
@@ -78,7 +78,7 @@ const ProductListing = () => {
 
 
 
-    const products = data?.data ?? []
+    const products: GetProductResponsetype[ 'data' ] = data?.data ?? []
     const totalProductsCount = data?.meta.totalProducts ?? 0
 
     return (

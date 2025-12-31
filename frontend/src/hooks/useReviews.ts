@@ -2,7 +2,7 @@ import { handleApiError } from "@/lib/axios";
 import { reviewServices } from "@/service/reviewService";
 import type { AddReviewDto, ReviewType } from "@/type/review";
 import { useUser } from "@clerk/clerk-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner";
 
 export const reviewKeys = {
@@ -67,5 +67,14 @@ export function useAddReview() {
             else
                 toast.error(handleApiError(error))
         }
+    })
+}
+
+export function useGetReviews(productId: string) {
+    return useQuery({
+        queryKey: reviewKeys.list(productId),
+        queryFn: () => reviewServices.getReviews(productId),
+        staleTime: 5 * 60 * 1000,
+        enabled: !!productId
     })
 }

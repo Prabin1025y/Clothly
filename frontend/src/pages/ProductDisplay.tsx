@@ -323,6 +323,9 @@ export default function ProductPage() {
                                 ))}
                             </ul>
                         </TabsContent>
+                        <TabsContent value="reviews" className="bg-card border border-border rounded-xl p-6 pt-10">
+
+                        </TabsContent>
                     </Tabs>
                 </section>
 
