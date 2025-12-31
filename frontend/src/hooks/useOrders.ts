@@ -64,7 +64,7 @@ export function useCancelOrder() {
         mutationFn: orderServices.cancelOrder,
 
         onMutate: async (public_id: string) => {
-            queryClient.cancelQueries({ queryKey: orderKeys.all });
+            await queryClient.cancelQueries({ queryKey: orderKeys.all });
 
             const previousOrders = queryClient.getQueriesData({ queryKey: orderKeys.lists() });
 

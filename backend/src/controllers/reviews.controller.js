@@ -1,6 +1,8 @@
 import { reviewSchema } from "../validation/review.schema.js";
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
+import { getAuth } from "@clerk/express";
+import { success } from "zod";
 
 export const addReview = async (req, res) => {
     const client = await pool.connect();
@@ -63,11 +65,9 @@ export const addReview = async (req, res) => {
         if (review.rowCount === 0)
             throw new Error("No review is added!!");
 
-        console.log(review.rows)
-
         await client.query("COMMIT");
 
-        return res.status(201).json(review.rows)
+        return res.status(201).json({ product_id: product_id.toString() })
 
     } catch (error) {
         await client.query("ROLLBACK");
@@ -84,34 +84,44 @@ export const getReview = async (req, res) => {
         if (!productId)
             return res.status(404).json({ message: "No such product found!!" });
 
+        const { userId } = getAuth(req)
+
         const reviews = await sql`
             SELECT 
-                id,
-                user_id,
-                order_id,
-                rating,
-                title,
-                body,
-                images,
-                is_verified_purchase,
-                helpful_count,
-                created_at
-            FROM reviews
-            WHERE product_id=${productId}
-                AND deleted_at IS NULL
+                rv.id,
+                rv.user_id,
+                ur.clerk_id,
+                rv.order_id,
+                rv.product_id,
+                rv.rating,
+                rv.title,
+                rv.body,
+                rv.images,
+                rv.is_verified_purchase,
+                rv.helpful_count,
+                rv.created_at
+            FROM reviews rv
+            LEFT JOIN users ur ON ur.id = rv.user_id
+            WHERE rv.product_id=${productId}
+                AND rv.deleted_at IS NULL
         `
 
         if (reviews.length === 0)
             return res.status(200).json([])
 
-        // console.log(reviews);
+        const responseReviews = reviews.map(review => ({
+            ...review,
+            isOwner: userId ? review.clerk_id === userId : false
+        }))
 
-        res.status(200).json(reviews);
+        console.log(responseReviews);
+
+        res.status(200).json(responseReviews);
 
     } catch (error) {
         logger.error("Error in adding review: ", error)
         res.status(500).json({
-            message: process.env.NODE_ENV === 'development' ? err.message : "Internal Server Error!"
+            message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
         })
     }
 }

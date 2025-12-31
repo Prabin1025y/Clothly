@@ -96,7 +96,7 @@ export function useDeleteShippingAddress() {
             if (!userId)
                 throw new Error("Sign in first!");
 
-            queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) });
+            await queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) });
 
             const previousAddresses = queryClient.getQueriesData({ queryKey: shippingAddressKeys.list(userId) });
 
@@ -139,7 +139,7 @@ export function useMakeAddressDefault() {
             if (!userId)
                 throw Error("Please Sign in first!!");
 
-            queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) })
+            await queryClient.cancelQueries({ queryKey: shippingAddressKeys.list(userId) })
 
             const previousData = queryClient.getQueriesData({ queryKey: shippingAddressKeys.list(userId) });
 
