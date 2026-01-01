@@ -1,16 +1,10 @@
-"use client"
 
 import type React from "react"
-
 import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Upload, X } from "lucide-react"
-import type { Comment } from "./ReviewSection"
-
-// interface CommentFormProps {
-//     onSubmit: (comment: Omit<Comment, "id" | "timestamp" | "likes" | "liked">) => void
-// }
+import { useAddReview } from "@/hooks/useReviews"
 
 export default function ReviewForm() {
     const [ content, setContent ] = useState("")
@@ -18,6 +12,8 @@ export default function ReviewForm() {
     const [ uploadProgress, setUploadProgress ] = useState(0)
     const [ isUploading, setIsUploading ] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const addReview = useAddReview();
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[ 0 ]
