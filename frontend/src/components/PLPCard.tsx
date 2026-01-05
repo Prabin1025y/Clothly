@@ -4,7 +4,7 @@ import React from 'react'
 import { Link } from 'react-router'
 
 type PLPCardProps = {
-    isHovered: Boolean
+    isHovered: boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
     data: GetProductResponsetype[ 'data' ][ number ]

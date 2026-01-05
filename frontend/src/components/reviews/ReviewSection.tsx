@@ -6,20 +6,6 @@ import { AlertOctagon, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useQueryClient } from "@tanstack/react-query";
 
-// export interface Comment {
-//     id: string
-//     author: {
-//         name: string
-//         avatar: string
-//     }
-//     content: string
-//     image?: string
-//     timestamp: Date
-//     likes: number
-//     liked: boolean
-//     isOwn: boolean
-// }
-
 interface ReviewSectionProps {
     productId: string
 }

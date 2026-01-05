@@ -52,7 +52,7 @@ app.use("/api/payment", paymentRouter);
 app.use("/api/images", imagesRouter);
 
 app.get("/", (req, res) => {
-    res.json("Api working fine");
+    res.send("Api working fine");
 })
 
 app.get("/api/hello", isAuthenticated, (req, res) => {

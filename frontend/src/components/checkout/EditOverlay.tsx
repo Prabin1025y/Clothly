@@ -50,7 +50,7 @@ export function ProductEditOverlay({ isOpen, onClose, cartItemId = -1, variantId
                 color: selectedColor?.color ?? "",
                 quantity: quantity,
                 size: selectedSize.size,
-                current_price: Number(data?.current_price) ?? 0
+                current_price: Number(data?.current_price || 0)
             })
         } catch (error) {
             console.error("Error occured while updateing cart item:", error)

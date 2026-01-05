@@ -29,7 +29,7 @@ export default function CheckoutProgressBar({ currentStep, steps }: ProgressBarP
                 {steps.map((step) => {
                     const isCompleted = currentStep > step.id
                     const isCurrent = currentStep === step.id
-                    const isPending = currentStep < step.id
+                    // const isPending = currentStep < step.id
 
                     return (
                         <div key={step.id} className="flex flex-col items-center relative" style={{ zIndex: 2 }}>

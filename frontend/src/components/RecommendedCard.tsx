@@ -3,7 +3,7 @@ import { Star } from "lucide-react"
 import { Link } from "react-router"
 
 type RecommendedCardProps = {
-    isHovered: Boolean
+    isHovered: boolean
     setHoveredCardId: React.Dispatch<React.SetStateAction<null | number>>
     id: number
     product: RecommendedProduct

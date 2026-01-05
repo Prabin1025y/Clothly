@@ -133,7 +133,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
                                 variant="outline"
                                 // disabled={cartItemsState !== "none"}
                                 size="sm"
-                                onClick={() => handleDeleteItem(Number(item.variant_id) ?? -1)}
+                                onClick={() => handleDeleteItem(Number(item.variant_id) || -1)}
                                 className="flex-1 text-xs text-red-600 hover:text-red-700 bg-transparent"
                             >
                                 Remove

@@ -14,7 +14,7 @@ const ProductListing = () => {
     const [ searchQuery, setSearchQuery ] = useState("")
     const [ heading, setHeading ] = useState("You Might Like These")
     const [ hoveredCardId, setHoveredCardId ] = useState<null | number>(null)
-    const [ showFilters, setShowFilters ] = useState<Boolean>(true)
+    const [ showFilters, setShowFilters ] = useState<boolean>(true)
 
     //metadata to show.
     const [ limit, setLimit ] = useState(12);

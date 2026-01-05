@@ -37,7 +37,7 @@ export default function PaymentStep({ totalPrice }: { totalPrice: number }) {
                 throw new Error("Order could not be placed")
             }
 
-            let formData: FormDataType = {
+            const formData: FormDataType = {
                 amount: totalPrice.toString(),
                 tax_amount: "0",
                 total_amount: totalPrice.toString(),

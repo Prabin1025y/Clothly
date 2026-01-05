@@ -36,7 +36,7 @@ export default function ShippingInfo() {
         if (data && Array.isArray(data) && data?.length !== 0)
             setCurrentShippingAddress(data?.find(address => address.is_default) ?? data[ 0 ])
         // setSelectedAddressId(Number(data?.data?.find(address => address.is_default)?.id) ?? Number(data?.data[ 0 ].id))
-    }, [ data ])
+    }, [ data, setCurrentShippingAddress ])
 
     if (isLoading)
         return <div>Loading...</div>

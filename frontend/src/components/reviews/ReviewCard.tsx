@@ -46,7 +46,8 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                         >
                             <Heart
                                 size={16}
-                                className={`transition-colors ${false ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                                // className={`transition-colors ${false ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                                className={`transition-colors text-muted-foreground`}
                             />
                             <span className="text-xs font-medium text-foreground">{review.helpful_count}</span>
                         </button>
