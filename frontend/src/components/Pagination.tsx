@@ -12,7 +12,7 @@ import { useSearchParams } from 'react-router'
 
 export default function FunctionalPagination({ limit, totalProducts, currentPage = 1 }: { limit: number, totalProducts: number, currentPage: number }) {
     const [ page, setPage ] = useState(currentPage)
-    const [ searchParams, setSearchParams ] = useSearchParams()
+    const [ _searchParams, setSearchParams ] = useSearchParams()
     const totalPages = Math.ceil(totalProducts / limit)
 
 

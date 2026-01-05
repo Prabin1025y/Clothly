@@ -48,6 +48,8 @@ export const uploadImage = async (
                 }
             }
         )
+
+        return data;
     } catch (error) {
         console.error(error);
         toast.error(handleApiError(error));
