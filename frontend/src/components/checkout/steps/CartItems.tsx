@@ -8,6 +8,7 @@ import { Link } from "react-router";
 import { ProductEditOverlay } from "../EditOverlay";
 import { useState } from "react";
 import { useDeleteCartItems } from "@/hooks/useCartItems";
+import { CartItemsSkeleton } from "@/Skeletons/CartItemSkeleton";
 
 
 interface CartItemsStepProps {
@@ -42,7 +43,7 @@ export default function CartItemsStep({ cartItems, isFetching, isLoading, isErro
     }
 
     if (isLoading)
-        return <div>Loading Cart...</div>
+        return <CartItemsSkeleton />
 
     if (isError)
         return <Empty >

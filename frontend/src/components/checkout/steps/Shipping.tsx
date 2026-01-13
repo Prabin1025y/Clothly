@@ -10,6 +10,7 @@ import { useDeleteShippingAddress, useMakeAddressDefault, useShippingAddresses }
 import { useQueryClient } from "@tanstack/react-query"
 import { useInfoStore } from "@/zustand/infoStore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { ShippingInfoSkeleton } from "@/Skeletons/ShippingAddressSkeleton"
 
 
 export default function ShippingInfo() {
@@ -39,7 +40,7 @@ export default function ShippingInfo() {
     }, [ data, setCurrentShippingAddress ])
 
     if (isLoading)
-        return <div>Loading...</div>
+        return <ShippingInfoSkeleton />
 
     if (isError)
         return (
