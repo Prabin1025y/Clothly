@@ -7,7 +7,7 @@ export interface AddReviewDto {
 }
 
 export interface ReviewImage {
-    url: string;
+    imageUrl: string;
     alt_text: string;
 }
 

@@ -32,7 +32,9 @@ const PORT = process.env.PORT
 const app = express()
 
 app.use(express.json())
-app.use(express.static("uploads"))
+// Serve files from the "uploads" folder under the "/uploads" URL prefix
+// e.g. http://localhost:PORT/uploads/<filename>
+app.use("/uploads", express.static("uploads"))
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
     origin: process.env.FRONTEND_URL,

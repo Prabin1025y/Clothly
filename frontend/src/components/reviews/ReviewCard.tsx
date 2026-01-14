@@ -13,6 +13,8 @@ export default function ReviewCard({ review }: ReviewCardProps) {
     const [ showMenu, setShowMenu ] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
 
+    console.log(review.images)
+
     return (
         <div
             className="group flex gap-3 pb-4 border-b border-border/50 last:border-b-0"
@@ -35,6 +37,8 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                             <p className="text-xs text-muted-foreground">
                                 {formatDistanceToNow(review.created_at, { addSuffix: true })}
                             </p>
+                            {review.is_verified_purchase && <p className="text-xs rounded-full text-green-500">verified purchase</p>}
+
                         </div>
                     </div>
 
@@ -96,11 +100,11 @@ export default function ReviewCard({ review }: ReviewCardProps) {
 
                 {/* Comment Image */}
                 {review.images.length > 0 && (
-                    <div className="mt-3 rounded-lg overflow-hidden border border-border">
+                    <div className="mt-3 overflow-hidden">
                         <img
-                            src={review.images[ 0 ].url || "/placeholder.svg"}
+                            src={review.images[ 0 ].imageUrl || "/placeholder.svg"}
                             alt={review.images[ 0 ].alt_text}
-                            className="w-full max-h-48 object-cover"
+                            className="max-h-48 object-cover rounded-lg"
                         />
                     </div>
                 )}

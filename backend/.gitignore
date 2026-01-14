@@ -2,3 +2,4 @@ node_modules
 init.sql
 temp.js
 .env
+uploads/

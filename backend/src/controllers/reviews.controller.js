@@ -1,19 +1,26 @@
-import { reviewSchema } from "../validation/review.schema.js";
+import { addReviewSchema, reviewSchema } from "../validation/review.schema.js";
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import { getAuth } from "@clerk/express";
-import { success } from "zod";
 
 export const addReview = async (req, res) => {
     const client = await pool.connect();
     try {
-        const parsed = reviewSchema.parse(req.body);
+        const formData = {
+            product_id: parseInt(req.body.product_id),
+            rating: parseInt(req.body.rating),
+            title: req.body.title,
+            body: req.body.body,
+            imageUrl: req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : ""
+        };
+
+        const parsed = addReviewSchema.parse(formData);
         const {
             product_id,
             rating,
             title,
             body,
-            images
+            imageUrl
         } = parsed;
 
         //testing purpose only
@@ -58,7 +65,10 @@ export const addReview = async (req, res) => {
             rating,
             title,
             body,
-            JSON.stringify(images ?? []),
+            JSON.stringify([{
+                imageUrl,
+                alt_text: "review Image of product"
+            }]),
             is_verified_purchase
         ])
 

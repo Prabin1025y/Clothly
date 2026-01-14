@@ -9,8 +9,6 @@ import { Upload, X } from "lucide-react"
 export default function ReviewForm() {
     const [ content, setContent ] = useState("")
     const [ image, setImage ] = useState<string | null>(null)
-    const [ uploadProgress, setUploadProgress ] = useState(0)
-    const [ isUploading, setIsUploading ] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     // const addReview = useAddReview();
@@ -19,27 +17,10 @@ export default function ReviewForm() {
         const file = e.target.files?.[ 0 ]
         if (!file) return
 
-        // Simulate upload progress
-        setIsUploading(true)
-        setUploadProgress(0)
-
-        const progressInterval = setInterval(() => {
-            setUploadProgress((prev) => {
-                if (prev >= 90) {
-                    clearInterval(progressInterval)
-                    return prev
-                }
-                return prev + Math.random() * 40
-            })
-        }, 100)
-
         // Read file as data URL
         const reader = new FileReader()
         reader.onload = (event) => {
             setImage(event.target?.result as string)
-            clearInterval(progressInterval)
-            setUploadProgress(100)
-            setTimeout(() => setIsUploading(false), 300)
         }
         reader.readAsDataURL(file)
     }
@@ -60,7 +41,6 @@ export default function ReviewForm() {
 
         setContent("")
         setImage(null)
-        setUploadProgress(0)
     }
 
     return (
@@ -93,25 +73,13 @@ export default function ReviewForm() {
                                 type="button"
                                 onClick={() => {
                                     setImage(null)
-                                    setUploadProgress(0)
+                                    if (fileInputRef.current)
+                                        fileInputRef.current.value = ""
                                 }}
                                 className="absolute -top-2 -right-2 p-1 bg-destructive rounded-full text-destructive-foreground hover:bg-destructive/90 transition-colors"
                             >
                                 <X size={16} />
                             </button>
-                        </div>
-                    )}
-
-                    {/* Upload Progress */}
-                    {isUploading && uploadProgress < 100 && (
-                        <div className="mt-3">
-                            <div className="w-full bg-border rounded-full h-2 overflow-hidden">
-                                <div
-                                    className="bg-primary h-full transition-all duration-300"
-                                    style={{ width: `${uploadProgress}%` }}
-                                />
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-1">Uploading... {Math.round(uploadProgress)}%</p>
                         </div>
                     )}
 
@@ -125,7 +93,7 @@ export default function ReviewForm() {
                             <Upload size={16} />
                             <span>Add image</span>
                         </button>
-                        <Button type="submit" disabled={!content.trim() || isUploading} className="px-6 py-1.5 h-auto text-sm">
+                        <Button type="submit" disabled={!content.trim()} className="px-6 py-1.5 h-auto text-sm">
                             Comment
                         </Button>
                     </div>
