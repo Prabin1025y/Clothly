@@ -37,6 +37,10 @@ export function useAddReview() {
 
                     const newReview: ReviewType = {
                         ...reviewInfo,
+                        images: [ {
+                            imageUrl: "/loading.png",
+                            alt_text: "Image of product"
+                        } ],
                         created_at: new Date().toISOString(),
                         helpful_count: 0,
                         id: `tempId--${Date.now()}-${Math.round(Math.random() * 1E9)}`,

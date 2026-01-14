@@ -4,18 +4,24 @@ import { useState, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Upload, X } from "lucide-react"
+import { useUser } from "@clerk/clerk-react"
+import type { AddReviewDto } from "@/type/review"
 // import { useAddReview } from "@/hooks/useReviews"
 
-export default function ReviewForm() {
+export default function ReviewForm({ productId }: { productId: string }) {
     const [ content, setContent ] = useState("")
     const [ image, setImage ] = useState<string | null>(null)
+    const [ imageFile, setImageFile ] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    const { user } = useUser();
 
     // const addReview = useAddReview();
 
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[ 0 ]
         if (!file) return
+        setImageFile(file);
 
         // Read file as data URL
         const reader = new FileReader()
@@ -38,6 +44,12 @@ export default function ReviewForm() {
         //     image: image || undefined,
         //     isOwn: true,
         // })
+        const formData = new FormData();
+        formData.append("product_id", productId);
+        formData.append("titile", "example titile");
+        formData.append("body", content);
+        if (imageFile)
+            formData.append("image", imageFile)
 
         setContent("")
         setImage(null)
@@ -47,7 +59,7 @@ export default function ReviewForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex gap-3">
                 <Avatar className="h-10 w-10 flex-shrink-0">
-                    <AvatarImage src="/user-avatar.jpg" alt="Your avatar" />
+                    <AvatarImage src={user?.imageUrl || "/placeholder.jpg"} alt={user?.fullName || "user avatar"} />
                     <AvatarFallback>Y</AvatarFallback>
                 </Avatar>
 

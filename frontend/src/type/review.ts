@@ -3,7 +3,7 @@ export interface AddReviewDto {
     rating: number;
     title: string;
     body: string;
-    images: ReviewImage[]
+    image: File | null
 }
 
 export interface ReviewImage {

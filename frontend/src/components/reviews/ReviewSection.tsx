@@ -69,7 +69,7 @@ export default function ReviewSection({ productId }: ReviewSectionProps) {
 
             {/* Add Comment Form */}
             <div className="border-t border-border pt-4">
-                <ReviewForm />
+                <ReviewForm productId={productId} />
             </div>
         </div>
     )
