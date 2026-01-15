@@ -18,6 +18,7 @@ import { bufferUpload, diskUpload } from "./config/multer.js"
 import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageUpload.controller.js"
 import paymentRouter from "./routes/payment.router.js"
 import imagesRouter from "./routes/images.router.js"
+import { isUserAdmin } from "./controllers/isAdmin.controller.js"
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err)
@@ -32,8 +33,6 @@ const PORT = process.env.PORT
 const app = express()
 
 app.use(express.json())
-// Serve files from the "uploads" folder under the "/uploads" URL prefix
-// e.g. http://localhost:PORT/uploads/<filename>
 app.use("/uploads", express.static("uploads"))
 app.use(express.urlencoded({ extended: true }));
 app.use(cors({
@@ -52,6 +51,7 @@ app.use("/api/shipping-addresses", shippingRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/images", imagesRouter);
+app.get("/api/isAdmin", isUserAdmin)
 
 app.get("/", (req, res) => {
     res.send("Api working fine");

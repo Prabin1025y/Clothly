@@ -57,15 +57,16 @@ export default function EditReviewPopup({ review, open, onOpenChange }: EditRevi
         if (!content.trim()) return
 
         try {
+            onOpenChange(false)
             await updateReview.mutateAsync({
                 reviewId: review.id,
                 productId: review.product_id,
                 body: content,
                 rating: rating,
                 image: imageFile,
-                imagePath: imageFile ? null : (image || null), // If new file uploaded, don't send path. Otherwise send existing path or null
+                imagePath: imageFile ? (image || null) : null, // If new file uploaded, don't send path. Otherwise send existing path or null
             })
-            onOpenChange(false)
+
         } catch (error) {
             // Error handling is done in the hook
         }

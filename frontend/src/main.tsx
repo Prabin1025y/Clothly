@@ -19,6 +19,7 @@ import OrderSuccessPage from './pages/OrderSuccess.tsx'
 import OrderFailedPage from './pages/OrderFailed.tsx'
 import OrdersPage from './pages/Orders.tsx'
 import ScrollToTop from './components/ScrollToTop.tsx'
+import { RequireAdmin } from './components/RequireAdmin.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -41,7 +42,11 @@ createRoot(document.getElementById('root')!).render(
             <Route path='/order-success' element={<OrderSuccessPage />} />
             <Route path='/orders' element={<OrdersPage />} />
             <Route path='/order-failure' element={<OrderFailedPage />} />
-            <Route path="/admin" element={<AdminLayout />} >
+            <Route path="/admin" element={
+                <RequireAdmin>
+                    <AdminLayout />
+                </RequireAdmin>
+            } >
               <Route path='/admin' element={<AdminHome />} />
               <Route path='/admin/products' element={<AdminProducts />} />
             </Route>
