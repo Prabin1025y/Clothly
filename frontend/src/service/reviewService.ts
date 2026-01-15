@@ -1,6 +1,6 @@
 import { axiosClient } from "@/lib/axios";
 import type { GeneralPostResponseType } from "@/type";
-import type { AddReviewDto, AddReviewResponseType, ReviewType } from "@/type/review";
+import type { AddReviewDto, AddReviewResponseType, ReviewType, UpdateReviewDto } from "@/type/review";
 
 export const reviewServices = {
     addReview: async (reviewInfo: AddReviewDto): Promise<AddReviewResponseType> => {
@@ -24,6 +24,19 @@ export const reviewServices = {
 
     deleteReview: async (reviewId: string): Promise<GeneralPostResponseType> => {
         const { data } = await axiosClient.delete<GeneralPostResponseType>(`/api/reviews/${reviewId}`);
+        return data;
+    },
+
+    updateReview: async (reviewInfo: UpdateReviewDto): Promise<AddReviewResponseType> => {
+        const formData = new FormData();
+        formData.append("product_id", reviewInfo.productId);
+        formData.append("title", "title 1");
+        formData.append("body", reviewInfo.body);
+        formData.append("rating", reviewInfo.rating.toString());
+        if (reviewInfo.image)
+            formData.append("image", reviewInfo.image)
+
+        const { data } = await axiosClient.put<AddReviewResponseType>(`/api/reviews/${reviewInfo.reviewId}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
         return data;
     }
 }

@@ -33,3 +33,12 @@ export interface ReviewType {
 export interface AddReviewResponseType {
     product_id: string;
 }
+
+export interface UpdateReviewDto {
+    reviewId: string;
+    productId: string;
+    rating: number;
+    body: string;
+    image: File | null;
+    imagePath: string | null;
+}

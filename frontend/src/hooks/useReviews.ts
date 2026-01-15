@@ -1,6 +1,6 @@
 import { handleApiError } from "@/lib/axios";
 import { reviewServices } from "@/service/reviewService";
-import type { AddReviewDto, ReviewType } from "@/type/review";
+import type { AddReviewDto, ReviewType, UpdateReviewDto } from "@/type/review";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner";
@@ -131,4 +131,67 @@ export function useDeleteReview() {
 
 
     })
+}
+
+export function useUpdateReview() {
+    const queryClient = useQueryClient();
+    const { isSignedIn, user } = useUser();
+
+    return useMutation({
+        mutationFn: reviewServices.updateReview,
+
+        onMutate: async (reviewInfo: UpdateReviewDto) => {
+            if (!isSignedIn || !user)
+                throw new Error("Please sign in to update review!!");
+
+            await queryClient.cancelQueries({ queryKey: reviewKeys.list(reviewInfo.productId) });
+
+            const previousData = queryClient.getQueriesData({ queryKey: reviewKeys.list(reviewInfo.productId) });
+
+            queryClient.setQueriesData<ReviewType[]>(
+                { queryKey: reviewKeys.list(reviewInfo.productId) },
+                (old) => {
+                    if (!old) return old;
+
+                    return old.map((review) =>
+                        review.id === reviewInfo.reviewId
+                            ? {
+                                ...review,
+                                body: reviewInfo.body,
+                                rating: reviewInfo.rating,
+                                images: reviewInfo.imagePath
+                                    ? [{
+                                        imageUrl: reviewInfo.imagePath,
+                                        alt_text: "Image of product"
+                                    }]
+                                    : reviewInfo.image
+                                        ? review.images // Keep existing images if no new image path
+                                        : [], // Remove images if no image provided
+                            }
+                            : review
+                    );
+                }
+            );
+
+            return { previousData };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousData) {
+                context.previousData.forEach(([queryKey, data]) => {
+                    queryClient.setQueryData(queryKey, data);
+                });
+            }
+            toast.error(handleApiError(error));
+        },
+
+        onSuccess: () => {
+            toast.success("Review updated successfully!");
+        },
+
+        onSettled: (data, _error, variables) => {
+            if (data?.product_id)
+                queryClient.invalidateQueries({ queryKey: reviewKeys.list(variables.productId) });
+        }
+    });
 }

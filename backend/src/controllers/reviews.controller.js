@@ -139,6 +139,92 @@ export const getReview = async (req, res) => {
     }
 }
 
+export const updateReview = async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const reviewId = req.params.id;
+        const userId = req.userId || 1 //TODO: Remove this in production
+
+        if (!reviewId)
+            return res.status(404).json({ message: "No such review found" });
+
+        if (!userId)
+            return res.status(403).json({ message: "Please log in first!" });
+
+        // Check if review exists and belongs to user
+        const existingReview = await client.query(`
+            SELECT user_id, product_id FROM reviews
+            WHERE id = $1 AND deleted_at IS NULL
+        `, [reviewId]);
+
+        if (existingReview.rowCount === 0)
+            return res.status(404).json({ message: "No such review found" });
+
+        if (existingReview.rows[0].user_id != userId)
+            return res.status(401).json({ message: "Unauthorized!" });
+
+        const formData = {
+            product_id: parseInt(req.body.product_id || existingReview.rows[0].product_id),
+            rating: parseInt(req.body.rating),
+            title: req.body.title || "title 1",
+            body: req.body.body,
+            imageUrl: req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : ""
+        };
+
+        const parsed = addReviewSchema.parse(formData);
+        const {
+            product_id,
+            rating,
+            title,
+            body,
+            imageUrl
+        } = parsed;
+
+        await client.query("BEGIN");
+
+        // If new image uploaded, update images. Otherwise keep existing images
+        let updatedReview;
+
+        if (imageUrl) {
+            // New image uploaded - replace existing images
+            const imagesValue = JSON.stringify([{
+                imageUrl,
+                alt_text: "review Image of product"
+            }]);
+            updatedReview = await client.query(`
+                UPDATE reviews 
+                SET rating = $1, title = $2, body = $3, images = $4, updated_at = NOW()
+                WHERE id = $5 AND user_id = $6
+                RETURNING *
+            `, [rating, title, body, imagesValue, reviewId, userId]);
+        } else {
+            // No new image, just update text fields (keep existing images)
+            updatedReview = await client.query(`
+                UPDATE reviews 
+                SET rating = $1, title = $2, body = $3, updated_at = NOW()
+                WHERE id = $4 AND user_id = $5
+                RETURNING *
+            `, [rating, title, body, reviewId, userId]);
+        }
+
+        if (updatedReview.rowCount === 0)
+            throw new Error("Couldn't update the review!");
+
+        await client.query("COMMIT");
+
+        return res.status(200).json({ product_id: product_id.toString() });
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        logger.error("Error in updating review: ", error);
+        res.status(500).json({
+            message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
+        });
+    } finally {
+        client.release();
+    }
+}
+
 export const deleteReview = async (req, res) => {
     try {
         const reviewId = req.params.id;
@@ -158,7 +244,7 @@ export const deleteReview = async (req, res) => {
         if (review.length === 0)
             return res.status(404).json({ message: "No such review found" });
 
-        logger.debug(`${typeof review[0].user_id} - ${typeof userId}`)
+        // logger.debug(`${typeof review[0].user_id} - ${typeof userId}`)
 
         if (review[0].user_id != userId)
             return res.status(401).json({ message: "Unauthorized!" });

@@ -4,6 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { formatDistanceToNow } from "date-fns"
 import { Heart, MoreVertical } from "lucide-react"
 import { useDeleteReview } from "@/hooks/useReviews"
+import EditReviewPopup from "./EditReviewPopup"
 
 
 interface ReviewCardProps {
@@ -12,6 +13,7 @@ interface ReviewCardProps {
 
 export default function ReviewCard({ review }: ReviewCardProps) {
     const [ showMenu, setShowMenu ] = useState(false)
+    const [ showEditPopup, setShowEditPopup ] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
     const deleteReview = useDeleteReview();
 
@@ -75,7 +77,7 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                                         <button
                                             onClick={() => {
                                                 setShowMenu(false)
-                                                // Implement edit functionality
+                                                setShowEditPopup(true)
                                             }}
                                             className="w-full text-left px-4 py-2 text-sm hover:bg-secondary transition-colors text-foreground"
                                         >
@@ -112,6 +114,13 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                     </div>
                 )}
             </div>
+
+            {/* Edit Review Popup */}
+            <EditReviewPopup
+                review={review}
+                open={showEditPopup}
+                onOpenChange={setShowEditPopup}
+            />
         </div>
     )
 }
