@@ -36,16 +36,17 @@ axiosClient.interceptors.response.use(
         };
 
         // Handle 401 Unauthorized
-        if (error.response?.status === 401 && !originalRequest._retry) {
-            originalRequest._retry = true;
+        //TODO uncomment this
+        // if (error.response?.status === 401 && !originalRequest._retry) {
+        //     originalRequest._retry = true;
 
-            // Clear auth and redirect to login
-            // useAuthStore.getState().clearAuth();
+        //     // Clear auth and redirect to login
+        //     // useAuthStore.getState().clearAuth();
 
-            if (typeof window !== 'undefined') {
-                window.location.href = '/login';
-            }
-        }
+        //     if (typeof window !== 'undefined') {
+        //         window.location.href = '/login';
+        //     }
+        // }
 
         return Promise.reject(error);
     }

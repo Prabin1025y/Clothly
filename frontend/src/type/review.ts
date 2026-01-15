@@ -1,9 +1,10 @@
 export interface AddReviewDto {
     product_id: string;
     rating: number;
-    title: string;
+    // title: string;
     body: string;
     image: File | null
+    imagePath: string | null
 }
 
 export interface ReviewImage {
@@ -20,7 +21,7 @@ export interface ReviewType {
     product_id: string;
     order_id: string;
     rating: number;
-    title: string;
+    // title: string;
     body: string;
     images: ReviewImage[];
     is_verified_purchase: boolean;

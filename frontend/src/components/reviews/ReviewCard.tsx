@@ -3,6 +3,7 @@ import { useRef, useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
 import { formatDistanceToNow } from "date-fns"
 import { Heart, MoreVertical } from "lucide-react"
+import { useDeleteReview } from "@/hooks/useReviews"
 
 
 interface ReviewCardProps {
@@ -12,6 +13,7 @@ interface ReviewCardProps {
 export default function ReviewCard({ review }: ReviewCardProps) {
     const [ showMenu, setShowMenu ] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+    const deleteReview = useDeleteReview();
 
     console.log(review.images)
 
@@ -80,8 +82,9 @@ export default function ReviewCard({ review }: ReviewCardProps) {
                                             Edit
                                         </button>
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setShowMenu(false)
+                                                await deleteReview.mutateAsync({ reviewId: review.id, productId: review.product_id })
                                                 // onDelete?.(comment.id)
                                             }}
                                             className="w-full text-left px-4 py-2 text-sm hover:bg-destructive/10 text-destructive transition-colors"

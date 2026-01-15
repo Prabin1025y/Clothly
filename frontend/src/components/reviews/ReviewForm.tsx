@@ -5,14 +5,15 @@ import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import { Upload, X } from "lucide-react"
 import { useUser } from "@clerk/clerk-react"
-import type { AddReviewDto } from "@/type/review"
-// import { useAddReview } from "@/hooks/useReviews"
+// import type { AddReviewDto } from "@/type/review"
+import { useAddReview } from "@/hooks/useReviews"
 
 export default function ReviewForm({ productId }: { productId: string }) {
     const [ content, setContent ] = useState("")
     const [ image, setImage ] = useState<string | null>(null)
     const [ imageFile, setImageFile ] = useState<File | null>(null)
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const addReview = useAddReview();
 
     const { user } = useUser();
 
@@ -31,28 +32,22 @@ export default function ReviewForm({ productId }: { productId: string }) {
         reader.readAsDataURL(file)
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!content.trim()) return
 
-        // onSubmit({
-        //     author: {
-        //         name: "@currentuser",
-        //         avatar: "/user-avatar.jpg",
-        //     },
-        //     content: content.trim(),
-        //     image: image || undefined,
-        //     isOwn: true,
-        // })
-        const formData = new FormData();
-        formData.append("product_id", productId);
-        formData.append("titile", "example titile");
-        formData.append("body", content);
-        if (imageFile)
-            formData.append("image", imageFile)
-
         setContent("")
         setImage(null)
+        setImageFile(null)
+        await addReview.mutateAsync({
+            body: content,
+            image: imageFile,
+            imagePath: image,
+            product_id: productId,
+            rating: 4.0 //TODO 
+        })
+
+
     }
 
     return (
@@ -85,6 +80,7 @@ export default function ReviewForm({ productId }: { productId: string }) {
                                 type="button"
                                 onClick={() => {
                                     setImage(null)
+                                    setImageFile(null)
                                     if (fileInputRef.current)
                                         fileInputRef.current.value = ""
                                 }}

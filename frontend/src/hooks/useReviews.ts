@@ -37,10 +37,10 @@ export function useAddReview() {
 
                     const newReview: ReviewType = {
                         ...reviewInfo,
-                        images: [ {
-                            imageUrl: "/loading.png",
+                        images: reviewInfo.imagePath ? [ {
+                            imageUrl: reviewInfo.imagePath || "/placeholder.jpg",
                             alt_text: "Image of product"
-                        } ],
+                        } ] : [],
                         created_at: new Date().toISOString(),
                         helpful_count: 0,
                         id: `tempId--${Date.now()}-${Math.round(Math.random() * 1E9)}`,
@@ -53,7 +53,7 @@ export function useAddReview() {
                         image_url: user.imageUrl
                     }
 
-                    return [ newReview, ...old ];
+                    return [ ...old, newReview ];
                 })
 
             return { previousData };
@@ -83,5 +83,52 @@ export function useGetReviews(productId: string) {
         queryFn: () => reviewServices.getReviews(productId),
         staleTime: 5 * 60 * 1000,
         enabled: !!productId
+    })
+}
+
+export function useDeleteReview() {
+    const queryClient = useQueryClient()
+    const { isSignedIn, user } = useUser();
+
+    return useMutation({
+        mutationFn: ({ reviewId, productId }: { reviewId: string, productId: string }) =>
+            reviewServices.deleteReview(reviewId),
+
+        onMutate: async ({ reviewId, productId }: { reviewId: string, productId: string }) => {
+            if (!isSignedIn || !user)
+                throw new Error("Please sign in to add review!!");
+
+            queryClient.cancelQueries({ queryKey: reviewKeys.list(productId) })
+
+            const previousData = queryClient.getQueriesData({ queryKey: reviewKeys.list(productId) });
+
+            queryClient.setQueriesData<ReviewType[]>(
+                { queryKey: reviewKeys.list(productId) },
+                (old) => {
+                    if (!old) return old;
+
+                    const optimisticData = old.filter(data => data.id !== reviewId);
+                    return optimisticData;
+                }
+            )
+
+            return { previousData };
+        },
+
+        onError: (error, _variables, context) => {
+            if (context?.previousData) {
+                context.previousData.forEach(([ queryKey, data ]) => {
+                    queryClient.setQueryData(queryKey, data);
+                })
+            }
+
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: (_data, _error, variables) => {
+            queryClient.invalidateQueries({ queryKey: reviewKeys.list(variables.productId) })
+        }
+
+
     })
 }

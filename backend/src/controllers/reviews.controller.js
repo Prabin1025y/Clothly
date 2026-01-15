@@ -1,4 +1,4 @@
-import { addReviewSchema, reviewSchema } from "../validation/review.schema.js";
+import { addReviewSchema } from "../validation/review.schema.js";
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
 import { getAuth } from "@clerk/express";
@@ -13,6 +13,7 @@ export const addReview = async (req, res) => {
             body: req.body.body,
             imageUrl: req.file ? `${process.env.BACKEND_URL}/uploads/${req.file.filename}` : ""
         };
+        // console.log(req.file)
 
         const parsed = addReviewSchema.parse(formData);
         const {
@@ -35,7 +36,7 @@ export const addReview = async (req, res) => {
                 WHERE o.user_id = $1 AND oi.product_id = $2
             `, [userId, product_id])
 
-        console.log(data)
+        // console.log(data)
 
         if (data.rowCount === 0) {
             return res.status(401).json({ message: "You have not tried this product yet!!" });
@@ -65,10 +66,10 @@ export const addReview = async (req, res) => {
             rating,
             title,
             body,
-            JSON.stringify([{
+            JSON.stringify(imageUrl ? [{
                 imageUrl,
                 alt_text: "review Image of product"
-            }]),
+            }] : []),
             is_verified_purchase
         ])
 
@@ -126,12 +127,52 @@ export const getReview = async (req, res) => {
             is_owner: userId ? review.clerk_id === userId : false
         }))
 
-        console.log(responseReviews);
+        // console.log(responseReviews);
 
         res.status(200).json(responseReviews);
 
     } catch (error) {
         logger.error("Error in adding review: ", error)
+        res.status(500).json({
+            message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
+        })
+    }
+}
+
+export const deleteReview = async (req, res) => {
+    try {
+        const reviewId = req.params.id;
+        const userId = req.userId || 1 //TODO: Remove this 1
+
+        if (!reviewId)
+            return res.status(404).json({ message: "No such review found" });
+
+        if (!userId)
+            return res.status(403).json({ message: "Please log in first!" });
+
+        const review = await sql`
+            SELECT user_id FROM reviews
+            WHERE id = ${reviewId}
+        `
+
+        if (review.length === 0)
+            return res.status(404).json({ message: "No such review found" });
+
+        logger.debug(`${typeof review[0].user_id} - ${typeof userId}`)
+
+        if (review[0].user_id != userId)
+            return res.status(401).json({ message: "Unauthorized!" });
+
+        const deletedReview = await sql`
+            DELETE FROM reviews WHERE id=${reviewId} AND user_id=${userId} RETURNING *;
+        `
+
+        if (deletedReview.length === 0)
+            throw new Error("Couldn't delete the review!");
+
+        return res.status(200).json({ success: true })
+    } catch (error) {
+        logger.error("Error in deleting review: ", error)
         res.status(500).json({
             message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
         })
