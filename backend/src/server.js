@@ -19,6 +19,7 @@ import { uploadImageToCloudinary, uploadImageToDisk } from "./controllers/imageU
 import paymentRouter from "./routes/payment.router.js"
 import imagesRouter from "./routes/images.router.js"
 import { isUserAdmin } from "./controllers/isAdmin.controller.js"
+import adminProductsRouter from "./admin/routes/products.router.js"
 
 process.on('uncaughtException', (err) => {
     console.error('UNCAUGHT EXCEPTION:', err)
@@ -51,6 +52,7 @@ app.use("/api/shipping-addresses", shippingRouter);
 app.use("/api/orders", orderRouter);
 app.use("/api/payment", paymentRouter);
 app.use("/api/images", imagesRouter);
+app.use("/api/admin/products", adminProductsRouter);
 app.get("/api/isAdmin", isUserAdmin)
 
 app.get("/", (req, res) => {

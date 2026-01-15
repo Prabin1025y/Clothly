@@ -1,9 +1,9 @@
-import { ProductForm } from '@/components/ProductForm'
+import AdminProductsTable from '@/components/admin/AdminProductsTable'
 
 const AdminProducts = () => {
     return (
-        <div >
-            <ProductForm />
+        <div className="space-y-6">
+            <AdminProductsTable />
         </div>
     )
 }
