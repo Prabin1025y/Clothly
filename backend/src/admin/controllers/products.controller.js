@@ -12,6 +12,12 @@ export const getAdminProducts = async (req, res) => {
 
         const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
         const page = Number.parseInt(req.query.page ?? "1", 10);
+        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ')
+        const min = Number.parseInt(req.query.min ?? "0", 10)
+        const max = req.query.max ? Number.parseInt(req.query.max, 10) : "";
+        const sortBy = req.query.sortby || 'name'
+        const sortOrder = String(req.query.order) || 'desc'
+        const status = req.query.status || 'all'
 
         if (!Number.isFinite(page) || page < 1)
             return res.status(400).json({ success: false, message: "Invalid page parameter!!" });
@@ -24,8 +30,29 @@ export const getAdminProducts = async (req, res) => {
         const totalProducts = await sql`
             SELECT COUNT(*)::int AS total
             FROM products p
-            WHERE p.deleted_at IS NULL
+            WHERE ${status === "all" ? sql`p.status IN ('active', 'archived', 'draft')` : sql`p.status = ${status}`} AND p.deleted_at IS NULL
+                ${search_query ? sql`
+                    AND (
+                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                        @@ plainto_tsquery('english', ${search_query})
+                        OR p.name ILIKE ${'%' + search_query + '%'}
+                        OR p.short_description ILIKE ${'%' + search_query + '%'}
+                    )
+                ` : sql``}
+                ${min > 0 ? sql` AND p.current_price >= ${min}` : sql``}
+                ${max !== "" ? sql`AND p.current_price <= ${max}` : sql``}
         `;
+
+        if (totalProducts.length === 0)
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalProducts: 0,
+                    totalPages: 1,
+                    page: 1,
+                    limit
+                }
+            })
 
         const total = totalProducts?.[0]?.total ?? 0;
         const totalPages = Math.max(1, Math.ceil(total / limit));
@@ -52,13 +79,28 @@ export const getAdminProducts = async (req, res) => {
                 pi.alt_text AS image_alt_text
             FROM products p
             LEFT JOIN product_images pi ON p.main_image_id = pi.id
-            WHERE p.deleted_at IS NULL
-            ORDER BY p.created_at DESC, p.id DESC
+            WHERE ${status === "all" ? sql`p.status IN ('active', 'archived', 'draft')` : sql`p.status = ${status}`} AND p.deleted_at IS NULL
+            ${search_query ? sql`
+                AND (
+                to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                @@ plainto_tsquery('english', ${search_query})
+                OR p.name ILIKE ${'%' + search_query + '%'}
+                OR p.short_description ILIKE ${'%' + search_query + '%'}
+                )
+            ` : sql``}
+            ${min > 0 ? sql` AND p.current_price >= ${min}` : sql``}
+            ${max !== "" ? sql`AND p.current_price <= ${max}` : sql``}
+            ORDER BY 
+                ${sortBy === 'price' ? sql`p.current_price` :
+                sortBy === 'sold' ? sql`p.sold_count` :
+                    sortBy === 'rating' ? sql`p.average_rating` :
+                        sortBy === 'date' ? sql`p.created_at` :
+                            sql`p.name`}
+                ${sortOrder.toUpperCase() === 'ASC' ? sql`ASC` : sql`DESC`}
             LIMIT ${limit} OFFSET ${offset}
         `;
 
         return res.status(200).json({
-            success: true,
             data: products,
             meta: {
                 totalProducts: total,
@@ -69,7 +111,7 @@ export const getAdminProducts = async (req, res) => {
         });
     } catch (error) {
         logger.error("Error while getting admin products!!", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch products" });
+        return res.status(500).json({ message: "Failed to fetch products" });
     }
 };
 

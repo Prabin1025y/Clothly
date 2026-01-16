@@ -3,7 +3,7 @@ import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSiz
 
 export const adminProductsService = {
     getProducts: async (page: number = 1, limit: number = 20, filters: FilterOptions): Promise<AdminProductsResponse> => {
-        const { data } = await axiosClient.get<AdminProductsResponse>(`/api/admin/products?page=${page}&limit=${limit}&query=${filters.searchQuery}&status=${filters.status}&min=${filters.priceRange[ 0 ]}&max=${filters.priceRange[ 1 ]}&sortby=${filters.sortBy}&order=${filters.sortOrder}`);
+        const { data } = await axiosClient.get<AdminProductsResponse>(`/api/admin/products?page=${page}&limit=${limit}&search=${filters.searchQuery}&status=${filters.status}&min=${filters.priceRange[ 0 ]}&max=${filters.priceRange[ 1 ]}&sortby=${filters.sortBy}&order=${filters.sortOrder}`);
         return data;
     },
 
