@@ -1,11 +1,15 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Plus } from "lucide-react"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { AlertOctagon, Loader2, PackageOpen, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ProductFilters from "@/components/admin-products/ProductFilters"
 import ProductTable from "@/components/admin-products/ProductTable"
 import type { FilterOptions } from "@/type/adminProducts"
+import { adminProductsKeys, useAdminProducts } from "@/hooks/useAdminProducts"
+import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
 
 interface Product {
     id: number
@@ -75,58 +79,19 @@ const SAMPLE_PRODUCTS: Product[] = [
 
 export default function ProductsPage() {
     const [ products, setProducts ] = useState<Product[]>(SAMPLE_PRODUCTS)
-    const [ showAddModal, setShowAddModal ] = useState(false)
+    // const [ showAddModal, setShowAddModal ] = useState(false)
     const [ filters, setFilters ] = useState<FilterOptions>({
         searchQuery: "",
         status: "all",
-        priceRange: [ 0, 500 ],
+        priceRange: [ 0, Infinity ],
         sortBy: "name",
         sortOrder: "asc",
     })
 
-    const filteredProducts = useMemo(() => {
-        let result = [ ...products ]
+    const { data, isLoading, isFetching, error, isError } = useAdminProducts(1, 12, filters);
+    const queryClient = useQueryClient();
+    const navigate = useNavigate();
 
-        // Search filter
-        if (filters.searchQuery) {
-            result = result.filter((p) => p.name.toLowerCase().includes(filters.searchQuery.toLowerCase()))
-        }
-
-        // Status filter
-        if (filters.status !== "all") {
-            result = result.filter((p) => p.status === filters.status)
-        }
-
-        // Price range filter
-        result = result.filter((p) => p.price >= filters.priceRange[ 0 ] && p.price <= filters.priceRange[ 1 ])
-
-        // Sorting
-        result.sort((a, b) => {
-            let compareValue = 0
-
-            switch (filters.sortBy) {
-                case "name":
-                    compareValue = a.name.localeCompare(b.name)
-                    break
-                case "price":
-                    compareValue = a.price - b.price
-                    break
-                case "date":
-                    compareValue = (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0)
-                    break
-                case "sold":
-                    compareValue = a.sold - b.sold
-                    break
-                case "rating":
-                    compareValue = a.rating - b.rating
-                    break
-            }
-
-            return filters.sortOrder === "asc" ? compareValue : -compareValue
-        })
-
-        return result
-    }, [ products, filters ])
 
     const handleDelete = (id: number) => {
         setProducts(products.filter((p) => p.id !== id))
@@ -140,15 +105,17 @@ export default function ProductsPage() {
         console.log("View details:", id)
     }
 
-    const handleAddProduct = (newProduct: Omit<Product, "id" | "createdAt">) => {
-        const product: Product = {
-            ...newProduct,
-            id: Math.max(...products.map((p) => p.id), 0) + 1,
-            createdAt: new Date(),
-        }
-        setProducts([ ...products, product ])
-        setShowAddModal(false)
-    }
+    // const handleAddProduct = (newProduct: Omit<Product, "id" | "createdAt">) => {
+    //     const product: Product = {
+    //         ...newProduct,
+    //         id: Math.max(...products.map((p) => p.id), 0) + 1,
+    //         createdAt: new Date(),
+    //     }
+    //     setProducts([ ...products, product ])
+    // }
+
+    const filteredProducts = data?.data ?? []
+
 
     return (
         <div className="min-h-screen bg-background">
@@ -160,7 +127,7 @@ export default function ProductsPage() {
                             <h1 className="text-3xl font-bold text-foreground">Products</h1>
                             <p className="mt-1 text-sm text-muted-foreground">Manage your product inventory</p>
                         </div>
-                        <Button onClick={() => setShowAddModal(true)} className="gap-2 bg-primary hover:bg-primary/90">
+                        <Button className="gap-2 bg-primary hover:bg-primary/90">
                             <Plus size={20} />
                             <span className="hidden sm:inline">Add Product</span>
                             <span className="sm:hidden">Add</span>
@@ -173,24 +140,77 @@ export default function ProductsPage() {
             <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
                 <ProductFilters filters={filters} onFiltersChange={setFilters} />
 
-                {filteredProducts.length === 0 ? (
-                    <div className="rounded-lg border border-border bg-card p-12 text-center">
-                        <p className="text-muted-foreground">No products found. Try adjusting your filters.</p>
-                    </div>
-                ) : (
-                    <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
-                        <ProductTable
-                            products={filteredProducts}
-                            onEdit={handleEdit}
-                            onDelete={handleDelete}
-                            onDetails={handleDetails}
-                        />
-                    </div>
-                )}
+                {(
+                    () => {
+                        if (isLoading || isFetching)
+                            return <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 md:gap-4 lg:gap-6 md:translate-x-4 xl:translate-x-0">
+                                Loading...
+                            </div>
+
+                        if (isError) {
+                            console.error(error);
+                            return <Empty >
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <AlertOctagon color="red" />
+                                    </EmptyMedia>
+                                    <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                                    <EmptyDescription className="text-red-400">
+                                        An error occured while fetching products. Please try again!!
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                                <EmptyContent>
+                                    <div className="flex gap-2">
+                                        {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                                            <Loader2 className="animate-spin" /> Retrying...
+                                        </Button> : <Button
+                                            className="cursor-pointer bg-red-500"
+                                            onClick={() => queryClient.invalidateQueries({ queryKey: adminProductsKeys.lists() })}
+                                        >
+                                            Retry
+                                        </Button>}
+                                    </div>
+                                </EmptyContent>
+                            </Empty>
+                        }
+
+                        if (filteredProducts.length === 0) {
+                            return <Empty >
+                                <EmptyHeader>
+                                    <EmptyMedia variant="icon">
+                                        <PackageOpen color="red" />
+                                    </EmptyMedia>
+                                    <EmptyTitle className="text-red-500">No products found</EmptyTitle>
+                                    <EmptyDescription className="text-red-400">
+                                        Try different filter or add a new product
+                                    </EmptyDescription>
+                                </EmptyHeader>
+                                <EmptyContent>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            className="cursor-pointer"
+                                            onClick={() => navigate("/admin/products/new")}
+                                        >
+                                            Add Product
+                                        </Button>
+                                    </div>
+                                </EmptyContent>
+                            </Empty>
+                        }
+
+                        return <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
+                            <ProductTable
+                                products={filteredProducts}
+                                onEdit={handleEdit}
+                                onDelete={handleDelete}
+                                onDetails={handleDetails}
+                            />
+                        </div>
+
+                    }
+                )()}
             </div>
 
-            {/* Add Product Modal */}
-            {/* <AddProductModal isOpen={showAddModal} onClose={() => setShowAddModal(false)} onAdd={handleAddProduct} /> */}
         </div>
     )
 }

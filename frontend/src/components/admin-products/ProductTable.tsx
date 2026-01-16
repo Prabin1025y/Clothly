@@ -5,19 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
-
-interface Product {
-    id: number
-    name: string
-    image: string
-    price: number
-    status: "active" | "inactive"
-    sold: number
-    rating: number
-}
+import type { AdminProduct } from "@/type/adminProducts"
 
 interface ProductTableProps {
-    products: Product[]
+    products: AdminProduct[]
     onEdit: (id: number) => void
     onDelete: (id: number) => void
     onDetails: (id: number) => void
@@ -44,7 +35,7 @@ export default function ProductTable({ products, onEdit, onDelete, onDetails }: 
                             <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
                                     <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-md bg-muted">
-                                        <img src={product.image || "/placeholder.svg"} alt={product.name} className="object-cover" />
+                                        <img src={product.image_url || "/placeholder.svg"} alt={product.name} className="object-cover" />
                                     </div>
                                     <div className="min-w-0">
                                         <p className="truncate text-sm font-medium text-foreground">{product.name}</p>
@@ -55,7 +46,7 @@ export default function ProductTable({ products, onEdit, onDelete, onDetails }: 
 
                             {/* Price */}
                             <td className="px-4 py-4">
-                                <p className="text-sm font-semibold text-foreground">${product.price.toFixed(2)}</p>
+                                <p className="text-sm font-semibold text-foreground">${product.current_price}</p>
                             </td>
 
                             {/* Status */}
@@ -70,14 +61,14 @@ export default function ProductTable({ products, onEdit, onDelete, onDetails }: 
 
                             {/* Sold */}
                             <td className="px-4 py-4 text-center">
-                                <p className="text-sm font-medium text-foreground">{product.sold}</p>
+                                <p className="text-sm font-medium text-foreground">{product.sold_count}</p>
                             </td>
 
                             {/* Rating */}
                             <td className="px-4 py-4">
                                 <div className="flex items-center justify-center gap-1">
                                     <Star size={16} className="fill-yellow-400 text-yellow-400" />
-                                    <p className="text-sm font-medium text-foreground">{product.rating}</p>
+                                    <p className="text-sm font-medium text-foreground">{product.average_rating}</p>
                                 </div>
                             </td>
 
