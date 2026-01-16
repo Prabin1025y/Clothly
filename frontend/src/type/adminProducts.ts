@@ -21,8 +21,7 @@ export interface AdminProduct {
 export interface AdminProductColor {
     color: string;
     hex_color: string;
-    size_count: number;
-    total_available: string;
+    sized: AdminProductSize[]
 }
 
 export interface AdminProductSize {
@@ -40,7 +39,6 @@ export interface AdminProductSize {
 }
 
 export interface AdminProductsResponse {
-    success: boolean;
     data: AdminProduct[];
     meta: {
         totalProducts: number;
@@ -58,5 +56,13 @@ export interface AdminProductColorsResponse {
 export interface AdminProductSizesResponse {
     success: boolean;
     data: AdminProductSize[];
+}
+
+export interface FilterOptions {
+    searchQuery: string
+    status: "all" | "active" | "inactive"
+    priceRange: [ number, number ]
+    sortBy: "name" | "price" | "date" | "sold" | "rating"
+    sortOrder: "asc" | "desc"
 }
 
