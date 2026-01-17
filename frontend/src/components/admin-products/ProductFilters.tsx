@@ -123,7 +123,6 @@ export default function ProductFilters({ filters, onFiltersChange }: ProductFilt
                     <Input
                         type="number"
                         placeholder="Max"
-                        defaultValue={Infinity}
                         value={filtersCopy.priceRange[ 1 ]}
                         onChange={(e) => handlePriceRangeChange("max", e.target.value)}
                         min="0"
