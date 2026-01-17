@@ -1,7 +1,8 @@
 import { Router } from "express";
-import { getAdminProducts, getProductColors, getProductSizes } from "../controllers/products.controller.js";
+import { addProductV2, getAdminProducts, getProductColors, getProductSizes } from "../controllers/products.controller.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 import isAdmin from "../../middlewares/isAdmin.js";
+import { diskUpload } from "../../config/multer.js";
 
 const adminProductsRouter = Router();
 
@@ -17,6 +18,8 @@ adminProductsRouter.get("/:productId/colors", getProductColors);
 
 // Get sizes for a product and color combination
 adminProductsRouter.get("/:productId/colors/:color/sizes", getProductSizes);
+
+adminProductsRouter.post("/", diskUpload.array("images", 10), addProductV2)
 
 export default adminProductsRouter;
 

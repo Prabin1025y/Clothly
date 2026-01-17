@@ -8,30 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
+import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProducts"
 
-interface ProductImage {
-    id: string
-    file?: File
-    preview: string
-    altText: string
-    isPrimary: boolean
-}
-
-interface ProductDetail {
-    id: string
-    text: string
-}
-
-interface ColorVariant {
-    id: string
-    colorName: string
-    colorHex: string
-    sizes: {
-        id: string
-        size: string
-        quantity: number
-    }[]
-}
 
 export default function AddProductPage() {
     // Main Product Info
@@ -44,8 +22,6 @@ export default function AddProductPage() {
     const [ originalPrice, setOriginalPrice ] = useState("")
     const [ discountedPrice, setDiscountedPrice ] = useState("")
     const [ warranty, setWarranty ] = useState("")
-
-    const [ error, seterror ] = useState<string | null>(null)
 
     // Images
     const [ images, setImages ] = useState<ProductImage[]>([])
@@ -173,64 +149,64 @@ export default function AddProductPage() {
 
     const validateForm = (): { valid: boolean, message: string } => {
         if (!productName.trim()) {
-            seterror("Product name is required")
+            // seterror("Product name is required")
             return { valid: false, message: "Product name is required" }
         }
         if (!sku.trim()) {
-            seterror("SKU is required")
+            // seterror("SKU is required")
             return { valid: false, message: "SKU is required" }
         }
         if (!slug.trim()) {
-            seterror("Slug is required")
+            // seterror("Slug is required")
             return { valid: false, message: "Slug is required" }
         }
         if (!shortDescription.trim()) {
-            seterror("Short description is required")
+            // seterror("Short description is required")
             return { valid: false, message: "Short description is required" }
         }
         if (!description.trim()) {
-            seterror("Description is required")
+            // seterror("Description is required")
             return { valid: false, message: "Description is required" }
         }
         if (!status) {
-            seterror("Status is required")
+            // seterror("Status is required")
             return { valid: false, message: "Status is required" }
         }
         if (!originalPrice || Number(originalPrice) <= 0) {
-            seterror("Valid original price is required")
+            // seterror("Valid original price is required")
             return { valid: false, message: "Valid original price is required" }
         }
         if (discountedPrice && Number(discountedPrice) >= Number(originalPrice)) {
-            seterror("Discounted price must be less than original price")
+            // seterror("Discounted price must be less than original price")
             return { valid: false, message: "Discounted price must be less than original price" }
         }
         if (!warranty.trim()) {
-            seterror("Warranty information is required")
+            // seterror("Warranty information is required")
             return { valid: false, message: "Warranty information is required" }
         }
         if (images.length === 0) {
-            seterror("At least one image is required")
+            // seterror("At least one image is required")
             return { valid: false, message: "At least one image is required" }
         }
         if (details.length === 0) {
-            seterror("At least one product detail is required")
+            // seterror("At least one product detail is required")
             return { valid: false, message: "At least one product detail is required" }
         }
         if (colorVariants.length === 0) {
-            seterror("At least one color variant is required")
+            // seterror("At least one color variant is required")
             return { valid: false, message: "At least one color variant is required" }
         }
         for (const variant of colorVariants) {
             if (!variant.colorName.trim()) {
-                seterror("Variant name is required")
+                // seterror("Variant name is required")
                 return { valid: false, message: "Variant name is required" }
             }
             if (variant.sizes.length === 0) {
-                seterror("At least one size for each variant is required")
+                // seterror("At least one size for each variant is required")
                 return { valid: false, message: "At least one size for each variant is required" }
             }
         }
-        seterror(null)
+        // seterror(null)
         return { valid: true, message: "" }
     }
 

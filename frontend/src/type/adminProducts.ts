@@ -66,3 +66,28 @@ export interface FilterOptions {
     sortOrder: "asc" | "desc"
 }
 
+
+//Product Form Types
+export interface ProductImage {
+    id: string
+    file: File
+    preview: string
+    altText: string
+    isPrimary: boolean
+}
+
+export interface ProductDetail {
+    id: string
+    text: string
+}
+
+export interface ColorVariant {
+    id: string
+    colorName: string
+    colorHex: string
+    sizes: {
+        id: string
+        size: string
+        quantity: number
+    }[]
+}

@@ -1,6 +1,6 @@
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
-import { productSchema } from "../validation/product.schema.js";
+import { adminProductSchema, productSchema } from "../validation/product.schema.js";
 
 export const addProduct = async (req, res) => {
     //Parse body using zod
@@ -193,7 +193,7 @@ export const addProduct = async (req, res) => {
         }
 
         logger.error("Error while adding product!!", error);
-        return res.status(500).json({ success: false, message: "Error adding product" });
+        return res.status(500).json({ message: "Error adding product" });
     } finally {
         client.release();
     }
@@ -514,5 +514,131 @@ export const getProductsWithFilters = async (req, res) => {
     } catch (error) {
         logger.error("Error while getting product!!", error);
         return res.status(500).json({ message: "failed to fetch products" });
+    }
+}
+
+export const addProductV2 = async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const body = req.body
+        const productDetailsFromBody = JSON.parse(body.details)
+        const colorVariantsFromBody = JSON.parse(body.colorVariants);
+
+        const imageMetadataFromBody = []
+        let i = 0
+        while (body[`imageMetadata[${i}][altText]`]) {
+            imageMetadataFromBody.push({
+                altText: body[`imageMetadata[${i}][altText]`],
+                isPrimary: body[`imageMetadata[${i}][isPrimary]`] === 'true'
+            });
+            i++
+        }
+
+        console.log(imageMetadataFromBody)
+
+        const toBeParsed = {
+            productName: body.productName,
+            sku: body.sku,
+            slug: body.slug,
+            status: body.status,
+            warranty: body.warranty,
+            originalPrice: body.originalPrice,
+            discountedPrice: body.discountedPrice,
+            description: body.description,
+            shortDescription: body.shortDescription,
+            imageMetadata: imageMetadataFromBody,
+            images: req.files,
+            details: productDetailsFromBody,
+            colorVariants: colorVariantsFromBody
+        }
+
+        const parsed = adminProductSchema.parse(toBeParsed)
+
+        const {
+            productName,
+            sku,
+            slug,
+            status,
+            warranty,
+            originalPrice,
+            discountedPrice,
+            isFeatured,
+            isReturnable,
+            currency,
+            description,
+            shortDescription,
+            imageMetadata,
+            images,
+            details,
+            colorVariants
+        } = parsed;
+
+        const userId = req.userId || 1 //TODO: Remove 1 in production
+
+        if (!userId)
+            return res.status(403).json({ message: "Please log in first!" });
+
+        await client.query("BEGIN");
+
+        //Insert product
+        const insertProductResponse = await client.query(`
+                INSERT INTO products (
+                    name,
+                    sku,
+                    slug,
+                    short_description,
+                    description,
+                    status,
+                    original_price,
+                    current_price,
+                    currency,
+                    is_featured,
+                    is_returnable,
+                    warranty_info,
+                    created_by
+                ) VALUES (
+                 $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13 
+                ) RETURNING id
+            `, [
+            productName,
+            sku,
+            slug,
+            shortDescription,
+            description,
+            status,
+            originalPrice,
+            discountedPrice,
+            currency,
+            isFeatured,
+            isReturnable,
+            warranty,
+            userId
+        ])
+
+        if (insertProductResponse.rowCount === 0)
+            throw new Error("Product cannot be inserted!")
+
+        //Extract product id
+        const productId = insertProductResponse.rows[0].id
+
+        //Insert image
+        const imagePlaceholder = images.map((_, idx) => (
+            `(${productId}, $${i * 3 + 1}, $${i * 3 + 2}, $${i * 3 + 3})`
+        )).join(", ");
+
+        const insertImageResponse = await client.query(`
+                INSERT INTO product_images (
+                    product_id,
+                    url,
+                    alt_text,
+                    is_primary
+                ) VALUES ${imagePlaceholder}
+            `)
+
+    } catch (error) {
+
+    } finally {
+        client.release();
     }
 }
