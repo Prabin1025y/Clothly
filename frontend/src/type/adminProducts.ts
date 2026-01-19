@@ -91,3 +91,19 @@ export interface ColorVariant {
         quantity: number
     }[]
 }
+
+
+export interface ProductFormDataTypes {
+    productName: string
+    sku: string
+    slug: string
+    shortDescription: string
+    description: string
+    status: string
+    originalPrice: string
+    discountedPrice: string
+    warranty: string
+    images: ProductImage[]
+    details: ProductDetail[]
+    colorVariants: ColorVariant[]
+}
