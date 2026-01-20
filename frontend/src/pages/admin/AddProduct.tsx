@@ -9,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProducts"
+import { useAddAdminProducts } from "@/hooks/useAdminProducts"
 
 
 export default function AddProductPage() {
+    const addProduct = useAddAdminProducts();
     // Main Product Info
     const [ productName, setProductName ] = useState("")
     const [ sku, setSku ] = useState("")
@@ -210,7 +212,7 @@ export default function AddProductPage() {
         return { valid: true, message: "" }
     }
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         const { valid, message } = validateForm();
         if (!valid) {
@@ -219,6 +221,20 @@ export default function AddProductPage() {
 
 
         // Handle form submission here
+        await addProduct.mutateAsync({
+            productName: productName,
+            sku: sku,
+            slug: slug,
+            originalPrice: originalPrice,
+            discountedPrice: discountedPrice,
+            shortDescription: shortDescription,
+            description: description,
+            warranty: warranty,
+            status: status,
+            images: images,
+            colorVariants: colorVariants,
+            details: details
+        })
         console.log({
             productName,
             sku,

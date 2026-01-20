@@ -1,6 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminProductsService } from "@/service/adminProductsService";
 import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSizesResponse, FilterOptions } from "@/type/adminProducts";
+import { toast } from "sonner";
+import { handleApiError } from "@/lib/axios";
 
 export const adminProductsKeys = {
     all: [ 'admin', 'products' ] as const,
@@ -38,4 +40,23 @@ export function useAdminProductSizes(productId: string | number | null, color: s
     });
 }
 
+
+export function useAddAdminProducts() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: adminProductsService.addProduct,
+
+        onSuccess: () => {
+            toast.success("Product added successfully!");
+        },
+
+        onError: (error) => {
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: adminProductsKeys.lists() })
+        }
+    })
+}
 
