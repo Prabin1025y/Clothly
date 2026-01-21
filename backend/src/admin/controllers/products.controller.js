@@ -215,7 +215,7 @@ export const addProductV2 = async (req, res) => {
 
         const imageMetadataFromBody = JSON.parse(body.imageMetadata)
 
-        console.log(imageMetadataFromBody)
+        console.log(req.files)
 
         const toBeParsed = {
             productName: body.productName,
@@ -304,11 +304,12 @@ export const addProductV2 = async (req, res) => {
 
         //Insert image
         const imagePlaceholder = images.map((_, idx) => (
-            `(${productId}, $${idx * 3 + 1}, $${idx * 3 + 2}, $${idx * 3 + 3})`
+            `($${idx * 4 + 1}, $${idx * 4 + 2}, $${idx * 4 + 3}, $${idx * 4 + 4})`
         )).join(", ");
 
 
         const imageValues = images.flatMap((image, index) => [
+            productId,
             `${process.env.BACKEND_URL}/uploads/${image.filename}`,
             imageMetadata[index].altText || `image ${index + 1} of product`,
             imageMetadata[index].isPrimary
@@ -352,7 +353,7 @@ export const addProductV2 = async (req, res) => {
         })
 
         const variantPlaceholder = combination.map((_, idx) => (
-            `($${idx * 5 + 1}, $${idx * 5 + 2}, $${idx * 5 + 3}, $${idx * 5 + 4}, $${idx * 5 + 5}, $${idx * 5 + 6}, $${idx * 5 + 7}, $${idx * 5 + 8})`
+            `($${idx * 8 + 1}, $${idx * 8 + 2}, $${idx * 8 + 3}, $${idx * 8 + 4}, $${idx * 8 + 5}, $${idx * 8 + 6}, $${idx * 8 + 7}, $${idx * 8 + 8})`
         )).join(", ")
 
         const variantValues = combination.flatMap(comb => [
@@ -367,6 +368,7 @@ export const addProductV2 = async (req, res) => {
         ])
 
         console.log(variantValues)
+        console.log(variantPlaceholder)
 
         const insertVariantResponse = await client.query(`
                 INSERT INTO product_variants (
@@ -388,10 +390,10 @@ export const addProductV2 = async (req, res) => {
 
         //Insert product details
         const detailPlaceholder = details.map((_, idx) => (
-            `(${productId}, $${idx + 1})`
+            `($${idx * 2 + 1}, $${idx * 2 + 2})`
         )).join(", ")
 
-        const detailValues = details.flatMap(detail => [detail.text])
+        const detailValues = details.flatMap(detail => [productId, detail.text])
 
         const insertDetailResponse = await client.query(`
                 INSERT INTO product_details (

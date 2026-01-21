@@ -27,21 +27,23 @@ export const adminProductsService = {
             sizes: variant.sizes.map(s => ({ size: s.size, quantity: s.quantity }))
         }))
         const detailsJson = productInfo.details.map(detail => ({ text: detail.text }))
-        const payload = {
-            productName: productInfo.productName,
-            sku: productInfo.sku,
-            slug: productInfo.slug,
-            shortDescription: productInfo.shortDescription,
-            description: productInfo.description,
-            status: productInfo.status,
-            originalPrice: productInfo.originalPrice,
-            discountedPrice: productInfo.discountedPrice,
-            warranty: productInfo.warranty,
-            imageMetadata: JSON.stringify(imageMetadataJson),
-            colorVariants: JSON.stringify(variantsJson),
-            details: JSON.stringify(detailsJson)
-        }
-        const { data } = await axiosClient.post<GeneralPostResponseType>(`/api/admin/products`, payload);
+        const formData = new FormData()
+        formData.append("productName", productInfo.productName);
+        formData.append("sku", productInfo.sku);
+        formData.append("slug", productInfo.slug);
+        formData.append("shortDescription", productInfo.shortDescription);
+        formData.append("description", productInfo.description);
+        formData.append("status", productInfo.status);
+        formData.append("originalPrice", productInfo.originalPrice);
+        formData.append("discountedPrice", productInfo.discountedPrice);
+        formData.append("warranty", productInfo.warranty);
+        formData.append("imageMetadata", JSON.stringify(imageMetadataJson));
+        formData.append("colorVariants", JSON.stringify(variantsJson));
+        formData.append("details", JSON.stringify(detailsJson));
+        productInfo.images.forEach((image) => {
+            formData.append("images", image.file)
+        })
+        const { data } = await axiosClient.post<GeneralPostResponseType>(`/api/admin/products`, formData, { headers: { "Content-Type": "multipart/form-data" } });
         return data;
     }
 };
