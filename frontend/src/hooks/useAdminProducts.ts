@@ -6,6 +6,8 @@ import { handleApiError } from "@/lib/axios";
 
 export const adminProductsKeys = {
     all: [ 'admin', 'products' ] as const,
+    details: () => [ ...adminProductsKeys.all, 'detail' ] as const,
+    detail: (slug: string) => [ ...adminProductsKeys.details(), slug ] as const,
     lists: () => [ ...adminProductsKeys.all, 'list' ] as const,
     list: (page: number, limit: number, filters: FilterOptions) => [ ...adminProductsKeys.lists(), page, limit, filters ] as const,
     colors: () => [ ...adminProductsKeys.all, 'colors' ] as const,
@@ -57,6 +59,13 @@ export function useAddAdminProducts() {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: adminProductsKeys.lists() })
         }
+    })
+}
+
+export function useAdminProductDetailBySlug(slug: string) {
+    return useQuery({
+        queryKey: adminProductsKeys.detail(slug),
+        queryFn: () => adminProductsService.getProductBySlug(slug),
     })
 }
 

@@ -1,6 +1,6 @@
 import { axiosClient } from "@/lib/axios";
 import type { GeneralPostResponseType } from "@/type";
-import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSizesResponse, FilterOptions, ProductFormDataTypes } from "@/type/adminProducts";
+import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSizesResponse, FilterOptions, ProductFormDataTypes, GetProductBySlugResponseType } from "@/type/adminProducts";
 
 export const adminProductsService = {
     getProducts: async (page: number = 1, limit: number = 20, filters: FilterOptions): Promise<AdminProductsResponse> => {
@@ -16,6 +16,11 @@ export const adminProductsService = {
     getProductSizes: async (productId: string | number, color: string): Promise<AdminProductSizesResponse> => {
         const encodedColor = encodeURIComponent(color);
         const { data } = await axiosClient.get<AdminProductSizesResponse>(`/api/admin/products/${productId}/colors/${encodedColor}/sizes`);
+        return data;
+    },
+
+    getProductBySlug: async (slug: string): Promise<GetProductBySlugResponseType> => {
+        const { data } = await axiosClient.get<GetProductBySlugResponseType>(`/api/admin/products/${slug}`);
         return data;
     },
 

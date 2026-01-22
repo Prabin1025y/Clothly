@@ -107,3 +107,34 @@ export interface ProductFormDataTypes {
     details: ProductDetail[]
     colorVariants: ColorVariant[]
 }
+
+
+export interface GetProductBySlugResponseType {
+    product_sku: string;
+    public_id: string;
+    id: string;
+    name: string;
+    slug: string;
+    description: string;
+    short_description: string;
+    status: string;
+    warranty_info: string;
+    original_price: string;
+    current_price: string;
+    images: {
+        url: string;
+        alt_text: string;
+        is_primary: boolean;
+    }[];
+    variants: {
+        sku: string;
+        color: string;
+        hex_color: string;
+        size: string;
+        variant_id: number;
+        available: number;
+    }[];
+    details: {
+        text: string;
+    }[];
+};

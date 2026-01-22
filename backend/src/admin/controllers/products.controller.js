@@ -426,3 +426,72 @@ export const addProductV2 = async (req, res) => {
         client.release();
     }
 }
+
+export const getProductDetail = async (req, res) => {
+    try {
+        const slug = req.params.slug
+        if (!slug)
+            res.status(404).json({ success: false, message: "No such product found!!" })
+
+        const result = await sql`
+            SELECT
+                p.sku AS product_sku,
+                p.public_id,
+                p.id,
+                p.name,
+                p.slug,
+                p.description,
+                p.short_description,
+                p.status,
+                p.warranty_info, 
+                p.original_price,
+                p.current_price,
+                -- p.sold_count,
+                -- p.review_count,
+                -- p.average_rating,
+                -- p.is_featured,
+                -- p.is_returnable,
+                -- p.warranty_info,
+                COALESCE(img.images, '[]')     AS images,
+                COALESCE(vars.variants, '[]')  AS variants,
+                COALESCE(dets.details, '[]')   AS details
+            FROM products p
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('url', url, 'alt_text', alt_text, 'is_primary', is_primary)) AS images
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+                ) img ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object(
+                    'sku', sku,
+                    'color', color,
+                    'hex_color', hex_color,
+                    'size', size,
+                    'variant_id', id,
+                    'available', available
+                    ) ) AS variants
+                FROM product_variants pv
+                WHERE pv.product_id = p.id AND pv.available > 0
+                ) vars ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('text', text)) AS details
+                FROM product_details pd
+                WHERE pd.product_id = p.id
+                ) dets ON true
+            WHERE p.slug = ${slug} AND p.status = 'active';
+        `
+
+        if (result.length === 0)
+            return res.status(404).json({ message: "No such product found." });
+
+        const data = result?.[0]
+
+        // data['primary_image'] = data.images?.find(image => image.is_primary)
+        console.log(data);
+
+        res.status(200).json(data);
+    } catch (error) {
+        logger.error("Error while getting specific product!!", error);
+        return res.status(500).json({ message: "Error getting product" });
+    }
+}

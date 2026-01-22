@@ -21,6 +21,7 @@ import OrdersPage from './pages/Orders.tsx'
 import ScrollToTop from './components/ScrollToTop.tsx'
 import { RequireAdmin } from './components/RequireAdmin.tsx'
 import AddProductPage from './pages/admin/AddProduct.tsx'
+import EditProductPage from './pages/admin/UpdateProduct.tsx'
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
@@ -51,6 +52,7 @@ createRoot(document.getElementById('root')!).render(
               <Route path='/admin' element={<AdminHome />} />
               <Route path='/admin/products' element={<AdminProducts />} />
               <Route path='/admin/products/new' element={<AddProductPage />} />
+              <Route path='/admin/products/edit/:slug' element={<EditProductPage />} />
             </Route>
           </Routes>
           <Link to='/admin'>
