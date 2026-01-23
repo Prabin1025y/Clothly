@@ -1,20 +1,23 @@
 import type React from "react"
 import { useEffect, useState } from "react"
-import { Plus, X, Upload } from "lucide-react"
+import { Plus, X, Upload, AlertOctagon, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProducts"
-import { useAddAdminProducts, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
+import { adminProductsKeys, useAddAdminProducts, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
 import { useParams } from "react-router"
+import { useQueryClient } from "@tanstack/react-query"
 
 
 export default function EditProductPage() {
     const addProduct = useAddAdminProducts();
+    const queryClient = useQueryClient();
     const { slug: productSlug } = useParams()
     // Main Product Info
     const [ productName, setProductName ] = useState("")
@@ -272,10 +275,32 @@ export default function EditProductPage() {
     }, [ data ])
 
 
-    if (isError)
-        return (<div>
-            Error..
-        </div>)
+    if (isError) {
+        console.error(error);
+        return <Empty >
+            <EmptyHeader>
+                <EmptyMedia variant="icon">
+                    <AlertOctagon color="red" />
+                </EmptyMedia>
+                <EmptyTitle className="text-red-500">An Error Occured!!</EmptyTitle>
+                <EmptyDescription className="text-red-400">
+                    An error occured while fetching products. Please try again!!
+                </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+                <div className="flex gap-2">
+                    {(isFetching && !isLoading) ? <Button disabled className="bg-red-500">
+                        <Loader2 className="animate-spin" /> Retrying...
+                    </Button> : <Button
+                        className="cursor-pointer bg-red-500"
+                        onClick={() => queryClient.invalidateQueries({ queryKey: adminProductsKeys.detail(productSlug || "") })}
+                    >
+                        Retry
+                    </Button>}
+                </div>
+            </EmptyContent>
+        </Empty>
+    }
 
     if (isLoading)
         return (
