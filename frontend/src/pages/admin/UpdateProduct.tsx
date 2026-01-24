@@ -13,10 +13,12 @@ import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProd
 import { adminProductsKeys, useAddAdminProducts, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
 import { useParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
+import { v4 as uuidv4 } from 'uuid'
+
+type ProductImageEditType = Omit<ProductImage, 'file'> & { file?: File }
 
 
 export default function EditProductPage() {
-    const addProduct = useAddAdminProducts();
     const queryClient = useQueryClient();
     const { slug: productSlug } = useParams()
     // Main Product Info
@@ -31,7 +33,7 @@ export default function EditProductPage() {
     const [ warranty, setWarranty ] = useState("")
 
     // Images
-    const [ images, setImages ] = useState<ProductImage[]>([])
+    const [ images, setImages ] = useState<ProductImageEditType[]>([])
     const [ imageInputKey, setImageInputKey ] = useState(0)
 
     // Details
@@ -226,20 +228,20 @@ export default function EditProductPage() {
 
 
         // Handle form submission here
-        await addProduct.mutateAsync({
-            productName: productName,
-            sku: sku,
-            slug: slug,
-            originalPrice: originalPrice,
-            discountedPrice: discountedPrice,
-            shortDescription: shortDescription,
-            description: description,
-            warranty: warranty,
-            status: status,
-            images: images,
-            colorVariants: colorVariants,
-            details: details
-        })
+        // await addProduct.mutateAsync({
+        //     productName: productName,
+        //     sku: sku,
+        //     slug: slug,
+        //     originalPrice: originalPrice,
+        //     discountedPrice: discountedPrice,
+        //     shortDescription: shortDescription,
+        //     description: description,
+        //     warranty: warranty,
+        //     status: status,
+        //     images: images,
+        //     colorVariants: colorVariants,
+        //     details: details
+        // })
         console.log({
             productName,
             sku,
@@ -271,6 +273,14 @@ export default function EditProductPage() {
         setWarranty(data.warranty_info)
         setStatus(data.status)
 
+        const existingImages: ProductImageEditType[] = data.images.map(img => ({
+            preview: img.url,
+            id: uuidv4(),
+            altText: img.alt_text,
+            isPrimary: img.is_primary,
+        }))
+        setImageInputKey(existingImages.length)
+        setImages(existingImages)
         console.log(data)
     }, [ data ])
 

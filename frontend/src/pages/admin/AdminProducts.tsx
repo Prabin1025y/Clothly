@@ -24,11 +24,6 @@ export default function ProductsPage() {
     const handleDelete = (id: number) => {
         console.log("Delete product:", id)
     }
-
-    const handleEdit = (id: number) => {
-        console.log("Edit product:", id)
-    }
-
     const handleDetails = (id: number) => {
         console.log("View details:", id)
     }
@@ -123,7 +118,6 @@ export default function ProductsPage() {
                         return <div className="mt-6 overflow-hidden rounded-lg border border-border bg-card">
                             <ProductTable
                                 products={filteredProducts}
-                                onEdit={handleEdit}
                                 onDelete={handleDelete}
                                 onDetails={handleDetails}
                             />

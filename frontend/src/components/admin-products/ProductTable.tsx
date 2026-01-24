@@ -1,20 +1,18 @@
-"use client"
-
 import { Edit2, Eye, Trash2, Star } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { MoreVertical } from "lucide-react"
 import type { AdminProduct } from "@/type/adminProducts"
+import { Link } from "react-router"
 
 interface ProductTableProps {
     products: AdminProduct[]
-    onEdit: (id: number) => void
     onDelete: (id: number) => void
     onDetails: (id: number) => void
 }
 
-export default function ProductTable({ products, onEdit, onDelete, onDetails }: ProductTableProps) {
+export default function ProductTable({ products, onDelete, onDetails }: ProductTableProps) {
     return (
         <div className="overflow-x-auto">
             <table className="w-full">
@@ -88,12 +86,14 @@ export default function ProductTable({ products, onEdit, onDelete, onDetails }: 
                                         </Button>
                                         <Button
                                             variant="ghost"
+                                            asChild
                                             size="sm"
-                                            onClick={() => onEdit(product.id)}
                                             title="Edit product"
                                             className="h-8 w-8 p-0 hover:bg-muted"
                                         >
-                                            <Edit2 size={16} />
+                                            <Link to={`/admin/products/edit/${product.slug}`}>
+                                                <Edit2 size={16} />
+                                            </Link>
                                         </Button>
                                         <Button
                                             variant="ghost"
@@ -119,9 +119,11 @@ export default function ProductTable({ products, onEdit, onDelete, onDetails }: 
                                                     <Eye size={16} className="mr-2" />
                                                     Details
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => onEdit(product.id)}>
-                                                    <Edit2 size={16} className="mr-2" />
-                                                    Edit
+                                                <DropdownMenuItem asChild>
+                                                    <Link to={`/admin/products/edit/${product.slug}`}>
+                                                        <Edit2 size={16} className="mr-2" />
+                                                        Edit
+                                                    </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
                                                     onClick={() => onDelete(product.id)}
