@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProducts"
-import { adminProductsKeys, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
+import { adminProductsKeys, useAdminProductDetailBySlug, useUpdateAdminProducts } from "@/hooks/useAdminProducts"
 import { useParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { v4 as uuidv4 } from 'uuid'
@@ -219,6 +219,8 @@ export default function EditProductPage() {
         return { valid: true, message: "" }
     }
 
+    const updateProduct = useUpdateAdminProducts();
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         const { valid, message } = validateForm();
@@ -242,6 +244,23 @@ export default function EditProductPage() {
         //     colorVariants: colorVariants,
         //     details: details
         // })
+        await updateProduct.mutateAsync({
+            productInfo: {
+                productName: productName,
+                sku: sku,
+                slug: slug,
+                originalPrice: originalPrice,
+                discountedPrice: discountedPrice,
+                shortDescription: shortDescription,
+                description: description,
+                warranty: warranty,
+                status: status,
+                images: images,
+                colorVariants: colorVariants,
+                details: details
+            },
+            productSlug: productSlug || ""
+        })
         console.log({
             productName,
             sku,

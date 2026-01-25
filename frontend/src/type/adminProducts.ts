@@ -93,7 +93,7 @@ export interface ColorVariant {
 }
 
 
-export interface ProductFormDataTypes {
+export interface AddProductFormDataTypes {
     productName: string
     sku: string
     slug: string
@@ -106,6 +106,10 @@ export interface ProductFormDataTypes {
     images: ProductImage[]
     details: ProductDetail[]
     colorVariants: ColorVariant[]
+}
+
+export interface EditProductFormDataTypes extends Omit<AddProductFormDataTypes, "images"> {
+    images: (Omit<ProductImage, 'file'> & { file?: File })[]
 }
 
 

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { adminProductsService } from "@/service/adminProductsService";
-import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSizesResponse, FilterOptions } from "@/type/adminProducts";
+import type { AdminProductsResponse, AdminProductColorsResponse, AdminProductSizesResponse, FilterOptions, EditProductFormDataTypes } from "@/type/adminProducts";
 import { toast } from "sonner";
 import { handleApiError } from "@/lib/axios";
+import type { GeneralPostResponseType } from "@/type";
 
 export const adminProductsKeys = {
     all: [ 'admin', 'products' ] as const,
@@ -50,6 +51,25 @@ export function useAddAdminProducts() {
 
         onSuccess: () => {
             toast.success("Product added successfully!");
+        },
+
+        onError: (error) => {
+            toast.error(handleApiError(error));
+        },
+
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: adminProductsKeys.lists() })
+        }
+    })
+}
+
+export function useUpdateAdminProducts() {
+    const queryClient = useQueryClient();
+    return useMutation<GeneralPostResponseType, unknown, { productInfo: EditProductFormDataTypes; productSlug: string }>({
+        mutationFn: ({ productInfo, productSlug }) => adminProductsService.updateProduct(productInfo, productSlug),
+
+        onSuccess: () => {
+            toast.success("Product updated successfully!");
         },
 
         onError: (error) => {

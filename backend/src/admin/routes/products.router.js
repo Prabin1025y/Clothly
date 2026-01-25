@@ -23,7 +23,7 @@ adminProductsRouter.post("/", diskUpload.array("images", 10), addProductV2);
 
 adminProductsRouter.get("/:slug", getProductDetail);
 
-adminProductsRouter.put("/:id", diskUpload.array("images", 10), updateProduct);
+adminProductsRouter.put("/:slug", diskUpload.array("images", 10), updateProduct);
 
 export default adminProductsRouter;
 

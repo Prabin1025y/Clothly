@@ -500,7 +500,7 @@ export const updateProduct = async (req, res) => {
     const client = await pool.connect();
 
     try {
-        const { id: productId } = req.params;
+        const { slug: productSlug } = req.params;
         const body = req.body;
         const productDetailsFromBody = JSON.parse(body.details);
         const colorVariantsFromBody = JSON.parse(body.colorVariants);
@@ -554,13 +554,15 @@ export const updateProduct = async (req, res) => {
 
         // Check if product exists
         const productCheck = await client.query(
-            `SELECT id FROM products WHERE id = $1`,
-            [productId]
+            `SELECT id FROM products WHERE slug = $1`,
+            [productSlug]
         );
 
         if (productCheck.rowCount === 0) {
             throw new Error("Product not found!");
         }
+
+        const productId = productCheck.rows[0].id
 
         // Update product basic info
         const updateProductResponse = await client.query(`
