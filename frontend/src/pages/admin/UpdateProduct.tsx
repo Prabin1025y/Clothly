@@ -10,7 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import type { ColorVariant, ProductDetail, ProductImage } from "@/type/adminProducts"
-import { adminProductsKeys, useAddAdminProducts, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
+import { adminProductsKeys, useAdminProductDetailBySlug } from "@/hooks/useAdminProducts"
 import { useParams } from "react-router"
 import { useQueryClient } from "@tanstack/react-query"
 import { v4 as uuidv4 } from 'uuid'
@@ -281,6 +281,34 @@ export default function EditProductPage() {
         }))
         setImageInputKey(existingImages.length)
         setImages(existingImages)
+
+        setDetails(data.details.map(detail => ({
+            text: detail.text,
+            id: uuidv4()
+        })))
+
+        const colorMap = new Map<string, ColorVariant>()
+        data.variants.forEach(variant => {
+            const colorKey = variant.hex_color;
+
+            if (!colorMap.has(colorKey)) {
+                colorMap.set(colorKey, {
+                    id: uuidv4(),
+                    colorHex: variant.hex_color,
+                    colorName: variant.color,
+                    sizes: []
+                })
+            }
+
+            colorMap.get(colorKey)?.sizes.push({
+                id: uuidv4(),
+                size: variant.size,
+                quantity: variant.available
+            })
+        })
+        setColorVariants(Array.from(colorMap.values()))
+
+
         console.log(data)
     }, [ data ])
 

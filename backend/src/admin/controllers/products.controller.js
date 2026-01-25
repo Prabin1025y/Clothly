@@ -495,3 +495,329 @@ export const getProductDetail = async (req, res) => {
         return res.status(500).json({ message: "Error getting product" });
     }
 }
+
+export const updateProduct = async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const { id: productId } = req.params;
+        const body = req.body;
+        const productDetailsFromBody = JSON.parse(body.details);
+        const colorVariantsFromBody = JSON.parse(body.colorVariants);
+        const imageMetadataFromBody = body.imageMetadata ? JSON.parse(body.imageMetadata) : null;
+
+        console.log(req.files);
+
+        const toBeParsed = {
+            productName: body.productName,
+            sku: body.sku,
+            slug: body.slug,
+            status: body.status,
+            warranty: body.warranty,
+            originalPrice: body.originalPrice,
+            discountedPrice: body.discountedPrice,
+            description: body.description,
+            shortDescription: body.shortDescription,
+            imageMetadata: imageMetadataFromBody,
+            images: req.files || [],
+            details: productDetailsFromBody,
+            colorVariants: colorVariantsFromBody
+        };
+
+        const parsed = adminProductSchema.parse(toBeParsed);
+
+        const {
+            productName,
+            sku,
+            slug,
+            status,
+            warranty,
+            originalPrice,
+            discountedPrice,
+            isFeatured,
+            isReturnable,
+            currency,
+            description,
+            shortDescription,
+            imageMetadata,
+            images,
+            details,
+            colorVariants
+        } = parsed;
+
+        const userId = req.userId || 1; //TODO: Remove 1 in production
+
+        if (!userId)
+            return res.status(403).json({ message: "Please log in first!" });
+
+        await client.query("BEGIN");
+
+        // Check if product exists
+        const productCheck = await client.query(
+            `SELECT id FROM products WHERE id = $1`,
+            [productId]
+        );
+
+        if (productCheck.rowCount === 0) {
+            throw new Error("Product not found!");
+        }
+
+        // Update product basic info
+        const updateProductResponse = await client.query(`
+                UPDATE products SET
+                    name = $1,
+                    sku = $2,
+                    slug = $3,
+                    short_description = $4,
+                    description = $5,
+                    status = $6,
+                    original_price = $7,
+                    current_price = $8,
+                    currency = $9,
+                    is_featured = $10,
+                    is_returnable = $11,
+                    warranty_info = $12,
+                    updated_at = NOW()
+                WHERE id = $13
+                RETURNING id
+            `, [
+            productName,
+            sku,
+            slug,
+            shortDescription,
+            description,
+            status,
+            originalPrice,
+            discountedPrice,
+            currency,
+            isFeatured,
+            isReturnable,
+            warranty,
+            productId
+        ]);
+
+        if (updateProductResponse.rowCount === 0)
+            throw new Error("Product cannot be updated!");
+
+        // Delete old images
+        await client.query(`
+                DELETE FROM product_images WHERE product_id = $1
+            `, [productId]);
+
+        // Handle images only if new ones are uploaded
+        if (images && images.length > 0 && imageMetadata) {
+            // Insert new images
+            const imagePlaceholder = images.map((_, idx) => (
+                `($${idx * 4 + 1}, $${idx * 4 + 2}, $${idx * 4 + 3}, $${idx * 4 + 4})`
+            )).join(", ");
+
+            const imageValues = images.flatMap((image, index) => [
+                productId,
+                `${process.env.BACKEND_URL}/uploads/${image.filename}`,
+                imageMetadata[index].altText || `image ${index + 1} of product`,
+                imageMetadata[index].isPrimary
+            ]);
+
+            const insertImageResponse = await client.query(`
+                INSERT INTO product_images (
+                    product_id,
+                    url,
+                    alt_text,
+                    is_primary
+                ) VALUES ${imagePlaceholder}
+                RETURNING id, is_primary
+            `, imageValues);
+
+            if (insertImageResponse.rowCount === 0)
+                throw new Error("Product images cannot be inserted!");
+
+            const primaryImageId = insertImageResponse.rows.find(row => row.is_primary === true)?.id;
+            if (primaryImageId) {
+                await client.query(`
+                    UPDATE products 
+                    SET main_image_id = $1
+                    WHERE id = $2
+                `, [primaryImageId, productId]);
+            }
+        }
+
+        // Smart variant update - only modify what changed
+        const combination = [];
+        colorVariants.forEach(variant => {
+            variant.sizes.forEach(size => {
+                combination.push({
+                    colorName: variant.colorName,
+                    colorHex: variant.colorHex,
+                    size: size.size,
+                    quantity: size.quantity
+                });
+            });
+        });
+
+        // Get existing variants
+        const existingVariants = await client.query(`
+            SELECT id, sku, color, hex_color, size, available
+            FROM product_variants
+            WHERE product_id = $1
+        `, [productId]);
+
+        const existingVariantsMap = new Map(
+            existingVariants.rows.map(v => [
+                `${v.color}-${v.size}`,
+                v
+            ])
+        );
+
+        const newVariantsMap = new Map(
+            combination.map(v => [
+                `${v.colorName}-${v.size}`,
+                v
+            ])
+        );
+
+        // Find variants to delete (exist in DB but not in new data)
+        const variantsToDelete = [];
+        existingVariantsMap.forEach((variant, key) => {
+            if (!newVariantsMap.has(key)) {
+                variantsToDelete.push(variant.id);
+            }
+        });
+
+        if (variantsToDelete.length > 0) {
+            await client.query(`
+                DELETE FROM product_variants 
+                WHERE id = ANY($1)
+            `, [variantsToDelete]);
+        }
+
+        // Update or insert variants
+        for (const comb of combination) {
+            const key = `${comb.colorName}-${comb.size}`;
+            const existing = existingVariantsMap.get(key);
+            const variantSku = `${sku}-${comb.colorName.substring(0, 3).toUpperCase()}-${comb.size}`;
+
+            if (existing) {
+                // Update existing variant if data changed
+                if (existing.available !== comb.quantity ||
+                    existing.hex_color !== comb.colorHex ||
+                    existing.sku !== variantSku) {
+                    await client.query(`
+                        UPDATE product_variants SET
+                            sku = $1,
+                            hex_color = $2,
+                            original_price = $3,
+                            current_price = $4,
+                            available = $5
+                        WHERE id = $6
+                    `, [
+                        variantSku,
+                        comb.colorHex,
+                        originalPrice,
+                        discountedPrice,
+                        comb.quantity,
+                        existing.id
+                    ]);
+                }
+            } else {
+                // Insert new variant
+                await client.query(`
+                    INSERT INTO product_variants (
+                        product_id,
+                        sku,
+                        color,
+                        hex_color,
+                        size,
+                        original_price,
+                        current_price,
+                        available
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                `, [
+                    productId,
+                    variantSku,
+                    comb.colorName,
+                    comb.colorHex,
+                    comb.size,
+                    originalPrice,
+                    discountedPrice,
+                    comb.quantity
+                ]);
+            }
+        }
+
+        console.log("variants updated intelligently");
+
+        // Smart details update
+        const existingDetails = await client.query(`
+            SELECT id, text
+            FROM product_details
+            WHERE product_id = $1
+            ORDER BY id
+        `, [productId]);
+
+        const existingTexts = new Set(existingDetails.rows.map(d => d.text));
+        const newTexts = new Set(details.map(d => d.text));
+
+        // Find details to delete
+        const detailsToDelete = existingDetails.rows
+            .filter(d => !newTexts.has(d.text))
+            .map(d => d.id);
+
+        if (detailsToDelete.length > 0) {
+            await client.query(`
+                DELETE FROM product_details 
+                WHERE id = ANY($1)
+            `, [detailsToDelete]);
+        }
+
+        // Find details to insert
+        const detailsToInsert = details.filter(d => !existingTexts.has(d.text));
+
+        if (detailsToInsert.length > 0) {
+            const detailPlaceholder = detailsToInsert.map((_, idx) => (
+                `($${idx * 2 + 1}, $${idx * 2 + 2})`
+            )).join(", ");
+
+            const detailValues = detailsToInsert.flatMap(detail => [productId, detail.text]);
+
+            await client.query(`
+                INSERT INTO product_details (
+                    product_id,
+                    text
+                ) VALUES ${detailPlaceholder}
+            `, detailValues);
+        }
+
+        console.log("details updated intelligently");
+
+        await client.query("COMMIT");
+        res.status(200).json({
+            success: true,
+            message: "Product updated successfully",
+            id: productId
+        });
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        logger.error("Error while updating product!!", error);
+
+        if (error.name === "ZodError") {
+            return res.status(400).json({
+                message: "Validation failed! Please check your inputs.",
+            });
+        }
+
+        if (error.message === "Product not found!") {
+            return res.status(404).json({
+                success: false,
+                message: error.message
+            });
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Error updating product"
+        });
+    } finally {
+        client.release();
+    }
+};
