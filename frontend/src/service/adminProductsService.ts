@@ -53,14 +53,28 @@ export const adminProductsService = {
     },
 
     updateProduct: async (productInfo: EditProductFormDataTypes, productSlug: string): Promise<GeneralPostResponseType> => {
-        const imageMetadataJson = productInfo.images.map(image => ({ altText: image.altText, isPrimary: image.isPrimary }))
+        const formData = new FormData()
+        let imageMetadataJson: { altText: string, isPrimary: boolean }[] = []
+        const newImages = productInfo.images.filter(image => image.file)
+        newImages.forEach(image => imageMetadataJson.push({ altText: image.altText, isPrimary: image.isPrimary }))
+
+        const existingImages = productInfo.images.filter(image => !image.file);
+        const existingImagesToBeSent = existingImages.map(image => ({ url: image.preview }))
+        existingImages.forEach(image => imageMetadataJson.push({ altText: image.altText, isPrimary: image.isPrimary }))
+
+        newImages.forEach((image) => {
+            if (image.file)
+                formData.append("images", image.file)
+        })
+
+
         const variantsJson = productInfo.colorVariants.map(variant => ({
             colorName: variant.colorName,
             colorHex: variant.colorHex,
             sizes: variant.sizes.map(s => ({ size: s.size, quantity: s.quantity }))
         }))
         const detailsJson = productInfo.details.map(detail => ({ text: detail.text }))
-        const formData = new FormData()
+
         formData.append("productName", productInfo.productName);
         formData.append("sku", productInfo.sku);
         formData.append("slug", productInfo.slug);
@@ -70,13 +84,11 @@ export const adminProductsService = {
         formData.append("originalPrice", productInfo.originalPrice);
         formData.append("discountedPrice", productInfo.discountedPrice);
         formData.append("warranty", productInfo.warranty);
+        formData.append("existingImage", JSON.stringify(existingImagesToBeSent))
         formData.append("imageMetadata", JSON.stringify(imageMetadataJson));
         formData.append("colorVariants", JSON.stringify(variantsJson));
         formData.append("details", JSON.stringify(detailsJson));
-        productInfo.images.forEach((image) => {
-            if (image.file)
-                formData.append("images", image.file)
-        })
+
         const { data } = await axiosClient.put<GeneralPostResponseType>(`/api/admin/products/${productSlug}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
         return data;
     }

@@ -229,21 +229,6 @@ export default function EditProductPage() {
         }
 
 
-        // Handle form submission here
-        // await addProduct.mutateAsync({
-        //     productName: productName,
-        //     sku: sku,
-        //     slug: slug,
-        //     originalPrice: originalPrice,
-        //     discountedPrice: discountedPrice,
-        //     shortDescription: shortDescription,
-        //     description: description,
-        //     warranty: warranty,
-        //     status: status,
-        //     images: images,
-        //     colorVariants: colorVariants,
-        //     details: details
-        // })
         await updateProduct.mutateAsync({
             productInfo: {
                 productName: productName,

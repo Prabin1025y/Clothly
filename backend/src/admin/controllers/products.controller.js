@@ -1,6 +1,6 @@
 import { pool, sql } from "../../config/db.js";
 import logger from "../../config/logger.js";
-import { adminProductSchema } from "../../validation/product.schema.js";
+import { adminAddProductSchema, adminEditProductSchema } from "../../validation/product.schema.js";
 
 /**
  * Get all products (paginated) - grouped by main product
@@ -233,7 +233,7 @@ export const addProductV2 = async (req, res) => {
             colorVariants: colorVariantsFromBody
         }
 
-        const parsed = adminProductSchema.parse(toBeParsed)
+        const parsed = adminAddProductSchema.parse(toBeParsed)
 
         const {
             productName,
@@ -504,10 +504,11 @@ export const updateProduct = async (req, res) => {
         const body = req.body;
         const productDetailsFromBody = JSON.parse(body.details);
         const colorVariantsFromBody = JSON.parse(body.colorVariants);
+        const existingImageFromBody = JSON.parse(body.existingImage)
         const imageMetadataFromBody = body.imageMetadata ? JSON.parse(body.imageMetadata) : null;
 
         console.log(req.files);
-
+        console.log(req.body);
         const toBeParsed = {
             productName: body.productName,
             sku: body.sku,
@@ -519,12 +520,13 @@ export const updateProduct = async (req, res) => {
             description: body.description,
             shortDescription: body.shortDescription,
             imageMetadata: imageMetadataFromBody,
+            existingImage: existingImageFromBody,
             images: req.files || [],
             details: productDetailsFromBody,
             colorVariants: colorVariantsFromBody
         };
 
-        const parsed = adminProductSchema.parse(toBeParsed);
+        const parsed = adminEditProductSchema.parse(toBeParsed);
 
         const {
             productName,
@@ -540,6 +542,7 @@ export const updateProduct = async (req, res) => {
             description,
             shortDescription,
             imageMetadata,
+            existingImage,
             images,
             details,
             colorVariants
@@ -601,21 +604,34 @@ export const updateProduct = async (req, res) => {
         if (updateProductResponse.rowCount === 0)
             throw new Error("Product cannot be updated!");
 
-        // Delete old images
-        await client.query(`
+        // Handle images only if new ones are uploaded
+        if ((images.length + existingImage.length) > 0 && imageMetadata) {
+            // Delete old images
+            await client.query(`
                 DELETE FROM product_images WHERE product_id = $1
             `, [productId]);
 
-        // Handle images only if new ones are uploaded
-        if (images && images.length > 0 && imageMetadata) {
+            const allImages = []
+            if (images && Array.isArray(images) && images.length > 0) {
+                images.forEach(image => {
+                    allImages.push(`${process.env.BACKEND_URL}/uploads/${image.filename}`)
+                })
+            }
+
+            if (existingImage && existingImage.length > 0) {
+                existingImage.forEach(image => {
+                    allImages.push(image.url)
+                })
+            }
+
             // Insert new images
-            const imagePlaceholder = images.map((_, idx) => (
+            const imagePlaceholder = allImages.map((_, idx) => (
                 `($${idx * 4 + 1}, $${idx * 4 + 2}, $${idx * 4 + 3}, $${idx * 4 + 4})`
             )).join(", ");
 
-            const imageValues = images.flatMap((image, index) => [
+            const imageValues = allImages.flatMap((image, index) => [
                 productId,
-                `${process.env.BACKEND_URL}/uploads/${image.filename}`,
+                image,
                 imageMetadata[index].altText || `image ${index + 1} of product`,
                 imageMetadata[index].isPrimary
             ]);

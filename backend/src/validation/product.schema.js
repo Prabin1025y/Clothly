@@ -67,7 +67,7 @@ export const adminProductDetailSchema = z.object({
     text: z.string().min(1, "Product detail's bullet cannot be empty")
 })
 
-export const adminProductSchema = z.object({
+export const adminAddProductSchema = z.object({
     productName: z.string().min(1, "name of product is required"),
     sku: z.string().min(1, "sku of product is required"),
     slug: z.string().min(1, "slug of product is required"),
@@ -86,6 +86,40 @@ export const adminProductSchema = z.object({
     details: z.array(adminProductDetailSchema).min(1, 'Please enter some details about the product')
 }).refine(
     (data) => data.images.length === data.imageMetadata.length,
+    { message: 'Images and metadata count mismatch' }
+).refine(
+    (data) => data.originalPrice >= data.discountedPrice,
+    { message: "Discounted price should be lower than or equal original price" }
+)
+
+
+export const adminProductExistingImageSchema = z.object({
+    url: z.string(),
+})
+
+export const adminEditProductSchema = z.object({
+    productName: z.string().min(1, "name of product is required"),
+    sku: z.string().min(1, "sku of product is required"),
+    slug: z.string().min(1, "slug of product is required"),
+    shortDescription: z.string().min(1, "short description of product is required"),
+    description: z.string().min(1, "description of product is required"),
+    status: z.enum(["draft", "active", "archived"]).default("draft"),
+    originalPrice: z.coerce.number().nonnegative(),
+    discountedPrice: z.coerce.number().nonnegative(),
+    currency: z.string().length(3).default("NPR"),
+    isFeatured: z.boolean().default(false),
+    isReturnable: z.boolean().default(true),
+    warranty: z.string().min(1, "Please provide warranty info"),
+    existingImage: z.array(adminProductExistingImageSchema),
+    images: z.array(z.any()).optional(),
+    imageMetadata: z.array(adminProductImageSchema).min(1, "At least one image is required"),
+    colorVariants: z.array(adminProductColorVariantSchema).min(1, "At least one variant is required"),
+    details: z.array(adminProductDetailSchema).min(1, 'Please enter some details about the product')
+}).refine(
+    (data) => (data.images.length + data.existingImage.length) > 0,
+    { message: 'At least one image is mandatory' }
+).refine(
+    (data) => (data.images.length + data.existingImage.length) === data.imageMetadata.length,
     { message: 'Images and metadata count mismatch' }
 ).refine(
     (data) => data.originalPrice >= data.discountedPrice,

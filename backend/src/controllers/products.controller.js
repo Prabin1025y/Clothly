@@ -1,6 +1,6 @@
 import { pool, sql } from "../config/db.js";
 import logger from "../config/logger.js";
-import { adminProductSchema, productSchema } from "../validation/product.schema.js";
+import { productSchema } from "../validation/product.schema.js";
 
 export const addProduct = async (req, res) => {
     //Parse body using zod
