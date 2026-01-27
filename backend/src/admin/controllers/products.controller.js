@@ -826,16 +826,49 @@ export const updateProduct = async (req, res) => {
 
         if (error.message === "Product not found!") {
             return res.status(404).json({
-                success: false,
                 message: error.message
             });
         }
 
         return res.status(500).json({
-            success: false,
             message: "Error updating product"
         });
     } finally {
         client.release();
     }
 };
+
+export const deleteProduct = async (req, res) => {
+    try {
+        const { slug: productSlug } = req.params;
+
+        const userId = req.userId || 1 //TODO: remove 1 in production
+
+        const productCheck = await sql
+            `SELECT id FROM products WHERE slug = ${productSlug}`;
+
+        if (productCheck.length === 0) {
+            return res.status(404).json({ message: "Product not found!" });
+        }
+
+        const productId = productCheck[0].id;
+
+        const deletedProduct = await sql`
+            DELETE FROM products 
+            WHERE id = ${productId}
+            RETURNING id
+        `
+
+        if (deletedProduct.length === 0)
+            throw new Error("Product could not be deleted!");
+
+        return res.status(200).json({ success: true });
+
+    } catch (error) {
+        logger.error("Error while deleting product!!", error);
+
+        return res.status(500).json({
+            message: "Error updating product"
+        });
+    }
+}
