@@ -46,9 +46,9 @@ createRoot(document.getElementById('root')!).render(
             <Route path='/orders' element={<OrdersPage />} />
             <Route path='/order-failure' element={<OrderFailedPage />} />
             <Route path="/admin" element={
-              <RequireAdmin>
-                <AdminLayout />
-              </RequireAdmin>
+              // <RequireAdmin>
+              <AdminLayout />
+              // </RequireAdmin>
             } >
               <Route path='/admin' element={<AdminHome />} />
               <Route path='/admin/products' element={<AdminProducts />} />
