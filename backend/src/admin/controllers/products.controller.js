@@ -116,94 +116,133 @@ export const getAdminProducts = async (req, res) => {
     }
 };
 
-/**
- * Get color variants for a specific product
- * GET /api/admin/products/:productId/colors
- */
-export const getProductColors = async (req, res) => {
+export const getProductBySlug = async (req, res) => {
     try {
-        const productId = parseInt(req.params.productId, 10);
+        const slug = req.params.slug
+        if (!slug)
+            res.status(404).json({ success: false, message: "No such product found!!" })
 
-        if (!productId || isNaN(productId))
-            return res.status(400).json({ success: false, message: "Valid product ID is required" });
-
-        // Get distinct colors for the product
-        const colors = await sql`
-            SELECT DISTINCT
-                pv.color,
-                pv.hex_color,
-                COUNT(DISTINCT pv.size) AS size_count,
-                SUM(pv.available) AS total_available
-            FROM product_variants pv
-            WHERE pv.product_id = ${productId}
-                AND pv.deleted_at IS NULL
-            GROUP BY pv.color, pv.hex_color
-            ORDER BY pv.color ASC
-        `;
-
-        return res.status(200).json({
-            success: true,
-            data: colors
-        });
-    } catch (error) {
-        logger.error("Error while getting product colors!!", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch product colors" });
-    }
-};
-
-/**
- * Get sizes for a specific product and color combination
- * GET /api/admin/products/:productId/colors/:color/sizes
- */
-export const getProductSizes = async (req, res) => {
-    try {
-        const productId = parseInt(req.params.productId, 10);
-        const color = decodeURIComponent(req.params.color);
-
-        if (!productId || isNaN(productId) || !color)
-            return res.status(400).json({ success: false, message: "Valid product ID and color are required" });
-
-        // Get all sizes for the product and color combination
-        const sizes = await sql`
+        const result = await sql`
             SELECT
-                pv.id AS variant_id,
-                pv.sku,
-                pv.size,
-                pv.original_price,
-                pv.current_price,
-                pv.available,
-                pv.reserved,
-                pv.on_hold,
-                pv.barcode,
-                pv.created_at,
-                pv.updated_at
-            FROM product_variants pv
-            WHERE pv.product_id = ${productId}
-                AND pv.color = ${color}
-                AND pv.deleted_at IS NULL
-            ORDER BY 
-                CASE pv.size
-                    WHEN 'XS' THEN 1
-                    WHEN 'S' THEN 2
-                    WHEN 'M' THEN 3
-                    WHEN 'L' THEN 4
-                    WHEN 'XL' THEN 5
-                    WHEN 'XXL' THEN 6
-                    WHEN 'XXXL' THEN 7
-                    ELSE 99
-                END,
-                pv.size ASC
-        `;
+                p.sku AS product_sku,
+                p.public_id,
+                p.id,
+                p.name,
+                p.slug,
+                p.short_description,
+                p.description,
+                p.original_price,
+                p.current_price,
+                p.sold_count,
+                p.review_count,
+                p.average_rating,
+                p.is_featured,
+                p.is_returnable,
+                p.warranty_info,
+                p.created_at,
+                p.updated_at,
+                p.status,
+                COALESCE(img.images, '[]')     AS images,
+                COALESCE(vars.variants, '[]')  AS variants,
+                COALESCE(dets.details, '[]')   AS details
+            FROM products p
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('url', url, 'alt_text', alt_text, 'is_primary', is_primary, 'id', id)) AS images
+                FROM product_images pi
+                WHERE pi.product_id = p.id
+                ) img ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object(
+                    'sku', sku,
+                    'color', color,
+                    'hex_color', hex_color,
+                    'size', size,
+                    'variant_id', id,
+                    'available', available
+                    ) ) AS variants
+                FROM product_variants pv
+                WHERE pv.product_id = p.id
+                ) vars ON true
+            LEFT JOIN LATERAL (
+                SELECT json_agg(json_build_object('text', text)) AS details
+                FROM product_details pd
+                WHERE pd.product_id = p.id
+                ) dets ON true
+            WHERE p.slug = ${slug};
+        `
 
-        return res.status(200).json({
-            success: true,
-            data: sizes
-        });
+        if (result.length === 0)
+            return res.status(404).json({ message: "No such product found." });
+
+        const data = result?.[0]
+
+        data['primary_image'] = data.images?.find(image => image.is_primary)
+        console.log(data);
+
+        res.status(200).json(data);
     } catch (error) {
-        logger.error("Error while getting product sizes!!", error);
-        return res.status(500).json({ success: false, message: "Failed to fetch product sizes" });
+        logger.error("Error while getting specific product!!", error);
+        return res.status(500).json({ message: "Error getting product" });
     }
-};
+}
+
+export const getProductReviewBySlug = async (req, res) => {
+    try {
+
+        const slug = req.params.slug
+        if (!slug)
+            return res.status(404).json({ message: "No such product found!!" });
+
+        const { userId } = getAuth(req)
+
+        const productId = await sql`
+            SELECT id FROM products WHERE slug=${slug}
+        `
+
+        if (productId.length === 0)
+            return res.status(404).json({ message: "No such product found!!" });
+
+        const reviews = await sql`
+            SELECT 
+                rv.id,
+                rv.user_id,
+                ur.clerk_id,
+                ur.full_name,
+                ur.image_url,
+                rv.order_id,
+                rv.product_id,
+                rv.rating,
+                rv.title,
+                rv.body,
+                rv.images,
+                rv.is_verified_purchase,
+                rv.helpful_count,
+                rv.created_at
+            FROM reviews rv
+            LEFT JOIN users ur ON ur.id = rv.user_id
+            WHERE rv.product_id=${productId[0].id}
+                AND rv.deleted_at IS NULL
+        `
+
+        if (reviews.length === 0)
+            return res.status(200).json([])
+
+        const responseReviews = reviews.map(review => ({
+            ...review,
+            is_owner: userId ? review.clerk_id === userId : false
+        }))
+
+        // console.log(responseReviews);
+
+        res.status(200).json(responseReviews);
+
+    } catch (error) {
+        logger.error("Error in adding review: ", error)
+        res.status(500).json({
+            message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
+        })
+    }
+}
 
 export const addProductV2 = async (req, res) => {
     const client = await pool.connect();

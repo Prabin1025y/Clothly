@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addProductV2, deleteProduct, getAdminProducts, getProductColors, getProductDetail, getProductSizes, updateProduct } from "../controllers/products.controller.js";
+import { addProductV2, deleteProduct, getAdminProducts, getProductBySlug, getProductReviewBySlug, updateProduct } from "../controllers/products.controller.js";
 import isAuthenticated from "../../middlewares/isAuthenticated.js";
 import isAdmin from "../../middlewares/isAdmin.js";
 import { diskUpload } from "../../config/multer.js";
@@ -13,15 +13,11 @@ const adminProductsRouter = Router();
 // Get all products (paginated)
 adminProductsRouter.get("/", getAdminProducts);
 
-// Get color variants for a product
-adminProductsRouter.get("/:productId/colors", getProductColors);
-
-// Get sizes for a product and color combination
-adminProductsRouter.get("/:productId/colors/:color/sizes", getProductSizes);
-
 adminProductsRouter.post("/", diskUpload.array("images", 10), addProductV2);
 
-adminProductsRouter.get("/:slug", getProductDetail);
+adminProductsRouter.get("/:slug", getProductBySlug);
+
+adminProductsRouter.get("/reviews/:slug", getProductReviewBySlug);
 
 adminProductsRouter.put("/:slug", diskUpload.array("images", 10), updateProduct);
 

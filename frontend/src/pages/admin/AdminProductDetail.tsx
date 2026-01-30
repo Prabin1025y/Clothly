@@ -4,135 +4,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { useAdminProductDetailBySlug } from "@/hooks/useAdminProducts";
+import { groupProductVariants } from "@/service/utilsService";
+import type { ModifiedProductVariant, ProductImage } from "@/type/product";
 import { formatDistanceToNow } from "date-fns";
 import { Check, Edit, Heart, MessageSquare, Package, ShoppingCart, Star, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
 
 const product = {
-    id: 'prod_001',
-    name: 'Premium Cotton Casual T-Shirt',
-    sku: 'TSH-001-BLK-M',
-    slug: 'premium-cotton-casual-tshirt',
-    status: 'active',
-    created: new Date('2024-01-15'),
-    lastUpdated: new Date('2024-11-20'),
-
-    stats: {
-        soldCount: 1253,
-        averageRating: 4.6,
-        totalReviews: 184,
-        totalStock: 456,
-    },
-
-    images: [
-        {
-            id: 'img_001',
-            url: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&q=80',
-            altText: 'Premium Cotton T-Shirt Front View',
-            isPrimary: true,
-        },
-        {
-            id: 'img_002',
-            url: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=800&q=80',
-            altText: 'Premium Cotton T-Shirt Back View',
-            isPrimary: false,
-        },
-        {
-            id: 'img_003',
-            url: 'https://images.unsplash.com/photo-1506629082632-96b285a8e01f?w=800&q=80',
-            altText: 'Premium Cotton T-Shirt Detail View',
-            isPrimary: false,
-        },
-        {
-            id: 'img_004',
-            url: 'https://images.unsplash.com/photo-1469028065105-ce4fa1fc9e0d?w=800&q=80',
-            altText: 'Premium Cotton T-Shirt Lifestyle',
-            isPrimary: false,
-        },
-    ],
-
-    pricing: {
-        currentPrice: 29.99,
-        discountedPrice: 19.99,
-        discount: 33,
-    },
-
-    shortDescription:
-        'A versatile, premium quality cotton t-shirt perfect for everyday wear. Made from 100% organic cotton with a comfortable fit.',
-
-    longDescription:
-        'Our Premium Cotton Casual T-Shirt is crafted from the finest 100% organic cotton, ensuring supreme comfort and breathability. The fabric is pre-shrunk and durable, maintaining its shape and color after multiple washes. With a classic crew neck design and reinforced stitching, this t-shirt is perfect for casual outings, lounging at home, or layering with other pieces. Available in multiple colors and sizes, it\'s a wardrobe essential that pairs well with jeans, shorts, or joggers. Whether you\'re running errands or hanging out with friends, this t-shirt delivers both style and comfort.',
-
-    colorVariants: [
-        {
-            id: 'color_001',
-            name: 'Black',
-            hex: '#000000',
-            sizes: [
-                { size: 'XS', inStock: 12, price: 19.99 },
-                { size: 'S', inStock: 28, price: 19.99 },
-                { size: 'M', inStock: 45, price: 19.99 },
-                { size: 'L', inStock: 38, price: 19.99 },
-                { size: 'XL', inStock: 22, price: 19.99 },
-                { size: '2XL', inStock: 8, price: 22.99 },
-            ],
-        },
-        {
-            id: 'color_002',
-            name: 'White',
-            hex: '#FFFFFF',
-            sizes: [
-                { size: 'XS', inStock: 15, price: 19.99 },
-                { size: 'S', inStock: 32, price: 19.99 },
-                { size: 'M', inStock: 52, price: 19.99 },
-                { size: 'L', inStock: 41, price: 19.99 },
-                { size: 'XL', inStock: 26, price: 19.99 },
-                { size: '2XL', inStock: 10, price: 22.99 },
-            ],
-        },
-        {
-            id: 'color_003',
-            name: 'Navy',
-            hex: '#001F3F',
-            sizes: [
-                { size: 'XS', inStock: 10, price: 19.99 },
-                { size: 'S', inStock: 24, price: 19.99 },
-                { size: 'M', inStock: 38, price: 19.99 },
-                { size: 'L', inStock: 32, price: 19.99 },
-                { size: 'XL', inStock: 18, price: 19.99 },
-                { size: '2XL', inStock: 5, price: 22.99 },
-            ],
-        },
-        {
-            id: 'color_004',
-            name: 'Heather Gray',
-            hex: '#A8A8A8',
-            sizes: [
-                { size: 'XS', inStock: 8, price: 19.99 },
-                { size: 'S', inStock: 20, price: 19.99 },
-                { size: 'M', inStock: 35, price: 19.99 },
-                { size: 'L', inStock: 28, price: 19.99 },
-                { size: 'XL', inStock: 14, price: 19.99 },
-                { size: '2XL', inStock: 3, price: 22.99 },
-            ],
-        },
-    ],
-
-    warranty: {
-        duration: '1 Year',
-        coverage: [ 'Manufacturing defects', 'Stitching issues', 'Color fading' ],
-        exclusions: [ 'Normal wear and tear', 'Damage from improper care', 'Stains or bleach damage' ],
-    },
-
-    details: [
-        'Material: 100% Organic Cotton',
-        'Weight: 165 GSM',
-        'Fit: Classic Unisex Fit',
-        'Care: Machine wash cold, gentle cycle',
-        'Dimensions: See size chart for measurements',
-        'Made in Portugal with sustainable practices',
-    ],
-
     reviews: [
         {
             id: 'review_001',
@@ -177,44 +57,18 @@ const product = {
     ],
 };
 
-const statCards = [
-    {
-        label: 'Total Sold',
-        value: product.stats.soldCount.toLocaleString(),
-        icon: ShoppingCart,
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        borderColor: "border-blue-500"
-    },
-    {
-        label: 'Average Rating',
-        value: product.stats.averageRating.toFixed(1),
-        icon: Star,
-        color: 'text-yellow-600',
-        bgColor: 'bg-yellow-50',
-        borderColor: "border-yellow-500"
-    },
-    {
-        label: 'Total Reviews',
-        value: product.stats.totalReviews.toLocaleString(),
-        icon: MessageSquare,
-        color: 'text-purple-600',
-        bgColor: 'bg-purple-50',
-        borderColor: "border-purple-500"
-    },
-    {
-        label: 'Available Stock',
-        value: product.stats.totalStock.toLocaleString(),
-        icon: Package,
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
-        borderColor: "border-green-500"
-    },
-];
-
 export default function ProductDetailPage() {
-    const [ selectedImage, setSelectedImage ] = useState(product.images[ 0 ]);
-    const [ selectedColor, setSelectedColor ] = useState(product.colorVariants[ 0 ]);
+    const [ selectedImage, setSelectedImage ] = useState<ProductImage>({} as ProductImage);
+    const [ selectedColor, setSelectedColor ] = useState<ModifiedProductVariant>({} as ModifiedProductVariant);
+    const [ productVariants, setProductVariants ] = useState<ModifiedProductVariant[]>([])
+    const { slug } = useParams()
+    const {
+        data: productInfoData,
+        isFetching: isProductInfoFetching,
+        isError: isProductInfoError,
+        isLoading: isProductInfoLoading,
+        error: productInfoError
+    } = useAdminProductDetailBySlug(slug || "")
 
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleDateString('en-US', {
@@ -224,21 +78,65 @@ export default function ProductDetailPage() {
         });
     };
 
-    const renderStars = (rating: number) => {
+    useEffect(() => {
+        if (!productInfoData)
+            return;
+
+        const groupedVariants = groupProductVariants(productInfoData.variants);
+        setProductVariants(groupedVariants)
+        setSelectedColor(groupedVariants[ 0 ])
+
+    }, [ productInfoData ])
+
+
+    if (isProductInfoError) {
+        console.error(productInfoError);
         return (
-            <div className="flex gap-1">
-                {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                        key={i}
-                        className={`w-4 h-4 ${i < rating
-                            ? 'fill-yellow-400 text-yellow-400'
-                            : 'text-muted-foreground'
-                            }`}
-                    />
-                ))}
-            </div>
-        );
-    };
+            <div>Error!!</div>
+        )
+    }
+
+    if (!productInfoData || isProductInfoLoading || !selectedColor.sizes)
+        return (
+            <div>Loading...</div>
+        )
+
+    const statCards = [
+        {
+            label: 'Total Sold',
+            value: productInfoData.sold_count.toLocaleString(),
+            icon: ShoppingCart,
+            color: 'text-blue-600',
+            bgColor: 'bg-blue-50',
+            borderColor: "border-blue-500"
+        },
+        {
+            label: 'Average Rating',
+            value: Number(productInfoData.average_rating).toFixed(1),
+            icon: Star,
+            color: 'text-yellow-600',
+            bgColor: 'bg-yellow-50',
+            borderColor: "border-yellow-500"
+        },
+        {
+            label: 'Total Reviews',
+            value: productInfoData.review_count.toLocaleString(),
+            icon: MessageSquare,
+            color: 'text-purple-600',
+            bgColor: 'bg-purple-50',
+            borderColor: "border-purple-500"
+        },
+        {
+            label: 'Available Stock',
+            value: productInfoData.variants.reduce((prev, variant) => prev + variant.available, 0).toLocaleString(),
+            icon: Package,
+            color: 'text-green-600',
+            bgColor: 'bg-green-50',
+            borderColor: "border-green-500"
+        },
+    ];
+
+    // const productVariants = groupProductVariants(productInfoData.variants)
 
     return (
         <main className="min-h-screen bg-background">
@@ -248,13 +146,16 @@ export default function ProductDetailPage() {
                     {/* Title and Actions */}
                     <div className="flex items-start justify-between mb-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-foreground">{product.name}</h1>
-                            <p className="text-sm text-muted-foreground mt-1">SKU: {product.sku}</p>
+                            <h1 className="text-3xl font-bold text-foreground">{productInfoData.name}</h1>
+                            <p className="text-sm text-muted-foreground mt-1">SKU: {productInfoData.product_sku}</p>
                         </div>
                         <div className="flex gap-2">
-                            <Button variant="outline" size="sm" className="gap-2 bg-transparent">
-                                <Edit className="w-4 h-4" />
-                                Edit
+                            <Button variant="outline" size="sm" className="gap-2 bg-transparent" asChild>
+                                <Link to={`/admin/products/edit/${slug}`}>
+
+                                    <Edit className="w-4 h-4" />
+                                    Edit
+                                </Link>
                             </Button>
                             <Button variant="destructive" size="sm" className="gap-2">
                                 <Trash2 className="w-4 h-4" />
@@ -265,15 +166,15 @@ export default function ProductDetailPage() {
 
                     {/* Meta Information */}
                     <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <div>Slug: <span className="text-foreground font-medium">{product.slug}</span></div>
+                        <div>Slug: <span className="text-foreground font-medium">{productInfoData.slug}</span></div>
                         <div>
                             Status:
                             <span className="inline-block ml-1 px-2 py-0.5 rounded text-xs bg-green-100 text-green-800 font-medium">
-                                {product.status.charAt(0).toUpperCase() + product.status.slice(1)}
+                                {productInfoData.status.charAt(0).toUpperCase() + productInfoData.status.slice(1)}
                             </span>
                         </div>
-                        <div>Created: <span className="text-foreground font-medium">{formatDate(product.created)}</span></div>
-                        <div>Updated: <span className="text-foreground font-medium">{formatDate(product.lastUpdated)}</span></div>
+                        <div>Created: <span className="text-foreground font-medium">{formatDate(new Date(productInfoData.created_at))}</span></div>
+                        <div>Updated: <span className="text-foreground font-medium">{formatDate(new Date(productInfoData.updated_at))}</span></div>
                     </div>
                 </div>
             </div>
@@ -305,11 +206,11 @@ export default function ProductDetailPage() {
                         <div className="bg-muted aspect-square flex items-center justify-center relative overflow-hidden">
                             <img
                                 src={selectedImage.url || "/placeholder.svg"}
-                                alt={selectedImage.altText}
+                                alt={selectedImage.alt_text}
                                 // fill
                                 className="object-cover"
                             />
-                            {selectedImage.isPrimary && (
+                            {selectedImage.is_primary && (
                                 <div className="absolute top-3 left-3">
                                     <Badge className="bg-blue-600 text-white text-xs">Primary</Badge>
                                 </div>
@@ -320,18 +221,18 @@ export default function ProductDetailPage() {
                         <div className="p-4 border-t border-border/40">
                             <p className="text-sm font-semibold text-foreground mb-3">Images</p>
                             <div className="grid grid-cols-4 gap-2">
-                                {product.images.map((img) => (
+                                {productInfoData.images.map((img, idx) => (
                                     <button
-                                        key={img.id}
+                                        key={img.alt_text + idx}
                                         onClick={() => setSelectedImage(img)}
-                                        className={`aspect-square rounded overflow-hidden border transition-all ${selectedImage.id === img.id
+                                        className={`aspect-square rounded overflow-hidden border transition-all ${selectedImage === img
                                             ? 'border-primary'
                                             : 'border-border/50 hover:border-primary/50'
                                             }`}
                                     >
                                         <img
                                             src={img.url || "/placeholder.svg"}
-                                            alt={img.altText}
+                                            alt={img.alt_text}
                                             width={100}
                                             height={100}
                                             className="w-full h-full object-cover"
@@ -344,10 +245,10 @@ export default function ProductDetailPage() {
                         {/* Image Details */}
                         <div className="px-4 py-3 border-t border-border/40 text-xs">
                             <p className="text-muted-foreground mb-1">
-                                <span className="font-semibold">Alt:</span> {selectedImage.altText}
+                                <span className="font-semibold">Alt:</span> {selectedImage.alt_text}
                             </p>
                             <p className="text-muted-foreground">
-                                <span className="font-semibold">Type:</span> {selectedImage.isPrimary ? 'Primary' : 'Secondary'}
+                                <span className="font-semibold">Type:</span> {selectedImage.is_primary ? 'Primary' : 'Secondary'}
                             </p>
                         </div>
                     </Card>
@@ -359,7 +260,7 @@ export default function ProductDetailPage() {
                                 <div className="flex items-center justify-between">
                                     <span className="text-muted-foreground">Current Price</span>
                                     <span className="text-xl font-bold text-foreground">
-                                        ${product.pricing.currentPrice.toFixed(2)}
+                                        ${Number(productInfoData.original_price).toFixed(2)}
                                     </span>
                                 </div>
 
@@ -367,10 +268,7 @@ export default function ProductDetailPage() {
                                     <span className="text-muted-foreground">Discounted Price</span>
                                     <div className="flex items-baseline gap-2">
                                         <span className="text-xl font-bold text-green-600">
-                                            ${product.pricing.discountedPrice.toFixed(2)}
-                                        </span>
-                                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                                            {product.pricing.discount}% OFF
+                                            ${Number(productInfoData.current_price).toFixed(2)}
                                         </span>
                                     </div>
                                 </div>
@@ -378,7 +276,7 @@ export default function ProductDetailPage() {
                                 <div className="flex items-center justify-between pt-3 border-t border-border/40">
                                     <span className="text-muted-foreground">Savings</span>
                                     <span className="font-semibold text-green-600">
-                                        ${(product.pricing.currentPrice - product.pricing.discountedPrice).toFixed(2)}
+                                        ${(Number(productInfoData.original_price) - Number(productInfoData.current_price)).toFixed(2)}
                                     </span>
                                 </div>
                             </div>
@@ -388,35 +286,35 @@ export default function ProductDetailPage() {
 
                             {/* Color Selection */}
                             <div className="mb-4 flex flex-wrap gap-2">
-                                {product.colorVariants.map((variant) => (
+                                {productVariants.map((variant) => (
                                     <button
-                                        key={variant.id}
+                                        key={variant.variant_id}
                                         onClick={() => setSelectedColor(variant)}
-                                        className={`flex items-center gap-2 px-3 py-1.5 rounded transition-all text-sm ${selectedColor.id === variant.id
+                                        className={`flex items-center gap-2 px-3 py-1.5 rounded transition-all text-sm ${selectedColor.variant_id === variant.variant_id
                                             ? 'bg-primary/10 border border-primary'
                                             : 'border border-border hover:border-primary/50'
                                             }`}
                                     >
                                         <div
                                             className="w-4 h-4 rounded-full border border-gray-300"
-                                            style={{ backgroundColor: variant.hex }}
+                                            style={{ backgroundColor: variant.hex_color }}
                                         />
-                                        <span className="font-medium">{variant.name}</span>
+                                        <span className="font-medium">{variant.color}</span>
                                     </button>
                                 ))}
                             </div>
 
                             {/* Selected Color Details */}
                             <div className="pt-4 border-t border-border/40">
-                                <div className="text-sm text-muted-foreground mb-3">Sizes for {selectedColor.name}</div>
+                                <div className="text-sm text-muted-foreground mb-3">Sizes for {selectedColor.color}</div>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                     {selectedColor.sizes.map((size) => (
                                         <div key={size.size} className="flex flex-col gap-1 p-2 bg-muted/30 rounded">
                                             <span className="font-semibold text-sm">{size.size}</span>
-                                            <span className="text-xs text-muted-foreground">${size.price.toFixed(2)}</span>
-                                            <span className={`text-xs font-medium ${size.inStock > 0 ? 'text-green-600' : 'text-red-600'
+                                            {/* <span className="text-xs text-muted-foreground">${size.price.toFixed(2)}</span> */}
+                                            <span className={`text-xs font-medium ${size.available > 0 ? 'text-green-600' : 'text-red-600'
                                                 }`}>
-                                                {size.inStock} in stock
+                                                {size.available} in stock
                                             </span>
                                         </div>
                                     ))}
@@ -426,7 +324,7 @@ export default function ProductDetailPage() {
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                                     <div>
                                         <p className="font-bold mb-1">Warranty Info</p>
-                                        <p className="font-semibold text-foreground">{product.warranty.duration}</p>
+                                        <p className="font-semibold text-foreground">{productInfoData.warranty_info}</p>
                                     </div>
                                 </div>
                             </Card>
@@ -440,14 +338,14 @@ export default function ProductDetailPage() {
                         {/* Short Description */}
                         <div>
                             <h4 className="font-semibold text-foreground mb-2">Summary</h4>
-                            <p className="text-muted-foreground leading-relaxed">{product.shortDescription}</p>
+                            <p className="text-muted-foreground leading-relaxed">{productInfoData.short_description}</p>
                         </div>
 
                         {/* Long Description */}
                         <div>
                             <h4 className="font-semibold text-foreground mb-2">Full Description</h4>
                             <p className="text-muted-foreground leading-relaxed whitespace-pre-line">
-                                {product.longDescription}
+                                {productInfoData.description}
                             </p>
                         </div>
                     </div>
@@ -460,10 +358,10 @@ export default function ProductDetailPage() {
                         <h3 className="text-xl font-semibold text-foreground mb-6">Product Details</h3>
 
                         <ul className="space-y-3">
-                            {product.details.map((detail, idx) => (
+                            {productInfoData.details.map((detail, idx) => (
                                 <li key={idx} className="flex items-start gap-3">
                                     <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                                    <span className="text-foreground">{detail}</span>
+                                    <span className="text-foreground">{detail.text}</span>
                                 </li>
                             ))}
                         </ul>

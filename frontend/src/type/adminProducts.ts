@@ -18,25 +18,6 @@ export interface AdminProduct {
     image_alt_text: string | null;
 }
 
-export interface AdminProductColor {
-    color: string;
-    hex_color: string;
-    sized: AdminProductSize[]
-}
-
-export interface AdminProductSize {
-    variant_id: number;
-    sku: string;
-    size: string;
-    original_price: string;
-    current_price: string;
-    available: number;
-    reserved: number;
-    on_hold: number;
-    barcode: string | null;
-    created_at: string;
-    updated_at: string;
-}
 
 export interface AdminProductsResponse {
     data: AdminProduct[];
@@ -46,16 +27,6 @@ export interface AdminProductsResponse {
         page: number;
         limit: number;
     };
-}
-
-export interface AdminProductColorsResponse {
-    success: boolean;
-    data: AdminProductColor[];
-}
-
-export interface AdminProductSizesResponse {
-    success: boolean;
-    data: AdminProductSize[];
 }
 
 export interface FilterOptions {
@@ -112,23 +83,31 @@ export interface EditProductFormDataTypes extends Omit<AddProductFormDataTypes, 
     images: (Omit<ProductImage, 'file'> & { file?: File })[]
 }
 
-
-export interface GetProductBySlugResponseType {
+//Admin product detail types
+export interface AdminProductDetailType {
     product_sku: string;
     public_id: string;
     id: string;
     name: string;
     slug: string;
-    description: string;
     short_description: string;
-    status: string;
-    warranty_info: string;
+    description: string;
     original_price: string;
     current_price: string;
+    sold_count: string;
+    review_count: number;
+    average_rating: string;
+    is_featured: boolean;
+    is_returnable: boolean;
+    warranty_info: string;
+    created_at: string;
+    updated_at: string;
+    status: string;
     images: {
         url: string;
         alt_text: string;
         is_primary: boolean;
+        id: number;
     }[];
     variants: {
         sku: string;
@@ -141,4 +120,10 @@ export interface GetProductBySlugResponseType {
     details: {
         text: string;
     }[];
-};
+    primary_image: {
+        url: string;
+        alt_text: string;
+        is_primary: boolean;
+        id: number;
+    };
+}

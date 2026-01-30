@@ -34,13 +34,14 @@ export const groupProductVariants = (variants: ProductVariant[]): ModifiedProduc
 
     const map = new Map<
         string,
-        { color: string; hex_color: string; sizes: { sku: string; size: string; available: number; variant_id: number }[] }
+        { color: string; hex_color: string; variant_id: number; sizes: { sku: string; size: string; available: number; variant_id: number }[] }
     >();
 
     for (const v of variants) {
         if (!map.has(v.color)) {
             map.set(v.color, {
                 color: v.color,
+                variant_id: v.variant_id,
                 hex_color: v.hex_color,
                 sizes: []
             });

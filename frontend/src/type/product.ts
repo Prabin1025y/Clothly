@@ -42,6 +42,7 @@ export interface ProductDetail {
 export interface ModifiedProductVariant {
     color: string;
     hex_color: string;
+    variant_id: number;
     sizes: {
         sku: string;
         size: string;
