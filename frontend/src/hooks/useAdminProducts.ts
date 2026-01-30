@@ -11,6 +11,8 @@ export const adminProductsKeys = {
     detail: (slug: string) => [ ...adminProductsKeys.details(), slug ] as const,
     lists: () => [ ...adminProductsKeys.all, 'list' ] as const,
     list: (page: number, limit: number, filters: FilterOptions) => [ ...adminProductsKeys.lists(), page, limit, filters ] as const,
+    reviews: () => [ ...adminProductsKeys.all, 'review' ] as const,
+    review: (slug: string) => [ ...adminProductsKeys.reviews(), slug ] as const
     // colors: () => [ ...adminProductsKeys.all, 'colors' ] as const,
     // color: (productId: string | number) => [ ...adminProductsKeys.colors(), productId ] as const,
     // sizes: () => [ ...adminProductsKeys.all, 'sizes' ] as const,
@@ -67,6 +69,14 @@ export function useAdminProductDetailBySlug(slug: string) {
     return useQuery({
         queryKey: adminProductsKeys.detail(slug),
         queryFn: () => adminProductsService.getProductBySlug(slug),
+    })
+}
+
+
+export function useAdminProductReviewsBySlug(slug: string) {
+    return useQuery({
+        queryKey: adminProductsKeys.review(slug),
+        queryFn: () => adminProductsService.getProductReviewBySlug(slug),
     })
 }
 

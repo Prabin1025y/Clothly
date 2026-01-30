@@ -1,3 +1,4 @@
+import { getAuth } from "@clerk/express";
 import { pool, sql } from "../../config/db.js";
 import logger from "../../config/logger.js";
 import { adminAddProductSchema, adminEditProductSchema } from "../../validation/product.schema.js";
@@ -237,7 +238,8 @@ export const getProductReviewBySlug = async (req, res) => {
         res.status(200).json(responseReviews);
 
     } catch (error) {
-        logger.error("Error in adding review: ", error)
+        logger.error("Error in getting review: ", error)
+        console.log(error)
         res.status(500).json({
             message: process.env.NODE_ENV === 'development' ? error.message : "Internal Server Error!"
         })

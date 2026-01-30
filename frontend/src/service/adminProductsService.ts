@@ -1,6 +1,7 @@
 import { axiosClient } from "@/lib/axios";
 import type { GeneralPostResponseType } from "@/type";
 import type { AdminProductsResponse, FilterOptions, AddProductFormDataTypes, EditProductFormDataTypes, AdminProductDetailType } from "@/type/adminProducts";
+import type { ReviewType } from "@/type/review";
 
 export const adminProductsService = {
     getProducts: async (page: number = 1, limit: number = 20, filters: FilterOptions): Promise<AdminProductsResponse> => {
@@ -79,6 +80,11 @@ export const adminProductsService = {
         formData.append("details", JSON.stringify(detailsJson));
 
         const { data } = await axiosClient.put<GeneralPostResponseType>(`/api/admin/products/${productSlug}`, formData, { headers: { "Content-Type": "multipart/form-data" } });
+        return data;
+    },
+
+    getProductReviewBySlug: async (slug: string): Promise<ReviewType[]> => {
+        const { data } = await axiosClient.get<ReviewType[]>(`/api/admin/products/reviews/${slug}`);
         return data;
     }
 };

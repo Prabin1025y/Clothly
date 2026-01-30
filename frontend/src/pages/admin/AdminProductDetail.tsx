@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useAdminProductDetailBySlug } from "@/hooks/useAdminProducts";
+import { useAdminProductDetailBySlug, useAdminProductReviewsBySlug } from "@/hooks/useAdminProducts";
 import { groupProductVariants } from "@/service/utilsService";
 import type { ModifiedProductVariant, ProductImage } from "@/type/product";
 import { formatDistanceToNow } from "date-fns";
@@ -69,6 +69,8 @@ export default function ProductDetailPage() {
         isLoading: isProductInfoLoading,
         error: productInfoError
     } = useAdminProductDetailBySlug(slug || "")
+
+    const { data, isFetching, isLoading, isError, error } = useAdminProductReviewsBySlug(slug || "");
 
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleDateString('en-US', {
@@ -379,66 +381,81 @@ export default function ProductDetailPage() {
 
                     <div className="flex flex-col gap-6">
                         {/* Comments List */}
-                        <div className="flex flex-col gap-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-amber-50/0 scrollbar-thumb-accent/70">
-                            {product.reviews.map((review) => (
-                                <div
-                                    className="group flex gap-3 pb-4 border-b border-border/50 last:border-b-0"
-                                >
-                                    {/* Avatar */}
-                                    <Avatar className="h-10 w-10 flex-shrink-0">
-                                        <AvatarImage src={review.userAvatar} alt={review.userName} />
-                                        <AvatarFallback>{review.userName}</AvatarFallback>
-                                    </Avatar>
+                        {(() => {
+                            if (isError) {
+                                console.error(error)
+                                return (
+                                    <div>Error!!</div>
+                                )
+                            }
 
-                                    {/* Comment Content */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between gap-3">
-                                            <div className="flex-1">
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-semibold text-sm text-foreground">{review.userName}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {formatDistanceToNow(review.date, { addSuffix: true })}
-                                                    </p>
-                                                    {true && <p className="text-xs rounded-full text-green-500">verified purchase</p>}
+                            if (isLoading)
+                                return (<div>Loading...</div>)
+
+                            if (!data || data.length === 0)
+                                return (<div>No reviews yet...</div>)
+
+                            return <div className="flex flex-col gap-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-amber-50/0 scrollbar-thumb-accent/70">
+                                {data.map((review) => (
+                                    <div
+                                        className="group flex gap-3 pb-4 border-b border-border/50 last:border-b-0"
+                                    >
+                                        {/* Avatar */}
+                                        <Avatar className="h-10 w-10 flex-shrink-0">
+                                            <AvatarImage src={review.image_url} alt={review.full_name} />
+                                            <AvatarFallback>{review.full_name}</AvatarFallback>
+                                        </Avatar>
+
+                                        {/* Comment Content */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <p className="font-semibold text-sm text-foreground">{review.full_name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {formatDistanceToNow(review.created_at, { addSuffix: true })}
+                                                        </p>
+                                                        {review.is_verified_purchase && <p className="text-xs rounded-full text-green-500">verified purchase</p>}
+
+                                                    </div>
+                                                </div>
+
+                                                {/* Like Button & Menu */}
+                                                <div className="flex items-center gap-2 transition-opacity">
+                                                    <button
+                                                        // onClick={() => onLike(comment.id)}
+                                                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors"
+                                                    >
+                                                        <Heart
+                                                            size={16}
+                                                            // className={`transition-colors ${false ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                                                            className={`transition-colors text-muted-foreground`}
+                                                        />
+                                                        <span className="text-xs font-medium text-foreground">{10}</span>
+                                                    </button>
 
                                                 </div>
                                             </div>
 
-                                            {/* Like Button & Menu */}
-                                            <div className="flex items-center gap-2 transition-opacity">
-                                                <button
-                                                    // onClick={() => onLike(comment.id)}
-                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors"
-                                                >
-                                                    <Heart
-                                                        size={16}
-                                                        // className={`transition-colors ${false ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
-                                                        className={`transition-colors text-muted-foreground`}
-                                                    />
-                                                    <span className="text-xs font-medium text-foreground">{10}</span>
-                                                </button>
+                                            {/* Comment Text */}
+                                            <p className="text-sm text-foreground mt-2 leading-relaxed">{review.body}</p>
 
-                                            </div>
+                                            {/* Comment Image */}
+                                            {review.images && review.images.length > 0 && (
+                                                <div className="mt-3 overflow-hidden">
+                                                    <img
+                                                        src={review.images[ 0 ].imageUrl || "/placeholder.svg"}
+                                                        alt={review.images[ 0 ].alt_text}
+                                                        className="max-h-48 object-cover rounded-lg"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Comment Text */}
-                                        <p className="text-sm text-foreground mt-2 leading-relaxed">{review.content}</p>
-
-                                        {/* Comment Image */}
-                                        {true && (
-                                            <div className="mt-3 overflow-hidden">
-                                                <img
-                                                    src={review.imageUrl || "/placeholder.svg"}
-                                                    alt={"alt text"}
-                                                    className="max-h-48 object-cover rounded-lg"
-                                                />
-                                            </div>
-                                        )}
                                     </div>
-
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+                        })()}
                     </div>
                 </div>
             </div>
