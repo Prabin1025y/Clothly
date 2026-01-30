@@ -1,9 +1,11 @@
 'use client';
 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Check, Edit, MessageSquare, Package, ShoppingCart, Star, Trash2 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Check, Edit, Heart, MessageSquare, Package, ShoppingCart, Star, Trash2 } from "lucide-react";
 import { useState } from "react";
 
 const product = {
@@ -420,6 +422,14 @@ export default function ProductDetailPage() {
                                     ))}
                                 </div>
                             </div>
+                            <Card className="p-6 border-0 shadow-none">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                    <div>
+                                        <p className="font-bold mb-1">Warranty Info</p>
+                                        <p className="font-semibold text-foreground">{product.warranty.duration}</p>
+                                    </div>
+                                </div>
+                            </Card>
                         </Card>
                     </div>
                 </div>
@@ -444,15 +454,8 @@ export default function ProductDetailPage() {
                 </Card>
 
                 {/* Details Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <Card className="p-6 border-0 shadow-none">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                            <div>
-                                <p className="text-sm text-muted-foreground mb-1">Warranty Duration</p>
-                                <p className="font-semibold text-foreground">{product.warranty.duration}</p>
-                            </div>
-                        </div>
-                    </Card>
+                <div className="grid grid-cols-1 gap-6">
+
                     <Card className="p-8 border-none shadow-none">
                         <h3 className="text-xl font-semibold text-foreground mb-6">Product Details</h3>
 
@@ -476,44 +479,65 @@ export default function ProductDetailPage() {
                         </p>
                     </div>
 
-                    <div className=" rounded-lg overflow-hidden h-96">
-                        <div className="overflow-y-auto h-full space-y-3">
+                    <div className="flex flex-col gap-6">
+                        {/* Comments List */}
+                        <div className="flex flex-col gap-4 max-h-96 overflow-y-auto pr-2 scrollbar-thin scrollbar-track-amber-50/0 scrollbar-thumb-accent/70">
                             {product.reviews.map((review) => (
-                                <div key={review.id} className="pb-4 border-b border-border/30 last:border-b-0">
-                                    {/* Review Header */}
-                                    <div className="flex items-start justify-between mb-3">
-                                        <div className="flex items-start gap-3">
-                                            <img
-                                                src={review.userAvatar || "/placeholder.svg"}
-                                                alt={review.userName}
-                                                width={40}
-                                                height={40}
-                                                className="rounded-full"
-                                            />
-                                            <div>
-                                                <p className="text-sm font-semibold text-foreground">{review.userName}</p>
-                                                <p className="text-xs text-muted-foreground">{formatDate(review.date)}</p>
+                                <div
+                                    className="group flex gap-3 pb-4 border-b border-border/50 last:border-b-0"
+                                >
+                                    {/* Avatar */}
+                                    <Avatar className="h-10 w-10 flex-shrink-0">
+                                        <AvatarImage src={review.userAvatar} alt={review.userName} />
+                                        <AvatarFallback>{review.userName}</AvatarFallback>
+                                    </Avatar>
+
+                                    {/* Comment Content */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-semibold text-sm text-foreground">{review.userName}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {formatDistanceToNow(review.date, { addSuffix: true })}
+                                                    </p>
+                                                    {true && <p className="text-xs rounded-full text-green-500">verified purchase</p>}
+
+                                                </div>
+                                            </div>
+
+                                            {/* Like Button & Menu */}
+                                            <div className="flex items-center gap-2 transition-opacity">
+                                                <button
+                                                    // onClick={() => onLike(comment.id)}
+                                                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-border hover:bg-secondary transition-colors"
+                                                >
+                                                    <Heart
+                                                        size={16}
+                                                        // className={`transition-colors ${false ? "fill-red-500 text-red-500" : "text-muted-foreground"}`}
+                                                        className={`transition-colors text-muted-foreground`}
+                                                    />
+                                                    <span className="text-xs font-medium text-foreground">{10}</span>
+                                                </button>
+
                                             </div>
                                         </div>
-                                        {renderStars(review.rating)}
+
+                                        {/* Comment Text */}
+                                        <p className="text-sm text-foreground mt-2 leading-relaxed">{review.content}</p>
+
+                                        {/* Comment Image */}
+                                        {true && (
+                                            <div className="mt-3 overflow-hidden">
+                                                <img
+                                                    src={review.imageUrl || "/placeholder.svg"}
+                                                    alt={"alt text"}
+                                                    className="max-h-48 object-cover rounded-lg"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
 
-                                    {/* Review Content */}
-                                    <div>
-                                        <h4 className="text-sm font-semibold text-foreground mb-1">{review.title}</h4>
-                                        <p className="text-sm text-muted-foreground leading-relaxed">{review.content}</p>
-                                    </div>
-
-                                    {/* Review Image */}
-                                    {review.imageUrl && (
-                                        <div className="relative w-20 h-20 rounded mt-2 overflow-hidden bg-muted">
-                                            <img
-                                                src={review.imageUrl || "/placeholder.svg"}
-                                                alt="Review image"
-                                                className="object-cover"
-                                            />
-                                        </div>
-                                    )}
                                 </div>
                             ))}
                         </div>
