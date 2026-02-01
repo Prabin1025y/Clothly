@@ -4,13 +4,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useAdminProductDetailBySlug, useAdminProductReviewsBySlug } from "@/hooks/useAdminProducts";
+import { useAdminProductDetailBySlug, useAdminProductReviewsBySlug, useDeleteProductBySlug } from "@/hooks/useAdminProducts";
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { groupProductVariants } from "@/service/utilsService";
 import type { ModifiedProductVariant, ProductImage } from "@/type/product";
 import { formatDistanceToNow } from "date-fns";
-import { Check, Edit, Heart, MessageSquare, Package, ShoppingCart, Star, Trash2 } from "lucide-react";
+import { Check, Edit, Heart, Loader, MessageSquare, Package, ShoppingCart, Star, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 
 const product = {
     reviews: [
@@ -80,6 +81,21 @@ export default function ProductDetailPage() {
         });
     };
 
+    const deleteProduct = useDeleteProductBySlug();
+    const [ deleting, setDeleting ] = useState<boolean>(false)
+    const navigate = useNavigate();
+
+    const handleDelete = async (slug: string) => {
+        try {
+            setDeleting(true)
+            await deleteProduct.mutateAsync(slug)
+            navigate("/admin/products")
+        } catch (error) {
+            setDeleting(false)
+            console.error(error);
+        }
+    }
+
     useEffect(() => {
         if (!productInfoData)
             return;
@@ -101,6 +117,14 @@ export default function ProductDetailPage() {
     if (!productInfoData || isProductInfoLoading || !selectedColor.sizes)
         return (
             <div>Loading...</div>
+        )
+
+    if (deleting)
+        return (
+            <div className='bg-white absolute inset-0 flex flex-col gap-3 items-center justify-center'>
+                <Loader className='size-10 text-accent animate-spin' />
+                <p>Deleting</p>
+            </div>
         )
 
     const statCards = [
@@ -154,15 +178,42 @@ export default function ProductDetailPage() {
                         <div className="flex gap-2">
                             <Button variant="outline" size="sm" className="gap-2 bg-transparent" asChild>
                                 <Link to={`/admin/products/edit/${slug}`}>
-
                                     <Edit className="w-4 h-4" />
                                     Edit
                                 </Link>
                             </Button>
-                            <Button variant="destructive" size="sm" className="gap-2">
-                                <Trash2 className="w-4 h-4" />
-                                Delete
-                            </Button>
+                            <Dialog>
+                                <DialogTrigger asChild>
+                                    <Button variant="destructive" size="sm" className="gap-2">
+                                        <Trash2 className="w-4 h-4" />
+                                        Delete
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className="sm:max-w-sm">
+                                    <DialogHeader>
+                                        <DialogTitle>Delete Product?</DialogTitle>
+                                        <DialogDescription>
+                                            Are you sure you want to delete this product? You cannot undo this step!!
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <DialogClose asChild>
+                                            <Button variant="outline" >Cancel</Button>
+                                        </DialogClose>
+                                        <DialogClose asChild>
+                                            <Button
+                                                onClick={() => handleDelete(slug || "")}
+                                                title="Delete product"
+                                                variant={"destructive"}
+                                                className="hover:bg-destructive/20 hover:text-destructive "
+                                            >
+                                                <Trash2 size={16} />
+                                                Delete
+                                            </Button>
+                                        </DialogClose>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
                         </div>
                     </div>
 
