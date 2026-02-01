@@ -5,14 +5,28 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { MoreVertical } from "lucide-react"
 import type { AdminProduct } from "@/type/adminProducts"
 import { Link } from "react-router"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "../ui/dialog"
+import { useDeleteProductBySlug } from "@/hooks/useAdminProducts"
+import { useState } from "react"
 
 interface ProductTableProps {
     products: AdminProduct[]
-    onDelete: (id: number) => void
-    onDetails: (id: number) => void
 }
 
-export default function ProductTable({ products, onDelete, onDetails }: ProductTableProps) {
+export default function ProductTable({ products }: ProductTableProps) {
+    const deleteProduct = useDeleteProductBySlug();
+    const [ deleting, setDeleting ] = useState<string[]>([])
+
+    const handleDelete = async (slug: string) => {
+        try {
+            setDeleting(prev => [ ...prev, slug ])
+            await deleteProduct.mutateAsync(slug)
+            setDeleting(prev => prev.filter(slg => slg !== slug))
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
     return (
         <div className="overflow-x-auto">
             <table className="w-full">
@@ -28,7 +42,7 @@ export default function ProductTable({ products, onDelete, onDetails }: ProductT
                 </thead>
                 <tbody className="divide-y divide-border">
                     {products.map((product) => (
-                        <tr key={product.id} className="hover:bg-muted/30 transition-colors">
+                        <tr key={product.id} className={`hover:bg-muted/30 transition-colors ${deleting.includes(product.slug) && "opacity-40"}`}>
                             {/* Product Info */}
                             <td className="px-4 py-4">
                                 <div className="flex items-center gap-3">
@@ -78,55 +92,101 @@ export default function ProductTable({ products, onDelete, onDetails }: ProductT
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => onDetails(product.id)}
                                             title="View details"
                                             className="h-8 w-8 p-0 hover:bg-muted"
                                         >
-                                            <Eye size={16} />
+                                            <Link
+                                                to={deleting.includes(product.slug) ? "#" : `/admin/products/detail/${product.slug}`}
+                                                onClick={(e) => deleting.includes(product.slug) && e.preventDefault()}
+                                            >
+                                                <Eye size={16} />
+                                            </Link>
                                         </Button>
                                         <Button
+
                                             variant="ghost"
                                             asChild
                                             size="sm"
                                             title="Edit product"
                                             className="h-8 w-8 p-0 hover:bg-muted"
                                         >
-                                            <Link to={`/admin/products/edit/${product.slug}`}>
+                                            <Link
+                                                to={deleting.includes(product.slug) ? "#" : `/admin/products/edit/${product.slug}`}
+                                                onClick={(e) => deleting.includes(product.slug) && e.preventDefault()}
+                                            >
                                                 <Edit2 size={16} />
                                             </Link>
                                         </Button>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onDelete(product.id)}
-                                            title="Delete product"
-                                            className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive"
-                                        >
-                                            <Trash2 size={16} />
-                                        </Button>
+                                        <Dialog>
+                                            <DialogTrigger asChild>
+                                                <Button
+                                                    disabled={deleting.includes(product.slug)}
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    title="Delete product"
+                                                    className="h-8 w-8 p-0 hover:bg-destructive/20 hover:text-destructive"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </Button>
+                                            </DialogTrigger>
+                                            <DialogContent className="sm:max-w-sm">
+                                                <DialogHeader>
+                                                    <DialogTitle>Edit profile</DialogTitle>
+                                                    <DialogDescription>
+                                                        Make changes to your profile here. Click save when you&apos;re
+                                                        done.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <DialogFooter>
+                                                    <DialogClose asChild>
+                                                        <Button variant="outline" >Cancel</Button>
+                                                    </DialogClose>
+                                                    <DialogClose asChild>
+                                                        <Button
+                                                            onClick={() => handleDelete(product.slug)}
+                                                            title="Delete product"
+                                                            variant={"destructive"}
+                                                            className="hover:bg-destructive/20 hover:text-destructive "
+                                                        >
+                                                            <Trash2 size={16} />
+                                                            Delete
+                                                        </Button>
+                                                    </DialogClose>
+                                                </DialogFooter>
+                                            </DialogContent>
+                                        </Dialog>
                                     </div>
 
                                     {/* Mobile Actions */}
                                     <div className="sm:hidden">
                                         <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
+                                            <DropdownMenuTrigger asChild disabled={deleting.includes(product.slug)}>
                                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted">
                                                     <MoreVertical size={16} />
                                                 </Button>
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => onDetails(product.id)}>
-                                                    <Eye size={16} className="mr-2" />
-                                                    Details
+                                                <DropdownMenuItem asChild disabled={deleting.includes(product.slug)}>
+                                                    <Link
+                                                        to={deleting.includes(product.slug) ? "#" : `/admin/products/detail/${product.slug}`}
+                                                        onClick={(e) => deleting.includes(product.slug) && e.preventDefault()}
+                                                    >
+                                                        <Eye size={16} className="mr-2" />
+                                                        Details
+                                                    </Link>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                    <Link to={`/admin/products/edit/${product.slug}`}>
+                                                <DropdownMenuItem asChild disabled={deleting.includes(product.slug)}>
+                                                    <Link
+                                                        to={deleting.includes(product.slug) ? "#" : `/admin/products/edit/${product.slug}`}
+                                                        onClick={(e) => deleting.includes(product.slug) && e.preventDefault()}
+                                                    >
                                                         <Edit2 size={16} className="mr-2" />
                                                         Edit
                                                     </Link>
                                                 </DropdownMenuItem>
                                                 <DropdownMenuItem
-                                                    onClick={() => onDelete(product.id)}
+                                                    disabled={deleting.includes(product.slug)}
+                                                    onClick={() => handleDelete(product.slug)}
                                                     className="text-destructive focus:text-destructive"
                                                 >
                                                     <Trash2 size={16} className="mr-2" />

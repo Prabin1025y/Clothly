@@ -86,6 +86,11 @@ export const adminProductsService = {
     getProductReviewBySlug: async (slug: string): Promise<ReviewType[]> => {
         const { data } = await axiosClient.get<ReviewType[]>(`/api/admin/products/reviews/${slug}`);
         return data;
+    },
+
+    deleteProductBySlug: async (slug: string): Promise<GeneralPostResponseType> => {
+        const { data } = await axiosClient.delete<GeneralPostResponseType>(`/api/admin/products/${slug}`);
+        return data;
     }
 };
 

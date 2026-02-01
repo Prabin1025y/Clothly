@@ -80,3 +80,15 @@ export function useAdminProductReviewsBySlug(slug: string) {
     })
 }
 
+export function useDeleteProductBySlug() {
+    const queryClient = useQueryClient()
+    return useMutation({
+        mutationFn: (slug: string) => adminProductsService.deleteProductBySlug(slug),
+
+        onSettled: (_data, _error, variable) => {
+            queryClient.invalidateQueries({ queryKey: adminProductsKeys.lists() })
+            queryClient.invalidateQueries({ queryKey: adminProductsKeys.detail(variable) })
+        }
+    })
+}
+
