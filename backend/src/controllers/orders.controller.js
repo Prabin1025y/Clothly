@@ -589,133 +589,406 @@ export const getOrders = async (req, res) => {
     }
 };
 
-// export const getOrders = async (req, res) => {
 
-//     try {
-//         const LIMIT = 20;
+// ============================================
+// SHIP ORDER CONTROLLER
+// ============================================
+export const shipOrder = async (req, res) => {
+    try {
+        const { public_id } = req.params;
 
-//         // const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
-//         const page = Number.parseInt(req.query.page ?? "1", 10);
-//         const sort_filter = req.query.sort ?? "date_desc";
-//         const status_filter = [].concat(req.query.status || []);
-//         // const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
-//         // const min_filter = Number.parseInt(req.query.min ?? "0", 10)
-//         // const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
-//         const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ') //replace multiple spaces to single one
-//         console.log(search_query)
+        if (!public_id) {
+            return res.status(400).json({ message: "Order public_id is required" });
+        }
 
-//         const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired']
-//         status_filter.forEach(status => {
-//             if (!valid_status.includes(String(status).toLowerCase().trim()))
-//                 return res.status(400).json({ message: "Invalid status filter!!" })
-//         })
+        // Start transaction
+        const result = await sql.begin(async (sql) => {
+            // 1. Get the order and verify it exists
+            const order = await sql`
+                SELECT id, status, public_id
+                FROM orders
+                WHERE public_id = ${public_id}
+                AND deleted_at IS NULL
+            `;
 
-//         const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc']
-//         if (!valid_sort.includes(String(sort_filter).toLowerCase().trim()))
-//             return res.status(400).json({ message: "Invalid sort filter!!" })
+            if (order.length === 0) {
+                throw { status: 404, message: "Order not found" };
+            }
 
-//         if (!Number.isFinite(page) || page < 1)
-//             return res.status(400).json({ message: "Invalid page parameter!!" });
+            const orderId = order[0].id;
+            const currentOrderStatus = order[0].status;
 
-//         const offset = (page - 1) * LIMIT
-//         const status = status_filter.length > 0 ? status_filter : valid_status;
+            // 2. Get all order items and check if they can be shipped
+            const items = await sql`
+                SELECT id, status, product_name, quantity
+                FROM order_items
+                WHERE order_id = ${orderId}
+            `;
 
-//         //Get count of all filtered products to calculate pages.
-//         const totalOrders = await sql`
-//             SELECT COUNT(*)::int AS total
-//             FROM orders
-//             LEFT JOIN order_items oi ON oi.order_id = o.id
-//             LEFT JOIN products p ON p.id = oi.product_id
-//             WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
-//                 ${search_query ? sql`
-//                     AND (
-//                         to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,''))
-//                         @@ plainto_tsquery('english', ${search_query})
-//                         OR p.name ILIKE ${'%' + search_query + '%'}
-//                         OR p.short_description ILIKE ${'%' + search_query + '%'}
-//                     )
-//                 ` : sql``}
-//         `;
+            if (items.length === 0) {
+                throw { status: 400, message: "Order has no items to ship" };
+            }
 
-//         if (totalOrders.length === 0)
-//             return res.status(200).json({
-//                 data: [],
-//                 meta: {
-//                     totalOrders: 0,
-//                     totalPages: 1,
-//                     page: 1,
-//                     limit: LIMIT
-//                 }
-//             })
+            // 3. Validate all items are in 'paid' status
+            const nonPaidItems = items.filter(item => item.status !== 'paid');
 
-//         const total = totalOrders?.[0]?.total ?? 0;
-//         const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+            if (nonPaidItems.length > 0) {
+                const itemNames = nonPaidItems.map(item => item.product_name).join(', ');
+                throw {
+                    status: 400,
+                    message: `Cannot ship order. The following items are not paid: ${itemNames}`
+                };
+            }
 
-//         //Get products with filters applied
-//         const data = await sql`
-//             SELECT
-//                 oi.product_id,
-//                 oi.public_id,
-//                 oi.variant_id,
-//                 oi.product_name,
-//                 oi.quantity,
-//                 oi.unit_price,
-//                 oi.created_at,
-//                 oi.status,
+            // 4. Update all order items to 'shipped'
+            await sql`
+                UPDATE order_items
+                SET 
+                    status = 'shipped',
+                    updated_at = now()
+                WHERE order_id = ${orderId}
+            `;
 
-//                 o.id AS order_id,
-//                 o.transaction_id,
+            // 5. Update order to 'shipped'
+            const updatedOrder = await sql`
+                UPDATE orders
+                SET 
+                    status = 'shipped',
+                    shipped_at = now(),
+                    updated_at = now()
+                WHERE id = ${orderId}
+                RETURNING 
+                    id,
+                    public_id,
+                    transaction_id,
+                    status,
+                    total_amount,
+                    shipped_at,
+                    updated_at
+            `;
+
+            return {
+                order: updatedOrder[0],
+                itemsShipped: items.length
+            };
+        });
+
+        return res.status(200).json({
+            message: "Order shipped successfully",
+            data: result
+        });
+
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+        logger.error("Error shipping order:", error);
+        return res.status(500).json({ message: "Failed to ship order" });
+    }
+};
 
 
-//                 p.slug,
-//                 pv.color,
-//                 pv.hex_color,
-//                 pv.size,
-//                 pi.url,
-//                 pi.alt_text
+// ============================================
+// DELIVER ORDER CONTROLLER
+// ============================================
+export const deliverOrder = async (req, res) => {
+    try {
+        const { public_id } = req.params;
 
-//             FROM orders o
-//             LEFT JOIN order_items oi ON oi.order_id = o.id
-//             LEFT JOIN products p ON p.id = oi.product_id
-//             LEFT JOIN product_variants pv ON pv.id = oi.variant_id
-//             LEFT JOIN LATERAL (
-//                 SELECT url, alt_text
-//                 FROM product_images
-//                 WHERE product_id = oi.product_id
-//                 AND is_primary = TRUE
-//                 LIMIT 1
-//             ) pi ON TRUE
+        if (!public_id) {
+            return res.status(400).json({ message: "Order public_id is required" });
+        }
 
-//             WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
-//             ${search_query ? sql`
-//                     AND (
-//                         to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,''))
-//                         @@ plainto_tsquery('english', ${search_query})
-//                         OR p.name ILIKE ${'%' + search_query + '%'}
-//                         OR p.short_description ILIKE ${'%' + search_query + '%'}
-//                     )
-//                 ` : sql``}
-//             ${sort_filter === 'price_desc' ? sql`ORDER BY (oi.unit_price * oi.quantity) DESC NULLS LAST, oi.id DESC` : sql``}
-//             ${sort_filter === 'price_asc' ? sql`ORDER BY (oi.unit_price * oi.quantity) ASC NULLS LAST, oi.id DESC` : sql``}
-//             ${sort_filter === 'date_desc' ? sql`ORDER BY oi.created_at DESC, oi.id DESC` : sql``}
-//             ${sort_filter === 'date_asc' ? sql`ORDER BY oi.created_at ASC, oi.id ASC` : sql``}
-//             GROUP BY o.id
-//             LIMIT ${LIMIT} OFFSET ${offset};
-//         `;
+        // Start transaction
+        const result = await sql.begin(async (sql) => {
+            // 1. Get the order and verify it exists
+            const order = await sql`
+                SELECT id, status, public_id
+                FROM orders
+                WHERE public_id = ${public_id}
+                AND deleted_at IS NULL
+            `;
 
-//         //Return response
-//         return res.status(200).json({
-//             data,
-//             meta: {
-//                 totalOrders: total,
-//                 totalPages: totalPages,
-//                 page,
-//                 limit: LIMIT
-//             }
-//         })
-//     } catch (error) {
-//         console.log(error)
-//         logger.error("Error while getting orders!!", error);
-//         return res.status(500).json({ message: "failed to fetch orders" });
-//     }
-// }
+            if (order.length === 0) {
+                throw { status: 404, message: "Order not found" };
+            }
+
+            const orderId = order[0].id;
+            const currentOrderStatus = order[0].status;
+
+            // 2. Get all order items and check if they can be delivered
+            const items = await sql`
+                SELECT id, status, product_name, quantity
+                FROM order_items
+                WHERE order_id = ${orderId}
+            `;
+
+            if (items.length === 0) {
+                throw { status: 400, message: "Order has no items to deliver" };
+            }
+
+            // 3. Validate all items are in 'shipped' status
+            const nonShippedItems = items.filter(item => item.status !== 'shipped');
+
+            if (nonShippedItems.length > 0) {
+                const itemNames = nonShippedItems.map(item => item.product_name).join(', ');
+                throw {
+                    status: 400,
+                    message: `Cannot deliver order. The following items are not shipped: ${itemNames}`
+                };
+            }
+
+            // 4. Update all order items to 'delivered'
+            await sql`
+                UPDATE order_items
+                SET 
+                    status = 'delivered',
+                    updated_at = now()
+                WHERE order_id = ${orderId}
+            `;
+
+            // 5. Update order to 'delivered'
+            const updatedOrder = await sql`
+                UPDATE orders
+                SET 
+                    status = 'delivered',
+                    delivered_at = now(),
+                    updated_at = now()
+                WHERE id = ${orderId}
+                RETURNING 
+                    id,
+                    public_id,
+                    transaction_id,
+                    status,
+                    total_amount,
+                    shipped_at,
+                    delivered_at,
+                    updated_at
+            `;
+
+            return {
+                order: updatedOrder[0],
+                itemsDelivered: items.length
+            };
+        });
+
+        return res.status(200).json({
+            message: "Order delivered successfully",
+            data: result
+        });
+
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+        logger.error("Error delivering order:", error);
+        return res.status(500).json({ message: "Failed to deliver order" });
+    }
+};
+
+
+// ============================================
+// CANCEL ORDER CONTROLLER (Admin)
+// ============================================
+export const cancelOrderByAdmin = async (req, res) => {
+    try {
+        const { public_id } = req.params;
+        const { reason, refund } = req.body; // Optional cancellation reason and refund flag
+
+        if (!public_id) {
+            return res.status(400).json({ message: "Order public_id is required" });
+        }
+
+        // Start transaction
+        const result = await sql.begin(async (sql) => {
+            // 1. Get the order and verify it exists
+            const order = await sql`
+                SELECT id, status, public_id, total_amount, user_id
+                FROM orders
+                WHERE public_id = ${public_id}
+                AND deleted_at IS NULL
+            `;
+
+            if (order.length === 0) {
+                throw { status: 404, message: "Order not found" };
+            }
+
+            const orderId = order[0].id;
+            const currentStatus = order[0].status;
+
+            // 2. Check if order can be cancelled
+            // Cannot cancel if already delivered, cancelled, or refunded
+            const nonCancellableStatuses = ['delivered', 'cancelled', 'refunded'];
+            if (nonCancellableStatuses.includes(currentStatus)) {
+                throw {
+                    status: 400,
+                    message: `Cannot cancel order with status: ${currentStatus}`
+                };
+            }
+
+            // 3. Get all order items
+            const items = await sql`
+                SELECT 
+                    id, 
+                    status, 
+                    product_name, 
+                    quantity,
+                    variant_id,
+                    product_id
+                FROM order_items
+                WHERE order_id = ${orderId}
+            `;
+
+            // 4. Restore inventory for cancelled items
+            // Only restore if items were reserved (in pending, paid, or shipped status)
+            for (const item of items) {
+                if (item.variant_id && ['pending', 'paid', 'shipped'].includes(item.status)) {
+                    // Release reserved inventory back to available
+                    await sql`
+                        UPDATE product_variants
+                        SET 
+                            reserved = GREATEST(0, reserved - ${item.quantity}),
+                            available = available + ${item.quantity},
+                            updated_at = now()
+                        WHERE id = ${item.variant_id}
+                    `;
+                }
+            }
+
+            // 5. Update all order items to 'cancelled'
+            await sql`
+                UPDATE order_items
+                SET 
+                    status = 'cancelled',
+                    cancelled_at = now(),
+                    updated_at = now()
+                WHERE order_id = ${orderId}
+            `;
+
+            // 6. Determine final order status (cancelled or refunded)
+            const finalStatus = refund === true ? 'refunded' : 'cancelled';
+
+            // 7. Update order status
+            const updatedOrder = await sql`
+                UPDATE orders
+                SET 
+                    status = ${finalStatus},
+                    notes = CASE 
+                        WHEN notes IS NULL THEN ${reason || 'Order cancelled by admin'}
+                        ELSE notes || E'\n' || ${reason || 'Order cancelled by admin'}
+                    END,
+                    updated_at = now()
+                WHERE id = ${orderId}
+                RETURNING 
+                    id,
+                    public_id,
+                    transaction_id,
+                    status,
+                    total_amount,
+                    notes,
+                    updated_at
+            `;
+
+            // 8. Log the cancellation (optional - you might want to create an order_history table)
+            // await sql`
+            //     INSERT INTO order_history (order_id, action, performed_by, reason, created_at)
+            //     VALUES (${orderId}, 'cancelled', ${req.user.id}, ${reason}, now())
+            // `;
+
+            return {
+                order: updatedOrder[0],
+                itemsCancelled: items.length,
+                inventoryRestored: items.filter(i => i.variant_id && ['pending', 'paid', 'shipped'].includes(i.status)).length,
+                refunded: refund === true
+            };
+        });
+
+        return res.status(200).json({
+            message: result.refunded ? "Order cancelled and refunded successfully" : "Order cancelled successfully",
+            data: result
+        });
+
+    } catch (error) {
+        if (error.status) {
+            return res.status(error.status).json({ message: error.message });
+        }
+        logger.error("Error cancelling order:", error);
+        return res.status(500).json({ message: "Failed to cancel order" });
+    }
+};
+
+
+// ============================================
+// OPTIONAL: GET ORDER STATUS HISTORY
+// ============================================
+export const getOrderStatusHistory = async (req, res) => {
+    try {
+        const { public_id } = req.params;
+
+        const order = await sql`
+            SELECT 
+                id,
+                public_id,
+                status,
+                placed_at,
+                paid_at,
+                shipped_at,
+                delivered_at,
+                created_at,
+                updated_at
+            FROM orders
+            WHERE public_id = ${public_id}
+            AND deleted_at IS NULL
+        `;
+
+        if (order.length === 0) {
+            return res.status(404).json({ message: "Order not found" });
+        }
+
+        // Build status timeline
+        const timeline = [];
+        const orderData = order[0];
+
+        if (orderData.created_at) {
+            timeline.push({
+                status: 'pending',
+                timestamp: orderData.created_at,
+                label: 'Order Created'
+            });
+        }
+
+        if (orderData.paid_at) {
+            timeline.push({
+                status: 'paid',
+                timestamp: orderData.paid_at,
+                label: 'Payment Confirmed'
+            });
+        }
+
+        if (orderData.shipped_at) {
+            timeline.push({
+                status: 'shipped',
+                timestamp: orderData.shipped_at,
+                label: 'Order Shipped'
+            });
+        }
+
+        if (orderData.delivered_at) {
+            timeline.push({
+                status: 'delivered',
+                timestamp: orderData.delivered_at,
+                label: 'Order Delivered'
+            });
+        }
+
+        return res.status(200).json({
+            order_id: orderData.public_id,
+            current_status: orderData.status,
+            timeline: timeline.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+        });
+
+    } catch (error) {
+        logger.error("Error getting order status history:", error);
+        return res.status(500).json({ message: "Failed to get order status history" });
+    }
+};
