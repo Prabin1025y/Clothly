@@ -71,7 +71,7 @@ export default function ProductDetailPage() {
         error: productInfoError
     } = useAdminProductDetailBySlug(slug || "")
 
-    const { data, isFetching, isLoading, isError, error } = useAdminProductReviewsBySlug(slug || "");
+    const { data, isFetching, isLoading, isError, error } = useAdminProductReviewsBySlug(slug || ""); //TODO: create loading and retry logic
 
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleDateString('en-US', {

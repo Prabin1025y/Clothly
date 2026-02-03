@@ -338,3 +338,131 @@ export const cancelOrder = async (req, res) => {
         client.release();
     }
 }
+
+export const getOrders = async (req, res) => {
+    try {
+        const LIMIT = 20;
+
+        // const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+        const page = Number.parseInt(req.query.page ?? "1", 10);
+        const sort_filter = req.query.sort ?? "date_desc";
+        const status_filter = [].concat(req.query.status || []);
+        // const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
+        // const min_filter = Number.parseInt(req.query.min ?? "0", 10)
+        // const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
+        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ') //replace multiple spaces to single one
+        console.log(search_query)
+
+        const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired']
+        status_filter.forEach(status => {
+            if (!valid_status.includes(String(status).toLowerCase().trim()))
+                return res.status(400).json({ message: "Invalid status filter!!" })
+        })
+
+        const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc']
+        if (!valid_sort.includes(String(sort_filter).toLowerCase().trim()))
+            return res.status(400).json({ message: "Invalid sort filter!!" })
+
+        if (!Number.isFinite(page) || page < 1)
+            return res.status(400).json({ message: "Invalid page parameter!!" });
+
+        const offset = (page - 1) * LIMIT
+        const status = status_filter.length > 0 ? status_filter : valid_status;
+
+        //Get count of all filtered products to calculate pages.
+        const totalOrders = await sql`
+            SELECT COUNT(*)::int AS total
+            FROM order_items oi
+            LEFT JOIN orders o ON o.id = oi.order_id
+            LEFT JOIN products p ON p.id = oi.product_id
+            WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
+                ${search_query ? sql`
+                    AND (
+                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                        @@ plainto_tsquery('english', ${search_query})
+                        OR p.name ILIKE ${'%' + search_query + '%'}
+                        OR p.short_description ILIKE ${'%' + search_query + '%'}
+                    )
+                ` : sql``}
+        `;
+
+        if (totalOrders.length === 0)
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalOrders: 0,
+                    totalPages: 1,
+                    page: 1,
+                    limit: LIMIT
+                }
+            })
+
+        const total = totalOrders?.[0]?.total ?? 0;
+        const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+        //Get products with filters applied
+        const data = await sql`
+            SELECT
+                oi.product_id,
+                oi.public_id,
+                oi.variant_id,
+                oi.product_name,
+                oi.quantity,
+                oi.unit_price,
+                oi.created_at,
+                oi.status,
+
+                o.id AS order_id,
+                o.transaction_id,
+
+
+                p.slug,
+                pv.color,
+                pv.hex_color,
+                pv.size,
+                pi.url,
+                pi.alt_text
+
+            FROM order_items oi
+            JOIN orders o ON o.id = oi.order_id
+            LEFT JOIN products p ON p.id = oi.product_id
+            LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+            LEFT JOIN LATERAL (
+                SELECT url, alt_text
+                FROM product_images
+                WHERE product_id = oi.product_id
+                AND is_primary = TRUE
+                LIMIT 1
+            ) pi ON TRUE
+
+            WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
+            ${search_query ? sql`
+                    AND (
+                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
+                        @@ plainto_tsquery('english', ${search_query})
+                        OR p.name ILIKE ${'%' + search_query + '%'}
+                        OR p.short_description ILIKE ${'%' + search_query + '%'}
+                    )
+                ` : sql``}
+            ${sort_filter === 'price_desc' ? sql`ORDER BY (oi.unit_price * oi.quantity) DESC NULLS LAST, oi.id DESC` : sql``}
+            ${sort_filter === 'price_asc' ? sql`ORDER BY (oi.unit_price * oi.quantity) ASC NULLS LAST, oi.id DESC` : sql``}
+            ${sort_filter === 'date_desc' ? sql`ORDER BY oi.created_at DESC, oi.id DESC` : sql``}
+            ${sort_filter === 'date_asc' ? sql`ORDER BY oi.created_at ASC, oi.id ASC` : sql``}
+            LIMIT ${LIMIT} OFFSET ${offset};
+        `;
+
+        //Return response
+        return res.status(200).json({
+            data,
+            meta: {
+                totalProducts: total,
+                totalPages: totalPages,
+                page,
+                limit: LIMIT
+            }
+        })
+    } catch (error) {
+        logger.error("Error while getting orders!!", error);
+        return res.status(500).json({ message: "failed to fetch orders" });
+    }
+}
