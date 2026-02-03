@@ -343,50 +343,63 @@ export const getOrders = async (req, res) => {
     try {
         const LIMIT = 20;
 
-        // const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+        // Parse and validate query parameters
         const page = Number.parseInt(req.query.page ?? "1", 10);
         const sort_filter = req.query.sort ?? "date_desc";
         const status_filter = [].concat(req.query.status || []);
-        // const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
-        // const min_filter = Number.parseInt(req.query.min ?? "0", 10)
-        // const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
-        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ') //replace multiple spaces to single one
-        console.log(search_query)
+        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ');
 
-        const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired']
-        status_filter.forEach(status => {
-            if (!valid_status.includes(String(status).toLowerCase().trim()))
-                return res.status(400).json({ message: "Invalid status filter!!" })
-        })
+        // Validation
+        const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired'];
+        const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc'];
 
-        const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc']
-        if (!valid_sort.includes(String(sort_filter).toLowerCase().trim()))
-            return res.status(400).json({ message: "Invalid sort filter!!" })
+        // Validate status filters
+        for (const status of status_filter) {
+            if (!valid_status.includes(String(status).toLowerCase().trim())) {
+                return res.status(400).json({ message: "Invalid status filter!!" });
+            }
+        }
 
-        if (!Number.isFinite(page) || page < 1)
+        // Validate sort filter
+        if (!valid_sort.includes(String(sort_filter).toLowerCase().trim())) {
+            return res.status(400).json({ message: "Invalid sort filter!!" });
+        }
+
+        // Validate page
+        if (!Number.isFinite(page) || page < 1) {
             return res.status(400).json({ message: "Invalid page parameter!!" });
+        }
 
-        const offset = (page - 1) * LIMIT
+        const offset = (page - 1) * LIMIT;
         const status = status_filter.length > 0 ? status_filter : valid_status;
 
-        //Get count of all filtered products to calculate pages.
-        const totalOrders = await sql`
-            SELECT COUNT(*)::int AS total
-            FROM order_items oi
-            LEFT JOIN orders o ON o.id = oi.order_id
-            LEFT JOIN products p ON p.id = oi.product_id
-            WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
-                ${search_query ? sql`
-                    AND (
-                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
-                        @@ plainto_tsquery('english', ${search_query})
-                        OR p.name ILIKE ${'%' + search_query + '%'}
-                        OR p.short_description ILIKE ${'%' + search_query + '%'}
-                    )
-                ` : sql``}
+        // Build search condition - reusable for both queries
+        const searchCondition = search_query ? sql`
+            AND EXISTS (
+                SELECT 1
+                FROM order_items oi2
+                LEFT JOIN products p2 ON p2.id = oi2.product_id
+                WHERE oi2.order_id = o.id
+                AND (
+                    to_tsvector('english', coalesce(p2.name,'') || ' ' || coalesce(p2.short_description,'')) 
+                    @@ plainto_tsquery('english', ${search_query})
+                    OR p2.name ILIKE ${'%' + search_query + '%'}
+                    OR p2.short_description ILIKE ${'%' + search_query + '%'}
+                )
+            )
+        ` : sql``;
+
+        // Get count of all filtered orders
+        const totalOrdersResult = await sql`
+            SELECT COUNT(DISTINCT o.id)::int AS total
+            FROM orders o
+            WHERE o.status = ANY(${status})
+                ${searchCondition}
         `;
 
-        if (totalOrders.length === 0)
+        const total = totalOrdersResult?.[0]?.total ?? 0;
+
+        if (total === 0) {
             return res.status(200).json({
                 data: [],
                 meta: {
@@ -395,36 +408,85 @@ export const getOrders = async (req, res) => {
                     page: 1,
                     limit: LIMIT
                 }
-            })
+            });
+        }
 
-        const total = totalOrders?.[0]?.total ?? 0;
         const totalPages = Math.max(1, Math.ceil(total / LIMIT));
 
-        //Get products with filters applied
-        const data = await sql`
+        // Get orders with their IDs first (with pagination and sorting)
+        const orderIds = await sql`
+            SELECT o.id
+            FROM orders o
+            WHERE o.status = ANY(${status})
+                ${searchCondition}
+            ${sort_filter === 'price_desc' ? sql`ORDER BY o.total_amount DESC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'price_asc' ? sql`ORDER BY o.total_amount ASC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'date_desc' ? sql`ORDER BY o.created_at DESC, o.id DESC` : sql``}
+            ${sort_filter === 'date_asc' ? sql`ORDER BY o.created_at ASC, o.id ASC` : sql``}
+            LIMIT ${LIMIT} OFFSET ${offset}
+        `;
+
+        if (orderIds.length === 0) {
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalOrders: total,
+                    totalPages: totalPages,
+                    page,
+                    limit: LIMIT
+                }
+            });
+        }
+
+        const orderIdList = orderIds.map(row => row.id);
+
+        // Get full order details with all items
+        const ordersWithItems = await sql`
             SELECT
+                o.id AS order_id,
+                o.public_id AS order_public_id,
+                o.transaction_id,
+                o.subtotal,
+                o.shipping_cost,
+                o.tax_amount,
+                o.discount_amount,
+                o.total_amount,
+                o.status AS order_status,
+                o.currency,
+                o.payment_method,
+                o.placed_at,
+                o.paid_at,
+                o.shipped_at,
+                o.delivered_at,
+                o.notes,
+                o.created_at AS order_created_at,
+                o.updated_at AS order_updated_at,
+
+                oi.id AS item_id,
+                oi.public_id AS item_public_id,
                 oi.product_id,
-                oi.public_id,
                 oi.variant_id,
                 oi.product_name,
+                oi.status AS item_status,
                 oi.quantity,
                 oi.unit_price,
-                oi.created_at,
-                oi.status,
+                oi.cancelled_at,
+                oi.created_at AS item_created_at,
+                (oi.unit_price * oi.quantity) AS item_total_price,
 
-                o.id AS order_id,
-                o.transaction_id,
-
-
-                p.slug,
+                p.slug AS product_slug,
+                p.name AS product_name,
+                p.short_description AS product_description,
+                
                 pv.color,
                 pv.hex_color,
                 pv.size,
-                pi.url,
-                pi.alt_text
+                
+                pi.url AS image_url,
+                pi.alt_text AS image_alt_text
 
-            FROM order_items oi
-            JOIN orders o ON o.id = oi.order_id
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.id
             LEFT JOIN products p ON p.id = oi.product_id
             LEFT JOIN product_variants pv ON pv.id = oi.variant_id
             LEFT JOIN LATERAL (
@@ -435,34 +497,225 @@ export const getOrders = async (req, res) => {
                 LIMIT 1
             ) pi ON TRUE
 
-            WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
-            ${search_query ? sql`
-                    AND (
-                        to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,'')) 
-                        @@ plainto_tsquery('english', ${search_query})
-                        OR p.name ILIKE ${'%' + search_query + '%'}
-                        OR p.short_description ILIKE ${'%' + search_query + '%'}
-                    )
-                ` : sql``}
-            ${sort_filter === 'price_desc' ? sql`ORDER BY (oi.unit_price * oi.quantity) DESC NULLS LAST, oi.id DESC` : sql``}
-            ${sort_filter === 'price_asc' ? sql`ORDER BY (oi.unit_price * oi.quantity) ASC NULLS LAST, oi.id DESC` : sql``}
-            ${sort_filter === 'date_desc' ? sql`ORDER BY oi.created_at DESC, oi.id DESC` : sql``}
-            ${sort_filter === 'date_asc' ? sql`ORDER BY oi.created_at ASC, oi.id ASC` : sql``}
-            LIMIT ${LIMIT} OFFSET ${offset};
+            WHERE o.id = ANY(${orderIdList})
+           ${sort_filter === 'price_desc' ? sql`ORDER BY o.total_amount DESC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'price_asc' ? sql`ORDER BY o.total_amount ASC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'date_desc' ? sql`ORDER BY o.created_at DESC, o.id DESC` : sql``}
+            ${sort_filter === 'date_asc' ? sql`ORDER BY o.created_at ASC, o.id ASC` : sql``}
         `;
 
-        //Return response
+        // Transform flat results into nested structure
+        const ordersMap = new Map();
+
+        for (const row of ordersWithItems) {
+            const orderId = row.order_id;
+
+            // Initialize order if not exists
+            if (!ordersMap.has(orderId)) {
+                ordersMap.set(orderId, {
+                    id: row.order_id,
+                    public_id: row.order_public_id,
+                    transaction_id: row.transaction_id,
+                    subtotal: row.subtotal,
+                    shipping_cost: row.shipping_cost,
+                    tax_amount: row.tax_amount,
+                    discount_amount: row.discount_amount,
+                    total_amount: row.total_amount,
+                    status: row.order_status,
+                    currency: row.currency,
+                    payment_method: row.payment_method,
+                    placed_at: row.placed_at,
+                    paid_at: row.paid_at,
+                    shipped_at: row.shipped_at,
+                    delivered_at: row.delivered_at,
+                    notes: row.notes,
+                    created_at: row.order_created_at,
+                    updated_at: row.order_updated_at,
+                    items: []
+                });
+            }
+
+            // Add order item if exists (handle case where order has no items)
+            if (row.item_id) {
+                const order = ordersMap.get(orderId);
+                order.items.push({
+                    id: row.item_id,
+                    public_id: row.item_public_id,
+                    product_id: row.product_id,
+                    variant_id: row.variant_id,
+                    product_name: row.product_name,
+                    status: row.item_status,
+                    quantity: row.quantity,
+                    unit_price: row.unit_price,
+                    total_price: row.item_total_price,
+                    cancelled_at: row.cancelled_at,
+                    created_at: row.item_created_at,
+                    product: {
+                        slug: row.product_slug,
+                        name: row.product_name,
+                        description: row.product_description
+                    },
+                    variant: row.variant_id ? {
+                        color: row.color,
+                        hex_color: row.hex_color,
+                        size: row.size
+                    } : null,
+                    image: row.image_url ? {
+                        url: row.image_url,
+                        alt_text: row.image_alt_text
+                    } : null
+                });
+            }
+        }
+
+        // Convert map to array
+        const data = Array.from(ordersMap.values());
+
+        // Return response
         return res.status(200).json({
             data,
             meta: {
-                totalProducts: total,
+                totalOrders: total,
                 totalPages: totalPages,
                 page,
                 limit: LIMIT
             }
-        })
+        });
+
     } catch (error) {
+        console.log(error)
         logger.error("Error while getting orders!!", error);
-        return res.status(500).json({ message: "failed to fetch orders" });
+        return res.status(500).json({ message: "Failed to fetch orders" });
     }
-}
+};
+
+// export const getOrders = async (req, res) => {
+
+//     try {
+//         const LIMIT = 20;
+
+//         // const limit = Number.parseInt(req.query.limit ?? String(DEFAULT_LIMIT), 10);
+//         const page = Number.parseInt(req.query.page ?? "1", 10);
+//         const sort_filter = req.query.sort ?? "date_desc";
+//         const status_filter = [].concat(req.query.status || []);
+//         // const size_filter = [].concat(req.query.size || []); //This is done to get array even if there is only one size selected.
+//         // const min_filter = Number.parseInt(req.query.min ?? "0", 10)
+//         // const max_filter = req.query.max ? Number.parseInt(req.query.max, 10) : "";
+//         const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ') //replace multiple spaces to single one
+//         console.log(search_query)
+
+//         const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired']
+//         status_filter.forEach(status => {
+//             if (!valid_status.includes(String(status).toLowerCase().trim()))
+//                 return res.status(400).json({ message: "Invalid status filter!!" })
+//         })
+
+//         const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc']
+//         if (!valid_sort.includes(String(sort_filter).toLowerCase().trim()))
+//             return res.status(400).json({ message: "Invalid sort filter!!" })
+
+//         if (!Number.isFinite(page) || page < 1)
+//             return res.status(400).json({ message: "Invalid page parameter!!" });
+
+//         const offset = (page - 1) * LIMIT
+//         const status = status_filter.length > 0 ? status_filter : valid_status;
+
+//         //Get count of all filtered products to calculate pages.
+//         const totalOrders = await sql`
+//             SELECT COUNT(*)::int AS total
+//             FROM orders
+//             LEFT JOIN order_items oi ON oi.order_id = o.id
+//             LEFT JOIN products p ON p.id = oi.product_id
+//             WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
+//                 ${search_query ? sql`
+//                     AND (
+//                         to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,''))
+//                         @@ plainto_tsquery('english', ${search_query})
+//                         OR p.name ILIKE ${'%' + search_query + '%'}
+//                         OR p.short_description ILIKE ${'%' + search_query + '%'}
+//                     )
+//                 ` : sql``}
+//         `;
+
+//         if (totalOrders.length === 0)
+//             return res.status(200).json({
+//                 data: [],
+//                 meta: {
+//                     totalOrders: 0,
+//                     totalPages: 1,
+//                     page: 1,
+//                     limit: LIMIT
+//                 }
+//             })
+
+//         const total = totalOrders?.[0]?.total ?? 0;
+//         const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+//         //Get products with filters applied
+//         const data = await sql`
+//             SELECT
+//                 oi.product_id,
+//                 oi.public_id,
+//                 oi.variant_id,
+//                 oi.product_name,
+//                 oi.quantity,
+//                 oi.unit_price,
+//                 oi.created_at,
+//                 oi.status,
+
+//                 o.id AS order_id,
+//                 o.transaction_id,
+
+
+//                 p.slug,
+//                 pv.color,
+//                 pv.hex_color,
+//                 pv.size,
+//                 pi.url,
+//                 pi.alt_text
+
+//             FROM orders o
+//             LEFT JOIN order_items oi ON oi.order_id = o.id
+//             LEFT JOIN products p ON p.id = oi.product_id
+//             LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+//             LEFT JOIN LATERAL (
+//                 SELECT url, alt_text
+//                 FROM product_images
+//                 WHERE product_id = oi.product_id
+//                 AND is_primary = TRUE
+//                 LIMIT 1
+//             ) pi ON TRUE
+
+//             WHERE oi.status = ANY(${status}) AND o.status = ANY(${status})
+//             ${search_query ? sql`
+//                     AND (
+//                         to_tsvector('english', coalesce(p.name,'') || ' ' || coalesce(p.short_description,''))
+//                         @@ plainto_tsquery('english', ${search_query})
+//                         OR p.name ILIKE ${'%' + search_query + '%'}
+//                         OR p.short_description ILIKE ${'%' + search_query + '%'}
+//                     )
+//                 ` : sql``}
+//             ${sort_filter === 'price_desc' ? sql`ORDER BY (oi.unit_price * oi.quantity) DESC NULLS LAST, oi.id DESC` : sql``}
+//             ${sort_filter === 'price_asc' ? sql`ORDER BY (oi.unit_price * oi.quantity) ASC NULLS LAST, oi.id DESC` : sql``}
+//             ${sort_filter === 'date_desc' ? sql`ORDER BY oi.created_at DESC, oi.id DESC` : sql``}
+//             ${sort_filter === 'date_asc' ? sql`ORDER BY oi.created_at ASC, oi.id ASC` : sql``}
+//             GROUP BY o.id
+//             LIMIT ${LIMIT} OFFSET ${offset};
+//         `;
+
+//         //Return response
+//         return res.status(200).json({
+//             data,
+//             meta: {
+//                 totalOrders: total,
+//                 totalPages: totalPages,
+//                 page,
+//                 limit: LIMIT
+//             }
+//         })
+//     } catch (error) {
+//         console.log(error)
+//         logger.error("Error while getting orders!!", error);
+//         return res.status(500).json({ message: "failed to fetch orders" });
+//     }
+// }

@@ -294,64 +294,265 @@ async function init_reviews(client) {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_product ON reviews(product_id);`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(user_id);`);
 }
+export const getOrders = async (req, res) => {
+    try {
+        const LIMIT = 20;
 
-async function init_orders(client) {
-    await client.query(`
-        CREATE TABLE IF NOT EXISTS orders (
-            id BIGSERIAL PRIMARY KEY,
-            public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
-            user_id BIGINT REFERENCES users(id) ON DELETE SET NULL,
-            transaction_id VARCHAR(255) DEFAULT NULL,
-            subtotal NUMERIC(12,2) NOT NULL DEFAULT 0,
-            shipping_cost NUMERIC(12,2) NOT NULL DEFAULT 0,
-            tax_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-            discount_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-            total_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-            status order_status NOT NULL DEFAULT 'pending',
-            currency CHAR(3) DEFAULT 'NPR',
-            shipping_address_id BIGINT REFERENCES shipping_addresses(id) ON DELETE SET NULL,
-            billing_address_id BIGINT REFERENCES shipping_addresses(id) ON DELETE SET NULL,
-            payment_method VARCHAR(255),
-            placed_at TIMESTAMP WITH TIME ZONE,
-            paid_at TIMESTAMP WITH TIME ZONE,
-            shipped_at TIMESTAMP WITH TIME ZONE,
-            delivered_at TIMESTAMP WITH TIME ZONE,
-            deleted_at TIMESTAMP WITH TIME ZONE,
-            notes TEXT,
-            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-        );
-    `);
+        // Parse and validate query parameters
+        const page = Number.parseInt(req.query.page ?? "1", 10);
+        const sort_filter = req.query.sort ?? "date_desc";
+        const status_filter = [].concat(req.query.status || []);
+        const search_query = (req.query.search ?? "").toString().trim().replace(/\s+/g, ' ');
 
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_placed_at ON orders(placed_at);`);
-    await client.query(`CREATE UNIQUE INDEX ON orders(transaction_id) WHERE transaction_id IS NOT NULL;`);
-}
+        // Validation
+        const valid_status = ['pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded', 'returned', 'expired'];
+        const valid_sort = ['date_asc', 'date_desc', 'price_asc', 'price_desc'];
 
-async function init_order_items(client) {
-    await client.query(`
-        CREATE TABLE IF NOT EXISTS order_items (
-            id BIGSERIAL PRIMARY KEY,
-            public_id UUID NOT NULL DEFAULT uuid_generate_v4() UNIQUE,
-            order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-            product_id BIGINT REFERENCES products(id) ON DELETE SET NULL,
-            variant_id BIGINT REFERENCES product_variants(id) ON DELETE SET NULL,
-            product_name VARCHAR(512),
-            status order_status NOT NULL DEFAULT 'pending',
-            quantity INT NOT NULL CHECK (quantity > 0),
-            unit_price NUMERIC(12,2) NOT NULL,
-            cancelled_at TIMESTAMP WITH TIME ZONE,
-            created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-            updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
-        );
-    `);
+        // Validate status filters
+        for (const status of status_filter) {
+            if (!valid_status.includes(String(status).toLowerCase().trim())) {
+                return res.status(400).json({ message: "Invalid status filter!!" });
+            }
+        }
 
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_order ON order_items(order_id);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_status ON order_items(status);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_product ON order_items(product_id);`);
-    await client.query(`CREATE INDEX IF NOT EXISTS idx_order_items_public_id ON order_items(public_id);`);
-}
+        // Validate sort filter
+        if (!valid_sort.includes(String(sort_filter).toLowerCase().trim())) {
+            return res.status(400).json({ message: "Invalid sort filter!!" });
+        }
+
+        // Validate page
+        if (!Number.isFinite(page) || page < 1) {
+            return res.status(400).json({ message: "Invalid page parameter!!" });
+        }
+
+        const offset = (page - 1) * LIMIT;
+        const status = status_filter.length > 0 ? status_filter : valid_status;
+
+        // Build search condition - reusable for both queries
+        const searchCondition = search_query ? sql`
+            AND EXISTS (
+                SELECT 1
+                FROM order_items oi2
+                LEFT JOIN products p2 ON p2.id = oi2.product_id
+                WHERE oi2.order_id = o.id
+                AND (
+                    to_tsvector('english', coalesce(p2.name,'') || ' ' || coalesce(p2.short_description,'')) 
+                    @@ plainto_tsquery('english', ${search_query})
+                    OR p2.name ILIKE ${'%' + search_query + '%'}
+                    OR p2.short_description ILIKE ${'%' + search_query + '%'}
+                )
+            )
+        ` : sql``;
+
+        // Get count of all filtered orders
+        const totalOrdersResult = await sql`
+            SELECT COUNT(DISTINCT o.id)::int AS total
+            FROM orders o
+            WHERE o.status = ANY(${status})
+                ${searchCondition}
+        `;
+
+        const total = totalOrdersResult?.[0]?.total ?? 0;
+
+        if (total === 0) {
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalOrders: 0,
+                    totalPages: 1,
+                    page: 1,
+                    limit: LIMIT
+                }
+            });
+        }
+
+        const totalPages = Math.max(1, Math.ceil(total / LIMIT));
+
+        // Get orders with their IDs first (with pagination and sorting)
+        const orderIds = await sql`
+            SELECT o.id
+            FROM orders o
+            WHERE o.status = ANY(${status})
+                ${searchCondition}
+            ${sort_filter === 'price_desc' ? sql`ORDER BY o.total_amount DESC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'price_asc' ? sql`ORDER BY o.total_amount ASC NULLS LAST, o.id DESC` : sql``}
+            ${sort_filter === 'date_desc' ? sql`ORDER BY o.created_at DESC, o.id DESC` : sql``}
+            ${sort_filter === 'date_asc' ? sql`ORDER BY o.created_at ASC, o.id ASC` : sql``}
+            LIMIT ${LIMIT} OFFSET ${offset}
+        `;
+
+        if (orderIds.length === 0) {
+            return res.status(200).json({
+                data: [],
+                meta: {
+                    totalOrders: total,
+                    totalPages: totalPages,
+                    page,
+                    limit: LIMIT
+                }
+            });
+        }
+
+        const orderIdList = orderIds.map(row => row.id);
+
+        // Get full order details with all items
+        const ordersWithItems = await sql`
+            SELECT
+                o.id AS order_id,
+                o.public_id AS order_public_id,
+                o.transaction_id,
+                o.subtotal,
+                o.shipping_cost,
+                o.tax_amount,
+                o.discount_amount,
+                o.total_amount,
+                o.status AS order_status,
+                o.currency,
+                o.payment_method,
+                o.placed_at,
+                o.paid_at,
+                o.shipped_at,
+                o.delivered_at,
+                o.notes,
+                o.created_at AS order_created_at,
+                o.updated_at AS order_updated_at,
+
+                oi.id AS item_id,
+                oi.public_id AS item_public_id,
+                oi.product_id,
+                oi.variant_id,
+                oi.product_name,
+                oi.status AS item_status,
+                oi.quantity,
+                oi.unit_price,
+                oi.cancelled_at,
+                oi.created_at AS item_created_at,
+                (oi.unit_price * oi.quantity) AS item_total_price,
+
+                p.slug AS product_slug,
+                p.name AS product_name,
+                p.short_description AS product_description,
+                
+                pv.color,
+                pv.hex_color,
+                pv.size,
+                
+                pi.url AS image_url,
+                pi.alt_text AS image_alt_text
+
+            FROM orders o
+            LEFT JOIN order_items oi ON oi.order_id = o.id
+            LEFT JOIN products p ON p.id = oi.product_id
+            LEFT JOIN product_variants pv ON pv.id = oi.variant_id
+            LEFT JOIN LATERAL (
+                SELECT url, alt_text
+                FROM product_images
+                WHERE product_id = oi.product_id
+                AND is_primary = TRUE
+                LIMIT 1
+            ) pi ON TRUE
+
+            WHERE o.id = ANY(${orderIdList})
+            ORDER BY 
+                CASE 
+                    WHEN ${sort_filter} = 'price_desc' THEN o.total_amount 
+                END DESC NULLS LAST,
+                CASE 
+                    WHEN ${sort_filter} = 'price_asc' THEN o.total_amount 
+                END ASC NULLS LAST,
+                CASE 
+                    WHEN ${sort_filter} = 'date_desc' THEN o.created_at 
+                END DESC,
+                CASE 
+                    WHEN ${sort_filter} = 'date_asc' THEN o.created_at 
+                END ASC,
+                o.id DESC,
+                oi.id ASC
+        `;
+
+        // Transform flat results into nested structure
+        const ordersMap = new Map();
+
+        for (const row of ordersWithItems) {
+            const orderId = row.order_id;
+
+            // Initialize order if not exists
+            if (!ordersMap.has(orderId)) {
+                ordersMap.set(orderId, {
+                    id: row.order_id,
+                    public_id: row.order_public_id,
+                    transaction_id: row.transaction_id,
+                    subtotal: row.subtotal,
+                    shipping_cost: row.shipping_cost,
+                    tax_amount: row.tax_amount,
+                    discount_amount: row.discount_amount,
+                    total_amount: row.total_amount,
+                    status: row.order_status,
+                    currency: row.currency,
+                    payment_method: row.payment_method,
+                    placed_at: row.placed_at,
+                    paid_at: row.paid_at,
+                    shipped_at: row.shipped_at,
+                    delivered_at: row.delivered_at,
+                    notes: row.notes,
+                    created_at: row.order_created_at,
+                    updated_at: row.order_updated_at,
+                    items: []
+                });
+            }
+
+            // Add order item if exists (handle case where order has no items)
+            if (row.item_id) {
+                const order = ordersMap.get(orderId);
+                order.items.push({
+                    id: row.item_id,
+                    public_id: row.item_public_id,
+                    product_id: row.product_id,
+                    variant_id: row.variant_id,
+                    product_name: row.product_name,
+                    status: row.item_status,
+                    quantity: row.quantity,
+                    unit_price: row.unit_price,
+                    total_price: row.item_total_price,
+                    cancelled_at: row.cancelled_at,
+                    created_at: row.item_created_at,
+                    product: {
+                        slug: row.product_slug,
+                        name: row.product_name,
+                        description: row.product_description
+                    },
+                    variant: row.variant_id ? {
+                        color: row.color,
+                        hex_color: row.hex_color,
+                        size: row.size
+                    } : null,
+                    image: row.image_url ? {
+                        url: row.image_url,
+                        alt_text: row.image_alt_text
+                    } : null
+                });
+            }
+        }
+
+        // Convert map to array
+        const data = Array.from(ordersMap.values());
+
+        // Return response
+        return res.status(200).json({
+            data,
+            meta: {
+                totalOrders: total,
+                totalPages: totalPages,
+                page,
+                limit: LIMIT
+            }
+        });
+
+    } catch (error) {
+        logger.error("Error while getting orders!!", error);
+        return res.status(500).json({ message: "Failed to fetch orders" });
+    }
+};
 
 async function init_carts(client) {
     await client.query(`
