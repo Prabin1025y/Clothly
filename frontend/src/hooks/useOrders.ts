@@ -1,6 +1,6 @@
 import { handleApiError } from "@/lib/axios";
 import { orderServices } from "@/service/orderService";
-import type { CreateOrderDto, OrderType } from "@/type/orders";
+import type { AdminOrderFilterType, CreateOrderDto, OrderType } from "@/type/orders";
 import { useUser } from "@clerk/clerk-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -10,7 +10,9 @@ export const orderKeys = {
     all: [ 'orders' ] as const,
 
     lists: () => [ ...orderKeys.all, "list" ] as const,
-    list: (transactionId: string) => [ ...orderKeys.lists(), transactionId ] as const
+    list: (transactionId: string) => [ ...orderKeys.lists(), transactionId ] as const,
+    adminLists: () => [ orderKeys.lists(), 'admin' ] as const,
+    adminList: (filter: AdminOrderFilterType) => [ orderKeys.adminLists(), filter ]
 }
 
 export function useCreateOrder() {
@@ -93,5 +95,12 @@ export function useCancelOrder() {
         onSettled: () => {
             queryClient.invalidateQueries({ queryKey: orderKeys.lists() })
         }
+    })
+}
+
+export function useAdminOrders(filter: AdminOrderFilterType) {
+    return useQuery({
+        queryKey: orderKeys.adminList(filter),
+        queryFn: () => orderServices.getAdminOrder(filter)
     })
 }
